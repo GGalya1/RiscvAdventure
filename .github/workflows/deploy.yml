@@ -11,7 +11,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        targetPlatform: [ StandaloneLinux64, StandaloneWindows64 ]
+        targetPlatform: [ StandaloneLinux64, StandaloneWindows64, WebGL ]
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -81,30 +81,44 @@ jobs:
             *.zip
             *.tar.gz
 
+  #################################################### itch.io ######################################################
   deploy:
-    name: Publish to itch.io
+    name: Publish to itch.io (${{ matrix.label }})
     needs: build
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         include:
           - targetPlatform: StandaloneLinux64
             channel: linux
             label: Linux
+            path: build/StandaloneLinux64
           - targetPlatform: StandaloneWindows64
             channel: windows
             label: Windows
+            path: build/StandaloneWindows64
+          - targetPlatform: WebGL
+            channel: webgl
+            label: WebGL
+            path: build/WebGL/WebGL
     steps:
       - name: Download build artifact
         uses: actions/download-artifact@v4
         with:
           name: build-${{ matrix.targetPlatform }}
           path: build/${{ matrix.targetPlatform }}
+
+      - name: Verify WebGL entry point
+        if: matrix.targetPlatform == 'WebGL'
+        run: test -f "${{ matrix.path }}/index.html" || (ls -R build/WebGL && exit 1)
+
       - name: Setup butler
         uses: remarkablegames/setup-butler@v3
+
       - name: Push build to itch.io
         run: |
-          butler push build/${{ matrix.targetPlatform }} \
+          butler push "${{ matrix.path }}" \
             ggalya/riscv-adventure:${{ matrix.channel }} \
             --userversion "${{ env.GAME_NAME }} ${{ github.ref_name }}"
         env:

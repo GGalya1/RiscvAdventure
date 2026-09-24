@@ -1885,7 +1885,7 @@ MonoBehaviour:
   - {fileID: 50915094}
   - {fileID: 577082176}
   - {fileID: 1645906810}
-  correctAnswer: 0
+  correctAnswer: 8
   nextClick: {fileID: 8933483285275860231}
   prevClick: {fileID: 8933483285275860230}
   currentTickText: {fileID: 8933483285275860229}
