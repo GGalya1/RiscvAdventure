@@ -1,3 +1,12 @@
+## Table of Contents
+- [Branching Naming Conventions](#branching-naming-conventions)
+- [Continuous Integration & Tests](#continuous-integration--tests)
+- [Use of AI Tools](#use-of-ai-tools)
+- [Tags & Releases](#tags--releases)
+
+
+---
+
 ## Branching Naming Conventions
 We follow the **Conventional Commits** naming pattern. All branches should be named in `kebab-case` using the following format:
 
@@ -23,7 +32,7 @@ Branch names are validated _automatically_ against this pattern:
 * Keep names concise but descriptive (2–4 words max).
 * Always branch off the `main` (or `develop`) branch.
 
-
+---
 
 ## Continuous Integration & Tests
 We use **GitHub Actions** to automatically run our Unity Test Runner suite on every pull request.
@@ -31,7 +40,7 @@ We use **GitHub Actions** to automatically run our Unity Test Runner suite on ev
 * All required tests must pass before a PR can be merged into `main`. **If the tests fail, the merge will be blocked**.
 * Please run the tests locally in Unity (`Window > General > Test Runner`) before pushing, to catch issues early and save CI time.
 
-
+---
 
 ## Use of AI Tools
 AI-assisted development (code assistants, LLMs, etc.) is allowed on this project, but under the following rules:
@@ -46,7 +55,7 @@ AI-assisted development (code assistants, LLMs, etc.) is allowed on this project
 * Once the project reaches version `1.0`, AI tools may only be used **locally**, for personal drafting or exploration.
 * AI-assisted changes may no longer be merged into the public repository from that point on - all contributions merged after `1.0` must be fully human-made.
 
-
+---
 
 ## Tags & Releases
 Pushing a new tag automatically triggers a deployment to itch.io and creates a GitHub Release:
