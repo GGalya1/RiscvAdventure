@@ -48,6 +48,7 @@ AI-assisted development (code assistants, LLMs, etc.) is allowed on this project
 **Allowed:**
 * Using AI to help write or refactor code, scripts, tests, or documentation.
 * This is only permitted **before the `1.0` release**. The project is currently on `v0.8`, so AI-assisted contributions are welcome under the conditions below.
+
 **Not allowed / requires human review:**
 * **Graphics and visual assets** (sprites, textures, UI art, icons, animations, 3D models, etc.) must always be created by a human. AI-generated graphics are **never** accepted, at any version.
 * Any code, text, or other content created or modified with AI assistance **must be reviewed and reworked by a human** before it is submitted. Please mention in your PR description if AI was used.
