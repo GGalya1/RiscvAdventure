@@ -1,0 +1,24 @@
+{
+    "name": "PlayModeTests",
+    "rootNamespace": "RiscvAdventure.PlayModeTests",
+    "references": [
+        "UnityEngine.TestRunner",
+        "RISCadventure",
+        "UnityEngine.UI",
+        "Unity.Localization",
+        "Unity.ResourceManager"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": true,
+    "precompiledReferences": [
+        "nunit.framework.dll"
+    ],
+    "autoReferenced": false,
+    "defineConstraints": [
+        "UNITY_INCLUDE_TESTS"
+    ],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
