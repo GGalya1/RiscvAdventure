@@ -5964,6 +5964,7 @@ MonoBehaviour:
   - {fileID: 155306489}
   loadingOverlay: {fileID: 694187902}
   transitionDuration: 0.5
+  quitButton: {fileID: 238356394}
 --- !u!4 &439871400
 Transform:
   m_ObjectHideFlags: 0
@@ -18741,7 +18742,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4387152615278351803, guid: 7014fde6729b74a43bb99f6fe872bdfe, type: 3}
       propertyPath: m_fontSize
-      value: 36
+      value: 2.25
       objectReference: {fileID: 0}
     - target: {fileID: 5075163631399563677, guid: 7014fde6729b74a43bb99f6fe872bdfe, type: 3}
       propertyPath: m_AnchorMax.y
