@@ -17,8 +17,7 @@ namespace RiscvAdventure.PlayModeTests
     public enum Op { Add = 0, Sub = 1, And = 2, Or = 3 }
     
     public enum Imm { I = 0, S = 1, B = 2, J = 3 }
-
-    /// <summary>What the game reported after the "Check solution" button was pressed.</summary>
+    
     public readonly struct SubmitResult
     {
         public readonly bool Accepted;
@@ -41,7 +40,11 @@ namespace RiscvAdventure.PlayModeTests
     }
 
     /// <summary>
-    /// Plays a level scene the way a player does: it presses the same UI buttons and observes the game's own LevelEvents/>.
+    /// Plays a level scene the way a player does: it presses the same UI buttons
+    /// (MUX path, ALU / Extender operation, write-enable, next tick, check solution)
+    /// and observes the game's own <see cref="LevelEvents"/>.
+    /// Level internals that are not public (buttons, tick counter) are read through reflection,
+    /// so no production code has to change.
     /// </summary>
     public sealed class LevelDriver : IDisposable
     {
@@ -77,7 +80,8 @@ namespace RiscvAdventure.PlayModeTests
             yield return SceneManager.LoadSceneAsync(BuildIndex, LoadSceneMode.Single);
 
             Regisseur = FindRegisseur();
-            
+
+            // Start() has finished once the tick history exists.
             var deadline = Time.realtimeSinceStartup + LoadTimeoutSeconds;
             while (ReadObject("TickStateValues") == null)
             {
@@ -225,12 +229,21 @@ namespace RiscvAdventure.PlayModeTests
             Assert.AreEqual(before + 1, TickCounter, Ctx("the tick was not performed"));
         }
         
+        public IEnumerator Play(Recipe recipe)
+        {
+            foreach (var step in recipe.Steps)
+            {
+                step?.Invoke(this);
+                yield return Tick();
+            }
+        }
+        
         public SubmitResult Submit()
         {
             _completed = null;
             _failedTries = null;
 
-            // A rejected solution makes the game log an error on purpose ("Level is not solved!")
+            // A rejected solution makes the game log an error on purpose ("Level is not solved!").
             LogAssert.ignoreFailingMessages = true;
             try
             {
