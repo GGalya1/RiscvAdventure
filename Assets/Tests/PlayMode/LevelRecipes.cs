@@ -5,7 +5,7 @@ using System.Linq;
 namespace RiscvAdventure.PlayModeTests
 {
     /// <summary>
-    /// The intended solution of every hand-built puzzle level (chapters 1-6).
+    /// The intended solution of every hand-built puzzle level (chapters 1-7, 19 scenes).
     ///
     /// How to read a recipe: <c>Mux("multiplexerVisualizer", 0)</c> clicks the first input button of the
     /// multiplexer stored in the level script's field <c>multiplexerVisualizer</c>. Field names are the C# field
@@ -129,5 +129,87 @@ namespace RiscvAdventure.PlayModeTests
 
         /// <summary>Scene names of every level covered by <see cref="Solutions"/>.</summary>
         public static IEnumerable<string> Scenes => Solutions.Select(r => r.Scene);
+
+        // ---- wrong solutions ------------------------------------------------------------
+
+        /// <summary>
+        /// "Almost right" configurations: one wrong choice (or a missing one) in an otherwise sensible attempt.
+        /// Each one is checked against the model of the level, and none reaches the goal.
+        /// </summary>
+        public static readonly IReadOnlyList<Recipe> NearMisses = new List<Recipe>
+        {
+            Recipe.For("Level 0", "stops one tick too early (4 has not reached Out yet)")
+                .Tick()
+                .Build(),
+            Recipe.For("Level 1", "MUX picks register B (2) instead of A (4)")
+                .Before(Mux(MuxField, 1)).Tick()
+                .Build(),
+            Recipe.For("Level 1-2", "middle MUX picks 8 instead of 12")
+                .Before(Mux("middleMuxVisualizer", 0), Mux("downMuxVisualizer", 0), Mux("outputMuxVisualizer", 2)).Tick()
+                .Build(),
+            Recipe.For("Level 2-1", "ADD instead of AND (64, not 1)")
+                .Before(Alu(AluField, Op.Add)).Tick()
+                .Build(),
+            Recipe.For("Level 3", "only ADD: A = 9, 13, 17... never lands on address 12")
+                .Before(Mux(MuxField, 0), Alu(AluField, Op.Add)).Tick()
+                .Tick()
+                .Tick()
+                .Tick()
+                .Build(),
+            Recipe.For("Level 4-0", "forgets to freeze B and memory: memory[0] becomes 8 and memory[12] gets 0")
+                .Before(Mux(MuxField, 1), Alu(AluField, Op.Add)).Tick()
+                .Before(Mux(MuxField, 0)).Tick()
+                .Build(),
+            Recipe.For("Level 5-1", "S-type instead of I-type (1986, not 2000)")
+                .Before(Immediate(ExtenderField, Imm.S)).Tick()
+                .Build(),
+            Recipe.For("Level 5", "I-type for every word (the 2nd and 3rd results are 4 and 7, not 8 and 8)")
+                .Before(Immediate(ExtenderField, Imm.I)).Tick()
+                .Tick()
+                .Tick()
+                .Tick()
+                .Tick()
+                .Build(),
+            Recipe.For("Level 7-1", "SUB instead of ADD (36, not 42)")
+                .Before(Alu(AluField, Op.Sub)).Tick()
+                .Tick()
+                .Build(),
+            Recipe.For("Level 7-2", "J-type immediate (131328, not 256)")
+                .Before(Mux("muxVisualizer", 1), Immediate(ExtenderField, Imm.J), Alu(AluField, Op.Add)).Tick()
+                .Tick()
+                .Build(),
+        };
+
+        /// <summary>
+        /// Levels where ticking once more after the correct moment destroys the answer
+        /// (registers without an input load 0, or the pipeline moves on).
+        /// Combinational-only levels (1-2) and levels that already use every tick (5) are left out on purpose;
+        /// so are 4-0 / 4, where later ticks only write to unrelated addresses.
+        /// </summary>
+        public static IEnumerable<Recipe> Overshoots =>
+            Solutions.Where(r => OvershootScenes.Contains(r.Scene)).Select(r => r.WithExtraTick());
+
+        private static readonly HashSet<string> OvershootScenes = new()
+        {
+            "Level 0", "Level 0-1", "Level 0-2",
+            "Level 1", "Level 1-1",
+            "Level 2", "Level 2-1", "Level 2-2",
+            "Level 3-0", "Level 3",
+            "Level 5-1", "Level 5-2",
+            "Level 7", "Level 7-1", "Level 7-2",
+        };
+
+        /// <summary>
+        /// Levels whose answer lands in a register called <c>registerOutputVisualizer</c>:
+        /// switching its write-enable off means the result can never be stored.
+        /// </summary>
+        public static IEnumerable<Recipe> OutputWriteDisabled =>
+            Solutions.Where(r => OutputRegisterScenes.Contains(r.Scene))
+                .Select(r => r.WithFirstStep("output register write-enable OFF", WriteEnable(OutputField, false)));
+
+        private static readonly HashSet<string> OutputRegisterScenes = new()
+        {
+            "Level 0", "Level 1", "Level 1-2", "Level 2-1", "Level 5-1", "Level 7",
+        };
     }
 }

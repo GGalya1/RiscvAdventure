@@ -15,7 +15,7 @@ namespace RiscvAdventure.PlayModeTests
         {
             foreach (var recipe in LevelRecipes.Solutions)
             {
-                yield return new TestCaseData(recipe).SetName(recipe.Scene);
+                yield return new TestCaseData(recipe).Returns(null).SetName(recipe.Scene);
             }
         }
 
