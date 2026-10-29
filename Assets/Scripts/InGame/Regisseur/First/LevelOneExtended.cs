@@ -143,6 +143,7 @@ public class LevelOneExtended : BaseLevelRegisseur<ExtendedFirstLevelState, Leve
         var down = EvaluateMux(downMuxVisualizer.CurrentChosenMuxPath, left, -8, -12);
 
         _output.Input = EvaluateMux(outputMuxVisualizer.CurrentChosenMuxPath, up, 4, down);
+        _output.WriteEnable = registerOutputVisualizer.isWriteEnabled;
 
         _output.PreClockUpdate();
         _output.Clock();
