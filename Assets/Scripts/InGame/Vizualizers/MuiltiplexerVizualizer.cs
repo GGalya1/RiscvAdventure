@@ -47,14 +47,9 @@ public class MultiplexerVisualizer: BaseVisualizer
 
         ResetVisualisation();
     }
-    protected override void InitializePanelController()
+    protected override void InitializePanel()
     {
-        // Controller initialization specific to this class
-        UIController = panelInstance.GetComponent<MultiplexerControlPanel>();
-        if (UIController == null)
-        {
-            CustomLog.LogEditorError($"MultiplexerControlPanel component not found on the prefab for {gameObject.name}!");
-        }
+        UIController = RequirePanel<MultiplexerControlPanel>();
     }
 
     public override void ResetVisualisation() {

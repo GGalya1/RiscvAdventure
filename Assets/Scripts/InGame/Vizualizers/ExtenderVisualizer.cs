@@ -18,13 +18,9 @@ public class ExtenderVisualizer : AluVisualiser
 
         ResetVisualisation();
     }
-    protected override void InitializePanelController()
+    protected override void InitializePanel()
     {
-        uiController = panelInstance.GetComponent<AluControlPanel>();
-        if (uiController == null)
-        {
-            CustomLog.LogEditorError($"ExtenderControlPanel component not found on the prefab for {gameObject.name}!");
-        }
+        uiController = RequirePanel<AluControlPanel>();
     }
 
     private void ChooseExtenderType(int operationType)

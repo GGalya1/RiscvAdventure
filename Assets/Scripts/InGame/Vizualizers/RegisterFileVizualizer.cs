@@ -53,13 +53,9 @@ public class RegisterFileVisualizer : BaseVisualizer
         writeEnableIndicator.SetActive(!isWriteEnabled);
     }
 
-    protected override void InitializePanelController()
+    protected override void InitializePanel()
     {
-        UIRegisterPanel = panelInstance.GetComponent<RegisterFieldPanelUI>();
-        if (UIRegisterPanel == null)
-        {
-            CustomLog.LogEditorError($"InfoPanelUI component not found on the prefab for {gameObject.name}!");
-        }
+        UIRegisterPanel = RequirePanel<RegisterFieldPanelUI>();
     }
 
     public override void ResetVisualisation()

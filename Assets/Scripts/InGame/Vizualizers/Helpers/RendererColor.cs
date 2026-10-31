@@ -19,7 +19,7 @@ public static class RendererColor
         target.SetPropertyBlock(_block);
     }
 
-    // The color of the shared material, i.e. the color to return to after a highlight. </summary>
+    // The color of the shared material, i.e. the color to return to after a highlight.
     public static Color Original(Renderer target)
     {
         return target != null ? target.sharedMaterial.color : default;

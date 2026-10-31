@@ -35,17 +35,9 @@ public class InstructionDataMemoryVisualizer: BaseVisualizer
         }
     }
 
-    /// <summary>
-    /// Concrete implementation of the base class initialization. 
-    /// Retrieves the InfoPanelUI component from the instantiated UI prefab.
-    /// </summary>
-    protected override void InitializePanelController()
+    protected override void InitializePanel()
     {
-        UIRegisterPanel = panelInstance.GetComponent<InstrMemoryControlPanel>();
-        if (UIRegisterPanel == null)
-        {
-            CustomLog.LogEditorError($"InstrMemoryControlPanel component not found on the prefab for {gameObject.name}!");
-        }
+        UIRegisterPanel = RequirePanel<InstrMemoryControlPanel>();
     }
 
     public override void SetInteractable(bool value)

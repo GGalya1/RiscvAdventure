@@ -65,17 +65,9 @@ public class RegisterVisualizer: BaseVisualizer
         writeEnableIndicator.SetActive(!isWriteEnabled);
     }
 
-    /// <summary>
-    /// Concrete implementation of the base class initialization. 
-    /// Retrieves the InfoPanelUI component from the instantiated UI prefab.
-    /// </summary>
-    protected override void InitializePanelController()
+    protected override void InitializePanel()
     {
-        UIRegisterPanel = panelInstance.GetComponent<RegisterControlPanel>();
-        if (UIRegisterPanel == null)
-        {
-            CustomLog.LogEditorError($"InfoPanelUI component not found on the prefab for {gameObject.name}!");
-        }
+        UIRegisterPanel = RequirePanel<RegisterControlPanel>();
     }
 
     public void TriggerBlink()

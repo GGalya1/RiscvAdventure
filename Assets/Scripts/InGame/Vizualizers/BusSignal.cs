@@ -18,18 +18,13 @@ public class BusSignal : BaseVisualizer
 
     public override void ResetVisualisation()
     {
-        KillPanelTweens();
         UIRegisterPanel.Display("", "N/A");
-        PrepareHiddenState();
+        HidePanelImmediately();
     }
 
-    protected override void InitializePanelController()
+    protected override void InitializePanel()
     {
-        UIRegisterPanel = panelInstance.GetComponent<InfoPanelUI>();
-        if (UIRegisterPanel == null)
-        {
-            CustomLog.LogEditorError($"InfoPanelUI component not found on the prefab for {gameObject.name}!");
-        }
+        UIRegisterPanel = RequirePanel<InfoPanelUI>();
     }
 
     public override void SetInteractable(bool value)
