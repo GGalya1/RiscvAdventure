@@ -30,24 +30,13 @@ public abstract class BaseVisualizer : MonoBehaviour, IVisualizer
 
     public GameObject PanelPrefab => panelInstance;
 
-    // --- OPTIMIZATION FIELDS ---
     private Color _originalColor;
-    private MaterialPropertyBlock _propBlock;
-    private bool _isBigModelRendererNull;
-    private static readonly int ColorPropertyID = Shader.PropertyToID("_BaseColor");
 
     // --- UNITY LIFECYCLE ---
 
     protected virtual void Awake()
     {
-        _isBigModelRendererNull = bigModelRenderer == null;
-        
-        _propBlock = new MaterialPropertyBlock();
-
-        if (bigModelRenderer != null)
-        {
-            _originalColor = bigModelRenderer.sharedMaterial.color;
-        }
+        _originalColor = RendererColor.Original(bigModelRenderer);
 
         // Creating and initializing the UI panel
         _targetLocalPos = panelInstance.transform.localPosition;
@@ -70,7 +59,7 @@ public abstract class BaseVisualizer : MonoBehaviour, IVisualizer
 
         // General logic
         _isVisualizationActive = true;
-        SetModelColor(selectionColor);
+        RendererColor.Set(bigModelRenderer, selectionColor);
 
         panelInstance.transform.DOKill();
         panelCanvasGroup.DOKill();
@@ -85,7 +74,7 @@ public abstract class BaseVisualizer : MonoBehaviour, IVisualizer
     public virtual void HideData()
     {
         _isVisualizationActive = false;
-        SetModelColor(_originalColor);
+        RendererColor.Set(bigModelRenderer, _originalColor);
 
         panelCanvasGroup.interactable = false;
         panelCanvasGroup.blocksRaycasts = false;
@@ -96,14 +85,6 @@ public abstract class BaseVisualizer : MonoBehaviour, IVisualizer
         panelCanvasGroup.DOFade(0f, animDuration).SetEase(Ease.InCubic);
         panelInstance.transform.DOLocalMove(_targetLocalPos - Vector3.up * moveDistance, animDuration)
                 .SetEase(Ease.InCubic);  
-    }
-    private void SetModelColor(Color color)
-    {
-        if (_isBigModelRendererNull) return;
-
-        bigModelRenderer.GetPropertyBlock(_propBlock);
-        _propBlock.SetColor(ColorPropertyID, color);
-        bigModelRenderer.SetPropertyBlock(_propBlock);
     }
 
     // Abstract methods that must be implemented in subclasses
