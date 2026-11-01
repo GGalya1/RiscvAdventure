@@ -31,14 +31,9 @@ public class AluVisualiser : BaseVisualizer
 
         ResetVisualisation();
     }
-    protected override void InitializePanelController()
+    protected override void InitializePanel()
     {
-        // Controller initialization specific to this class
-        uiController = panelInstance.GetComponent<AluControlPanel>();
-        if (uiController == null)
-        {
-            CustomLog.LogEditorError($"ALUControlPanel component not found on the prefab for {gameObject.name}!");
-        }
+        uiController = RequirePanel<AluControlPanel>();
     }
 
     public override void SetInteractable(bool value)

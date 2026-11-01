@@ -23,13 +23,9 @@ public class MultiplexerVisualizer: BaseVisualizer
 
     public int CurrentChosenMuxPath { get; private set; } = -1;
 
-    private MaterialPropertyBlock _propBlock;
-    private static readonly int ColorPropertyID = Shader.PropertyToID("_BaseColor");
-
 
     protected override void Awake()
     {
-        _propBlock = new MaterialPropertyBlock();
         base.Awake();
 
  
@@ -51,14 +47,9 @@ public class MultiplexerVisualizer: BaseVisualizer
 
         ResetVisualisation();
     }
-    protected override void InitializePanelController()
+    protected override void InitializePanel()
     {
-        // Controller initialization specific to this class
-        UIController = panelInstance.GetComponent<MultiplexerControlPanel>();
-        if (UIController == null)
-        {
-            CustomLog.LogEditorError($"MultiplexerControlPanel component not found on the prefab for {gameObject.name}!");
-        }
+        UIController = RequirePanel<MultiplexerControlPanel>();
     }
 
     public override void ResetVisualisation() {
@@ -81,24 +72,15 @@ public class MultiplexerVisualizer: BaseVisualizer
         for (var i = 0; i < inputBuses.Length; i++)
         {
             var isActive = (i == activeIndex);
-            SetColor(inputBuses[i], isActive ? activeColor : disabledColor);
+            RendererColor.Set(inputBuses[i], isActive ? activeColor : disabledColor);
 
             if (i < bitRenderers.Length)
-                SetColor(bitRenderers[i], isActive ? activeColor : disabledColor);
+                RendererColor.Set(bitRenderers[i], isActive ? activeColor : disabledColor);
         }
 
-        SetColor(outputBus, activeIndex != -1 ? activeColor : disabledColor);
+        RendererColor.Set(outputBus, activeIndex != -1 ? activeColor : disabledColor);
     }
 
-    private void SetColor(Renderer rnd, Color color)
-    {
-        if (rnd == null) return;
-
-        rnd.GetPropertyBlock(_propBlock);
-        _propBlock.SetColor(ColorPropertyID, color);
-        rnd.SetPropertyBlock(_propBlock);
-    }
-    
     public override void SetInteractable(bool value) {
         UIController.FirstWayButton.interactable = value;
         UIController.SecondWayButton.interactable = value;

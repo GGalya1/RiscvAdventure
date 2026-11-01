@@ -1,12 +1,9 @@
 using UnityEngine;
-using DG.Tweening;
 using UnityEngine.Serialization;
 
 // An abstract base class for all component rendering
 public abstract class BaseVisualizer : MonoBehaviour, IVisualizer
 {
-    // --- FIELDS FOR CONFIGURATION (Visible in Inspector) ---
-
     [FormerlySerializedAs("_panelInstance")] [SerializeField] protected GameObject panelInstance;
     [FormerlySerializedAs("_panelCanvasGroup")] [SerializeField] private CanvasGroup panelCanvasGroup;
 
@@ -22,109 +19,61 @@ public abstract class BaseVisualizer : MonoBehaviour, IVisualizer
     // Cached renderer, if you need to change the model's color (for a simple color change)
     [FormerlySerializedAs("_bigModelRenderer")] [SerializeField] protected Renderer bigModelRenderer;
 
-    // A flag indicating whether the visualization is currently active
-    private bool _isVisualizationActive;
-    private Vector3 _targetLocalPos;
-
-    // --- PUBLIC PROPERTIES (Read-Only access to configuration) ---
-
-    public GameObject PanelPrefab => panelInstance;
-
-    // --- OPTIMIZATION FIELDS ---
+    private PanelAnimator _panelAnimator;
     private Color _originalColor;
-    private MaterialPropertyBlock _propBlock;
-    private bool _isBigModelRendererNull;
-    private static readonly int ColorPropertyID = Shader.PropertyToID("_BaseColor");
-
-    // --- UNITY LIFECYCLE ---
+    private bool _isPanelOpen;
 
     protected virtual void Awake()
     {
-        _isBigModelRendererNull = bigModelRenderer == null;
-        
-        _propBlock = new MaterialPropertyBlock();
+        _originalColor = RendererColor.Original(bigModelRenderer);
 
-        if (bigModelRenderer != null)
-        {
-            _originalColor = bigModelRenderer.sharedMaterial.color;
-        }
+        _panelAnimator = new PanelAnimator(panelInstance.transform, panelCanvasGroup, animDuration, moveDistance);
+        _panelAnimator.HideImmediately();
 
-        // Creating and initializing the UI panel
-        _targetLocalPos = panelInstance.transform.localPosition;
-        PrepareHiddenState();
-
-        // An abstract method that must be implemented by a subclass
-        InitializePanelController();
+        InitializePanel();
     }
 
-    // --- PUBLIC INTERFACE (IVisualizer) ---
+    // Called from Awake: fetch the panel component this visualizer works with
+    protected abstract void InitializePanel();
 
-    // ShowData and HideData share the same basic logic, but ShowData has some specific features
-    public virtual void ShowData()
+    #region IVisualizer
+    public void ShowData()
     {
-        if (_isVisualizationActive)
+        if (_isPanelOpen)
         {
             HideData();
             return;
         }
 
-        // General logic
-        _isVisualizationActive = true;
-        SetModelColor(selectionColor);
-
-        panelInstance.transform.DOKill();
-        panelCanvasGroup.DOKill();
-
-        panelInstance.transform.DOLocalMove(_targetLocalPos, animDuration).SetEase(Ease.OutCubic);
-        panelCanvasGroup.DOFade(1f, animDuration).SetEase(Ease.OutCubic).OnComplete(() => {
-            panelCanvasGroup.interactable = true;
-            panelCanvasGroup.blocksRaycasts = true;
-        });
+        _isPanelOpen = true;
+        RendererColor.Set(bigModelRenderer, selectionColor);
+        _panelAnimator.Show();
     }
 
-    public virtual void HideData()
+    public void HideData()
     {
-        _isVisualizationActive = false;
-        SetModelColor(_originalColor);
-
-        panelCanvasGroup.interactable = false;
-        panelCanvasGroup.blocksRaycasts = false;
-
-        panelInstance.transform.DOKill();
-        panelCanvasGroup.DOKill();
-
-        panelCanvasGroup.DOFade(0f, animDuration).SetEase(Ease.InCubic);
-        panelInstance.transform.DOLocalMove(_targetLocalPos - Vector3.up * moveDistance, animDuration)
-                .SetEase(Ease.InCubic);  
+        _isPanelOpen = false;
+        RendererColor.Set(bigModelRenderer, _originalColor);
+        _panelAnimator.Hide();
     }
-    private void SetModelColor(Color color)
-    {
-        if (_isBigModelRendererNull) return;
+    #endregion
 
-        bigModelRenderer.GetPropertyBlock(_propBlock);
-        _propBlock.SetColor(ColorPropertyID, color);
-        bigModelRenderer.SetPropertyBlock(_propBlock);
-    }
-
-    // Abstract methods that must be implemented in subclasses
     public abstract void ResetVisualisation();
-    protected abstract void InitializePanelController();
 
     public abstract void SetInteractable(bool value);
-    
-    // --- PRIVATE/PROTECTED METHODS ---
-    protected void KillPanelTweens()
-    {
-        panelInstance.transform.DOKill();
-        panelCanvasGroup.DOKill();
-    }
-    
-    protected void PrepareHiddenState()
-    {
-        panelCanvasGroup.alpha = 0;
-        panelCanvasGroup.interactable = false;
-        panelCanvasGroup.blocksRaycasts = false;
 
-        panelInstance.transform.localPosition = _targetLocalPos - Vector3.up * moveDistance;
+    // Puts the panel into the hidden state without animation
+    protected void HidePanelImmediately()
+    {
+        _panelAnimator.HideImmediately();
+    }
+
+    // Returns the panel component of generic type T and logs an error if it is missing
+    protected T RequirePanel<T>() where T : Component
+    {
+        if (panelInstance.TryGetComponent<T>(out var panel)) return panel;
+
+        CustomLog.LogEditorError($"{typeof(T).Name} component not found on the panel of {gameObject.name}!");
+        return null;
     }
 }
