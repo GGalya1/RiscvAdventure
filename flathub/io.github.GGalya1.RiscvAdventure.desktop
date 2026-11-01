@@ -4,5 +4,6 @@ Name=RISC-V Adventure
 Comment=Educational game designed to teach the fundamentals of computer organization, specifically focusing on the multi-cycle processor
 Exec=riscv-adventure
 Icon=io.github.GGalya1.RiscvAdventure
-Categories=Game;Education;
+Categories=Game;LogicGame;Education;ComputerScience;
+Keywords=puzzle;educational game;learning;RISC-V;CPU;processor;computer architecture;digital logic;
 Terminal=false

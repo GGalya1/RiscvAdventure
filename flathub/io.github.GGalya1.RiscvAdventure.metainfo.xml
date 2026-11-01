@@ -4,7 +4,7 @@
   <id>io.github.GGalya1.RiscvAdventure</id>
   
   <name>RISC-V Adventure</name>
-  <summary>This is a quest through the layers of computer architecture</summary>
+  <summary>Build a processor step by step</summary>
   
   <metadata_license>CC0-1.0</metadata_license>
   <project_license>GPL-3.0-or-later</project_license>
@@ -27,8 +27,21 @@
 
   <categories>
     <category>Game</category>
+    <category>LogicGame</category>
     <category>Education</category>
+    <category>ComputerScience</category>
   </categories>
+
+  <keywords>
+    <keyword>puzzle</keyword>
+    <keyword>educational game</keyword>
+    <keyword>learning</keyword>
+    <keyword>RISC-V</keyword>
+    <keyword>CPU</keyword>
+    <keyword>processor</keyword>
+    <keyword>computer architecture</keyword>
+    <keyword>digital logic</keyword>
+  </keywords>
 
   <launchable type="desktop-id">io.github.GGalya1.RiscvAdventure.desktop</launchable>
   <developer id="io.github.ggalya1">
@@ -39,24 +52,26 @@
   <url type="vcs-browser">https://github.com/GGalya1/riscv-architecture-educational-game</url>
 
   <releases>
-    <release version="0.8.6" date="2026-09-06">
+    <release version="0.8.6.3" date="2026-11-01">
       <description>
-        <p>See the GitHub releases page for full changelogs.</p>
+        <p>Added dependabot to control ci/cd dependencies (updated pipeline, so bots pr can be closed)</p>
+        <p>Added play mode tests</p>
+        <p>Refactored camera movement, regisseurs, credits</p>
       </description>
     </release>
   </releases>
 
   <screenshots>
   <screenshot type="default">
-    <image>https://raw.githubusercontent.com/GGalya1/riscv-architecture-educational-game/main/docs/img/ExtenderLevel.png</image>
+    <image xml:lang="de">https://raw.githubusercontent.com/GGalya1/riscv-architecture-educational-game/main/docs/img/ExtenderLevel.png</image>
     <caption>Extender Level Example</caption>
   </screenshot>
-  <screenshot type="default">
-    <image>https://raw.githubusercontent.com/GGalya1/riscv-architecture-educational-game/main/docs/img/MUXDialogue.png</image>
+  <screenshot>
+    <image xml:lang="de">https://raw.githubusercontent.com/GGalya1/riscv-architecture-educational-game/main/docs/img/MUXDialogue.png</image>
     <caption>Dialogue Example</caption>
   </screenshot>
-  <screenshot type="default">
-    <image>https://raw.githubusercontent.com/GGalya1/riscv-architecture-educational-game/main/docs/img/ProcessorInGame.png</image>
+  <screenshot>
+    <image xml:lang="de">https://raw.githubusercontent.com/GGalya1/riscv-architecture-educational-game/main/docs/img/ProcessorInGame.png</image>
     <caption>Processor Level Example</caption>
   </screenshot>
 </screenshots>
