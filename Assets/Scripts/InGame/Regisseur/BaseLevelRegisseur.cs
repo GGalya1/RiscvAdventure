@@ -65,7 +65,17 @@ public abstract class BaseLevelRegisseur<TState, TBus> : MonoBehaviour
     [Header("Bus Visualisation")]
     [SerializeField] protected BusController busController;
     [FormerlySerializedAs("_isProcessing")] public bool isProcessing;
-    
+
+    // Prevents the completion (and its achievements/counters) from being reported twice,
+    // e.g. when the check button is pressed again while the end-of-level menu is opening.
+    private bool _levelCompleted;
+
+    /// <summary>
+    /// True if this scene continues with another sub-level (processor levels that are chained
+    /// through ScriptableObjects inside one scene). Used to detect the real last level.
+    /// </summary>
+    protected virtual bool HasNextSubLevel => false;
+
     // --- SIGNAL ANIMATION
     protected WaitUntil WaitNoSignals;
     
@@ -168,8 +178,8 @@ public abstract class BaseLevelRegisseur<TState, TBus> : MonoBehaviour
     {
         if (TickCounter <= 0 || isProcessing) { return; }
         
-        AchievementManager.Increment(AchievementIds.RollingBackFiftyTimes);
-        
+        CountPrevTickForAchievement();
+
         StartCoroutine(PrevTickSequence());
     }
     private IEnumerator PrevTickSequence()
@@ -193,11 +203,34 @@ public abstract class BaseLevelRegisseur<TState, TBus> : MonoBehaviour
         prevClick.interactable = true;
         ReleaseInGameInteractable();
     }
+    
+    // Counts rollbacks locally and lets the achievement observer decide when to unlock.
+    private static void CountPrevTickForAchievement()
+    {
+        var total = PlayerPrefs.GetInt(GameConstants.PrevTicksKey, 0);
+        if (total >= GameConstants.TargetAchievementTicks) return; // already reached, stop counting
+
+        total++;
+        PlayerPrefs.SetInt(GameConstants.PrevTicksKey, total);
+        PlayerPrefs.Save();
+
+        try
+        {
+            LevelEvents.RaisePrevTickUsed(total);
+        }
+        catch (Exception e)
+        {
+            Debug.LogException(e);
+        }
+    }
 
     protected virtual void CheckSolution()
     {
+        if (_levelCompleted) return;
+
         if (CheckWinCondition())
         {
+            _levelCompleted = true;
             CustomLog.LogEditor("Level is solved!");
             var currentSceneIndex      = SceneManager.GetActiveScene().buildIndex;
             var nextLevelToUnlockIndex = currentSceneIndex + 1;
@@ -212,17 +245,21 @@ public abstract class BaseLevelRegisseur<TState, TBus> : MonoBehaviour
             
             var earnedStars = CalculateStars(fallenTries);
             
+            // The last level = last scene in Build Settings AND no further sub-level in it.
+            // (Processor scenes host several sub-levels, so the scene index alone is not enough.)
+            var isLastScene = nextLevelToUnlockIndex >= SceneManager.sceneCountInBuildSettings;
+            var isLastLevel = isLastScene && !HasNextSubLevel;
+
             // notify achievements observer
             try
             {
                 LevelEvents.RaiseLevelCompleted(new LevelCompletedData(
-                    currentSceneIndex, fallenTries, earnedStars,
-                    nextLevelToUnlockIndex >= SceneManager.sceneCountInBuildSettings));
-
+                    currentSceneIndex, fallenTries, earnedStars, isLastLevel));
             }
             catch (Exception e)
             {
                 Debug.LogError("Achievement observer cannot be notified");
+                Debug.LogException(e);
             }
 
 
@@ -241,8 +278,9 @@ public abstract class BaseLevelRegisseur<TState, TBus> : MonoBehaviour
             catch (Exception e)
             {
                 Debug.LogError("Achievement observer cannot be notified");
+                Debug.LogException(e);
             }
-            
+
             StartCoroutine(ShowIncorrectIndicator());
         }
     }

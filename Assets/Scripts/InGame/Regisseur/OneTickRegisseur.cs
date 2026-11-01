@@ -592,6 +592,8 @@ public class OneTickRegisseur : BaseLevelRegisseur<OneTickProcessorLevelState, O
     #endregion
 
     #region transition to next level
+    protected override bool HasNextSubLevel => GetNextLevelData() != null;
+
 
     private void OnEnable()
     {

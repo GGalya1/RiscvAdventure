@@ -1,12 +1,8 @@
 using UnityEngine;
 
-/// <summary>
-/// Singleton that owns and exposes the active platform achievement service.
-///
-/// Actions:
-///   - Pick the right <see cref="IAchievementService"/> implementation at startup.
-///   - Expose static helpers so any code can call Unlock / Increment without caring about current platform.
-/// </summary>
+/*
+ Singleton that owns and exposes the active platform achievement service.
+*/
 public class AchievementManager : MonoBehaviour
 {
     public static AchievementManager Instance { get; private set; }
@@ -23,6 +19,10 @@ public class AchievementManager : MonoBehaviour
 
         Instance = this;
         DontDestroyOnLoad(gameObject);
+
+        // The observer has to survive scene loads too, otherwise nothing is unlocked inside levels.
+        if (!TryGetComponent<AchievementObserver>(out _))
+            gameObject.AddComponent<AchievementObserver>();
 
         _service = CreateService();
         _service.Initialize(OnAuthResult);
