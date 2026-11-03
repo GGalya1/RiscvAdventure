@@ -171,14 +171,10 @@ public class LevelOneRegisseur : BaseLevelRegisseur<LevelOneState, LevelOneBusSe
     {
         if (_currentBus == 0)
         {
-            busController.StartBusSignal(buses.srcAToMux, _srcA.Output);
-            busController.StartBusSignal(buses.srcBToMux, _srcB.Output);
+            yield return Bus.Wave((buses.srcAToMux, _srcA.Output), (buses.srcBToMux, _srcB.Output));
 
             if (multiplexerVisualizer.CurrentChosenMuxPath != -1)
             {
-                yield return WaitNoSignals;
-
-                // sending the third signal
                 var propagationVal = multiplexerVisualizer.CurrentChosenMuxPath switch
                 {
                     0 => _srcA.Output,
@@ -186,15 +182,11 @@ public class LevelOneRegisseur : BaseLevelRegisseur<LevelOneState, LevelOneBusSe
                     _ => 0
                 };
 
-                busController.StartBusSignal(buses.muxToOutput, propagationVal);
+                yield return Bus.Wave((buses.muxToOutput, propagationVal));
             }
 
             _currentBus++;
         }
-
-        yield return WaitNoSignals;
-
-        //_busController.ResetFastForward();
     }
 
     protected override IEnumerator ReverseBusVisualizations()
@@ -202,22 +194,12 @@ public class LevelOneRegisseur : BaseLevelRegisseur<LevelOneState, LevelOneBusSe
         if (_currentBus == 1)
         {
             if (multiplexerVisualizer.CurrentChosenMuxPath == -1)
-            {
-                busController.StartBusSignal(buses.srcAToMux, 4, true);
-                busController.StartBusSignal(buses.srcBToMux, 2, true);
-            }
+                yield return Bus.WaveBack((buses.srcAToMux, 4), (buses.srcBToMux, 2));
             else
-            {
-                busController.StartBusSignal(buses.muxToOutput, _output.Input, true);
-
-                busController.StartBusSignal(buses.srcAToMux, 4, true);
-                busController.StartBusSignal(buses.srcBToMux, 2, true);
-            }
+                yield return Bus.WaveBack((buses.muxToOutput, _output.Input), (buses.srcAToMux, 4), (buses.srcBToMux, 2));
 
             _currentBus--;
         }
-
-        yield return WaitNoSignals;
     }
 
     #region CACHED UI REFERENCES

@@ -69,6 +69,8 @@ public abstract class BaseLevelRegisseur<TState, TBus> : MonoBehaviour
     [Header("Bus Segments")]
     public TBus buses;
 
+    protected BusController Bus => busController;
+
 
     #region ABSTRACT METHODS (Unique to each level)
     /// <summary> The main method that implements the logic of a single clock cycle (PreClock/Clock). </summary>

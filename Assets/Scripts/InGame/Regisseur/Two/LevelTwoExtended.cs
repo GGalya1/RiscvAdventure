@@ -139,34 +139,22 @@ public class LevelTwoExtended : BaseLevelRegisseur<LevelTwoExtendedState, LevelT
     {
         if (_currentBus >= 1 && _currentBus <= maxTickNumber)
         {
-            busController.StartBusSignal(buses.aluToOutput, _output.Input, true);
-
-            yield return WaitNoSignals;
-
-            busController.StartBusSignal(buses.srcAToAlu, _srcA.Output, true);
-            busController.StartBusSignal(buses.srcBToAlu, _srcB.Output, true);
+            yield return Bus.WaveBack((buses.aluToOutput, _output.Input));
+            yield return Bus.WaveBack((buses.srcAToAlu, _srcA.Output), (buses.srcBToAlu, _srcB.Output));
 
             _currentBus--;
         }
-
-        yield return WaitNoSignals;
     }
 
     protected override IEnumerator RunBusVisualizations()
     {
         if (_currentBus >= 0 && _currentBus < maxTickNumber)
         {
-            busController.StartBusSignal(buses.srcAToAlu, _srcA.Output);
-            busController.StartBusSignal(buses.srcBToAlu, _srcB.Output);
-
-            yield return WaitNoSignals;
-
-            busController.StartBusSignal(buses.aluToOutput, Alu.Calculate(_srcA.Output, _srcB.Output, aluVisualizer.CurrentAluOperation));
+            yield return Bus.Wave((buses.srcAToAlu, _srcA.Output), (buses.srcBToAlu, _srcB.Output));
+            yield return Bus.Wave((buses.aluToOutput, Alu.Calculate(_srcA.Output, _srcB.Output, aluVisualizer.CurrentAluOperation)));
 
             _currentBus++;
         }
-
-        yield return WaitNoSignals;
     }
 
     protected override void UpdateVisualizers()
