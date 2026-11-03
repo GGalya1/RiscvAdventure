@@ -147,21 +147,21 @@ public class LevelZeroRegisseur : BaseLevelRegisseur<LevelZeroState, LevelZeroBu
     protected override IEnumerator RunBusVisualizations()
     {
         if (_currentBus == 0)
-            busController.StartBusSignal(buses.srcAToSrcB, _srcA.Output);
-        else if (_currentBus == 1) busController.StartBusSignal(buses.srcBToOutput, _srcB.Output);
+            yield return Bus.Wave((buses.srcAToSrcB, _srcA.Output));
+        else if (_currentBus == 1)
+            yield return Bus.Wave((buses.srcBToOutput, _srcB.Output));
 
         _currentBus++;
-        yield return WaitNoSignals;
     }
 
     protected override IEnumerator ReverseBusVisualizations()
     {
         if (_currentBus == 2)
-            busController.StartBusSignal(buses.srcBToOutput, _output.Input, true);
-        else if (_currentBus == 1) busController.StartBusSignal(buses.srcAToSrcB, _srcB.Input, true);
+            yield return Bus.WaveBack((buses.srcBToOutput, _output.Input));
+        else if (_currentBus == 1)
+            yield return Bus.WaveBack((buses.srcAToSrcB, _srcB.Input));
 
         _currentBus--;
-        yield return WaitNoSignals;
     }
 
     #region CACHED UI REFERENCES

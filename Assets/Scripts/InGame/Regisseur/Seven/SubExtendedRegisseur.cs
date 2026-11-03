@@ -244,67 +244,41 @@ public class SubExtendedRegisseur : BaseLevelRegisseur<SubExtendedSevenLevelStat
     {
         if (_currentBus >= 1 && _currentBus <= maxTickNumber)
         {
-            busController.StartBusSignal(buses.wd3RegToRegFile, _wd3.Input, true);
-            yield return WaitNoSignals;
-
-            busController.StartBusSignal(buses.aluToWd3Reg, _wd3.Input, true);
-            yield return WaitNoSignals;
-
             var ext = Extender.Evaluate(extenderVisualizer.CurrentAluOperation, (uint)_immValue.Output);
             var mux = EvaluateMux(0, ext, -1, muxVisualizer.CurrentChosenMuxPath);
 
-            busController.StartBusSignal(buses.rd1ToAlu, _registerFile.Registers[_srcA.Output], true);
-            busController.StartBusSignal(buses.srcBMuxToAlu, mux, true);
-            yield return WaitNoSignals;
-
-            busController.StartBusSignal(buses.zeroToSrcBMux, 0, true);
-            busController.StartBusSignal(buses.extToSrcBMux, ext, true);
-            yield return WaitNoSignals;
-
-            busController.StartBusSignal(buses.srcAToRegFileA1, _srcA.Output);
-            busController.StartBusSignal(buses.a3ToRegFileA3, _a3.Output);
-            busController.StartBusSignal(buses.immToExtend, _immValue.Output);
+            yield return Bus.WaveBack((buses.wd3RegToRegFile, _wd3.Input));
+            yield return Bus.WaveBack((buses.aluToWd3Reg, _wd3.Input));
+            yield return Bus.WaveBack((buses.rd1ToAlu, _registerFile.Registers[_srcA.Output]), (buses.srcBMuxToAlu, mux));
+            yield return Bus.WaveBack((buses.zeroToSrcBMux, 0), (buses.extToSrcBMux, ext));
+            yield return Bus.Wave(
+                (buses.srcAToRegFileA1, _srcA.Output), (buses.a3ToRegFileA3, _a3.Output), (buses.immToExtend, _immValue.Output));
 
             _currentBus--;
         }
-
-        yield return WaitNoSignals;
     }
+
+    /// <summary> Register value as shown on the RD buses: only r1..r15 are displayed, everything else reads 0. </summary>
+    private int DisplayedRegister(int address) =>
+        address is > 0 and < 16 ? _registerFile.Registers[address] : 0;
 
     protected override IEnumerator RunBusVisualizations()
     {
         if (_currentBus >= 0 && _currentBus < maxTickNumber)
         {
-            busController.StartBusSignal(buses.srcAToRegFileA1, _srcA.Output);
-            busController.StartBusSignal(buses.a3ToRegFileA3, _a3.Output);
-            busController.StartBusSignal(buses.immToExtend, _immValue.Output);
-            yield return WaitNoSignals;
-
-            var a = 0;
-            if (_srcA.Output is > 0 and < 16)
-                a = _registerFile.Registers[_srcA.Output];
-
+            var a = DisplayedRegister(_srcA.Output);
             var ext = Extender.Evaluate(extenderVisualizer.CurrentAluOperation, (uint)_immValue.Output);
             var mux = EvaluateMux(0, ext, -1, muxVisualizer.CurrentChosenMuxPath);
 
-            busController.StartBusSignal(buses.zeroToSrcBMux, 0);
-            busController.StartBusSignal(buses.extToSrcBMux, ext);
-            yield return WaitNoSignals;
-
-            busController.StartBusSignal(buses.rd1ToAlu, a);
-            busController.StartBusSignal(buses.srcBMuxToAlu, mux);
-            yield return WaitNoSignals;
-
-            busController.StartBusSignal(buses.aluToWd3Reg, Alu.Calculate(a, mux, aluVisualizer.CurrentAluOperation));
-
-            yield return WaitNoSignals;
-
-            busController.StartBusSignal(buses.wd3RegToRegFile, _wd3.Output);
+            yield return Bus.Wave(
+                (buses.srcAToRegFileA1, _srcA.Output), (buses.a3ToRegFileA3, _a3.Output), (buses.immToExtend, _immValue.Output));
+            yield return Bus.Wave((buses.zeroToSrcBMux, 0), (buses.extToSrcBMux, ext));
+            yield return Bus.Wave((buses.rd1ToAlu, a), (buses.srcBMuxToAlu, mux));
+            yield return Bus.Wave((buses.aluToWd3Reg, Alu.Calculate(a, mux, aluVisualizer.CurrentAluOperation)));
+            yield return Bus.Wave((buses.wd3RegToRegFile, _wd3.Output));
 
             _currentBus++;
         }
-
-        yield return WaitNoSignals;
     }
 
     protected override void UpdateVisualizers()
