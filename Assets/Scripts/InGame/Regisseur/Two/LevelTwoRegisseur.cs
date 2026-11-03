@@ -109,34 +109,22 @@ public class LevelTwoRegisseur : BaseLevelRegisseur<LevelTwoState, LevelTwoBusSe
     {
         if (_currentBus is >= 0 and < 5)
         {
-            busController.StartBusSignal(buses.pcToAdder, _srcA.Output);
-            busController.StartBusSignal(buses.constFourToAdder, 4);
-
-            yield return StartCoroutine(DelayedSignal(
-                buses.adderToPC,
-                Alu.Calculate(_srcA.Output, 4, aluVisualizer.CurrentAluOperation)
-            ));
+            yield return Bus.Wave((buses.pcToAdder, _srcA.Output), (buses.constFourToAdder, 4));
+            yield return Bus.Wave((buses.adderToPC, Alu.Calculate(_srcA.Output, 4, aluVisualizer.CurrentAluOperation)));
 
             _currentBus++;
         }
-        yield return WaitNoSignals;
     }
 
     protected override IEnumerator ReverseBusVisualizations()
     {
         if (_currentBus is >= 1 and <= 5)
         {
+            yield return Bus.WaveBack((buses.adderToPC, _srcA.Input));
+            yield return Bus.WaveBack((buses.pcToAdder, StateAt(TickCounter).RegisterAValue), (buses.constFourToAdder, 4));
 
-            busController.StartBusSignal(buses.adderToPC, _srcA.Input, true);
-
-            yield return StartCoroutine(DelayedSignals(
-                buses.pcToAdder, TickStateValues[TickCounter].RegisterAValue ,
-                buses.constFourToAdder, 4, true, true
-            ));
-            
             _currentBus--;
         }
-        yield return WaitNoSignals;
     }
     #endregion
 }

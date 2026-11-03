@@ -11,10 +11,12 @@ public class ExtenderVisualizer : AluVisualiser
             uiController.Setup("Extender");
         }
 
-        uiController.FirstOperationButton.onClick.AddListener(() => ChooseExtenderType(0));
-        uiController.SecondOperationButton.onClick.AddListener(() => ChooseExtenderType(1));
-        uiController.ThirdOperationButton.onClick.AddListener(() => ChooseExtenderType(2));
-        uiController.FourthOperationButton.onClick.AddListener(() => ChooseExtenderType(3));
+        var buttons = uiController.OperationButtons;
+        for (var i = 0; i < buttons.Length; i++)
+        {
+            var operationType = i;
+            buttons[i].onClick.AddListener(() => ChooseExtenderType(operationType));
+        }
 
         ResetVisualisation();
     }

@@ -188,47 +188,31 @@ public class LevelSevenRegisseur : BaseLevelRegisseur<LevelSevenState, LevelSeve
     {
         if (_currentBus >= 1 && _currentBus <= maxTickNumber)
         {
-            busController.StartBusSignal(buses.aluToOutput, _output.Input, true);
-            yield return WaitNoSignals;
+            var before = StateAt(TickCounter);
 
-
-            busController.StartBusSignal(buses.rd1ToAlu,
-                _registerFile.Registers[TickStateValues[TickCounter].RegisterAValue], true);
-            busController.StartBusSignal(buses.rd2ToAlu,
-                _registerFile.Registers[TickStateValues[TickCounter].RegisterBValue], true);
-            yield return WaitNoSignals;
-
-            busController.StartBusSignal(buses.srcAToRegFileA1, TickStateValues[TickCounter].RegisterAValue,
-                true);
-            busController.StartBusSignal(buses.srcBToRegFileA2, TickStateValues[TickCounter].RegisterBValue,
-                true);
-
+            yield return Bus.WaveBack((buses.aluToOutput, _output.Input));
+            yield return Bus.WaveBack(
+                (buses.rd1ToAlu, _registerFile.Registers[before.RegisterAValue]),
+                (buses.rd2ToAlu, _registerFile.Registers[before.RegisterBValue]));
+            yield return Bus.WaveBack((buses.srcAToRegFileA1, before.RegisterAValue), (buses.srcBToRegFileA2, before.RegisterBValue));
 
             _currentBus--;
         }
-
-        yield return WaitNoSignals;
     }
 
     protected override IEnumerator RunBusVisualizations()
     {
         if (_currentBus >= 0 && _currentBus < maxTickNumber)
         {
-            busController.StartBusSignal(buses.srcAToRegFileA1, _srcA.Output);
-            busController.StartBusSignal(buses.srcBToRegFileA2, _srcB.Output);
-            yield return WaitNoSignals;
+            var rd1 = _registerFile.ReadData1;
+            var rd2 = _registerFile.ReadData2;
 
-            busController.StartBusSignal(buses.rd1ToAlu, _registerFile.ReadData1);
-            busController.StartBusSignal(buses.rd2ToAlu, _registerFile.ReadData2);
-            yield return WaitNoSignals;
-
-            busController.StartBusSignal(buses.aluToOutput,
-                Alu.Calculate(_registerFile.ReadData1, _registerFile.ReadData2, aluVisualizer.CurrentAluOperation));
+            yield return Bus.Wave((buses.srcAToRegFileA1, _srcA.Output), (buses.srcBToRegFileA2, _srcB.Output));
+            yield return Bus.Wave((buses.rd1ToAlu, rd1), (buses.rd2ToAlu, rd2));
+            yield return Bus.Wave((buses.aluToOutput, Alu.Calculate(rd1, rd2, aluVisualizer.CurrentAluOperation)));
 
             _currentBus++;
         }
-
-        yield return WaitNoSignals;
     }
 
     protected override void UpdateVisualizers()

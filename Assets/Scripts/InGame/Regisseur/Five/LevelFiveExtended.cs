@@ -124,17 +124,12 @@ public class LevelFiveExtended : BaseLevelRegisseur<LevelFiveExtendedState, Leve
 
     protected override IEnumerator ReverseBusVisualizations()
     {
-        busController.StartBusSignal(buses.srcAToExtend, _srcA.Output, true);
-        busController.StartBusSignal(buses.extendToOutput, _output.Input, true);
-        yield return WaitNoSignals;
+        yield return Bus.WaveBack((buses.srcAToExtend, _srcA.Output), (buses.extendToOutput, _output.Input));
     }
 
     protected override IEnumerator RunBusVisualizations()
     {
-        busController.StartBusSignal(buses.srcAToExtend, _srcA.Output);
-        busController.StartBusSignal(buses.extendToOutput, _output.Output);
-
-        yield return WaitNoSignals;
+        yield return Bus.Wave((buses.srcAToExtend, _srcA.Output), (buses.extendToOutput, _output.Output));
     }
 
     protected override void UpdateVisualizers()

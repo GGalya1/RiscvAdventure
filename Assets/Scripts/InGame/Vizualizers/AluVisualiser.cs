@@ -24,10 +24,12 @@ public class AluVisualiser : BaseVisualizer
             uiController.Setup("ALU");
         }
 
-        uiController.FirstOperationButton.onClick.AddListener(() => ChooseAluOperation(0));
-        uiController.SecondOperationButton.onClick.AddListener(() => ChooseAluOperation(1));
-        uiController.ThirdOperationButton.onClick.AddListener(() => ChooseAluOperation(2));
-        uiController.FourthOperationButton.onClick.AddListener(() => ChooseAluOperation(3));
+        var buttons = uiController.OperationButtons;
+        for (var i = 0; i < buttons.Length; i++)
+        {
+            var operation = i;
+            buttons[i].onClick.AddListener(() => ChooseAluOperation(operation));
+        }
 
         ResetVisualisation();
     }
@@ -38,10 +40,7 @@ public class AluVisualiser : BaseVisualizer
 
     public override void SetInteractable(bool value)
     {
-        uiController.FirstOperationButton.interactable = value;
-        uiController.SecondOperationButton.interactable = value;
-        uiController.ThirdOperationButton.interactable = value;
-        uiController.FourthOperationButton.interactable = value;
+        foreach (var button in uiController.OperationButtons) button.interactable = value;
     }
 
     public override void ResetVisualisation(){

@@ -134,53 +134,32 @@ public class LevelFiveRegisseur : BaseLevelRegisseur<LevelFiveState, LevelFiveBu
     {
         if (_currentBus >= 0 && _currentBus < maxTickNumber)
         {
-            busController.StartBusSignal(buses.pcToMemAddr, _srcA.Output);
-            busController.StartBusSignal(buses.pcToBtaAdder, _srcA.Output);
-            busController.StartBusSignal(buses.constFourToAdder, 4);
+            var pc = _srcA.Output;
 
-            if (_dataInstructionMemory.Memory.TryGetValue(_srcA.Output, out var value))
-                yield return StartCoroutine(DelayedSignals(buses.memDataToInstrReg, value, buses.adderToSrcB,
-                    Alu.Calculate(_srcA.Output, 4, aluVisualizer.CurrentAluOperation)));
-            else
-                yield return StartCoroutine(DelayedSignals(buses.memDataToInstrReg, 0, buses.adderToSrcB,
-                    Alu.Calculate(_srcA.Output, 4, aluVisualizer.CurrentAluOperation)));
-
-            yield return StartCoroutine(DelayedSignal(buses.instrRegToExtend, _srcB.Output));
-
-
-            yield return StartCoroutine(DelayedSignal(buses.extendToMux,
-                Extender.Evaluate(extenderVisualizer.CurrentAluOperation, (uint)_srcB.Output)));
+            yield return Bus.Wave((buses.pcToMemAddr, pc), (buses.pcToBtaAdder, pc), (buses.constFourToAdder, 4));
+            yield return Bus.Wave(
+                (buses.memDataToInstrReg, _dataInstructionMemory.Memory.GetValueOrDefault(pc, 0)),
+                (buses.adderToSrcB, Alu.Calculate(pc, 4, aluVisualizer.CurrentAluOperation)));
+            yield return Bus.Wave((buses.instrRegToExtend, _srcB.Output));
+            yield return Bus.Wave((buses.extendToMux, Extender.Evaluate(extenderVisualizer.CurrentAluOperation, (uint)_srcB.Output)));
 
             _currentBus++;
         }
-
-        yield return WaitNoSignals;
     }
 
     protected override IEnumerator ReverseBusVisualizations()
     {
         if (_currentBus >= 1 && _currentBus <= maxTickNumber)
         {
-            busController.StartBusSignal(buses.extendToMux, _output.Input, true);
+            var before = StateAt(TickCounter);
 
-            if (TickStateValues[TickCounter] is var s)
-            {
-                yield return StartCoroutine(DelayedSignal(buses.instrRegToExtend, s.RegisterInstrValue, true));
-
-                yield return StartCoroutine(DelayedSignals(buses.memDataToInstrReg, _srcB.Input, buses.adderToSrcB,
-                    _srcA.Input, true, true));
-
-                yield return WaitNoSignals;
-
-                busController.StartBusSignal(buses.pcToMemAddr, _srcA.Output, true);
-                busController.StartBusSignal(buses.pcToBtaAdder, _srcA.Output, true);
-                busController.StartBusSignal(buses.constFourToAdder, 4, true);
-            }
+            yield return Bus.WaveBack((buses.extendToMux, _output.Input));
+            yield return Bus.WaveBack((buses.instrRegToExtend, before.RegisterInstrValue));
+            yield return Bus.WaveBack((buses.memDataToInstrReg, _srcB.Input), (buses.adderToSrcB, _srcA.Input));
+            yield return Bus.WaveBack((buses.pcToMemAddr, _srcA.Output), (buses.pcToBtaAdder, _srcA.Output), (buses.constFourToAdder, 4));
 
             _currentBus--;
         }
-
-        yield return WaitNoSignals;
     }
 
     protected override void HandleClockUpdate()
@@ -282,11 +261,9 @@ public class LevelFiveRegisseur : BaseLevelRegisseur<LevelFiveState, LevelFiveBu
 
     protected override bool CheckWinCondition()
     {
-        if (TickStateValues == null) return false;
-
-        var val1 = (uint)TickStateValues[2].RegisterOutputValue;
-        var val2 = (uint)TickStateValues[3].RegisterOutputValue;
-        var val3 = (uint)TickStateValues[4].RegisterOutputValue;
+        var val1 = (uint)StateAt(2).RegisterOutputValue;
+        var val2 = (uint)StateAt(3).RegisterOutputValue;
+        var val3 = (uint)StateAt(4).RegisterOutputValue;
         var val4 = (uint)_output.Output;
 
         return val1 == 1000 &&

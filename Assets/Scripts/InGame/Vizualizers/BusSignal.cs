@@ -1,30 +1,29 @@
-using UnityEngine;
-
+//  A pooled sphere that travels along a bus; clicking it shows the carried value
 public class BusSignal : BaseVisualizer
 {
-    public InfoPanelUI UIRegisterPanel { get; private set; }
-
-    protected override void Awake()
-    {
-        // panelLocalOffset = new Vector3(0, 0.8f, 0);
-
-        base.Awake();
-
-        if (UIRegisterPanel != null)
-        {
-            UIRegisterPanel.Display("", "N/A");
-        }
-    }
-
-    public override void ResetVisualisation()
-    {
-        UIRegisterPanel.Display("", "N/A");
-        HidePanelImmediately();
-    }
+    private InfoPanelUI _panel;
 
     protected override void InitializePanel()
     {
-        UIRegisterPanel = RequirePanel<InfoPanelUI>();
+        _panel = RequirePanel<InfoPanelUI>();
+    }
+
+    protected override void Awake()
+    {
+        base.Awake();
+        if (_panel != null) _panel.Display("", "N/A");
+    }
+
+    public void ShowValue(int value)
+    {
+        _panel.Display("Signal", value);
+    }
+
+    //  Prepares the signal for returning to the pool
+    public override void ResetVisualisation()
+    {
+        _panel.Display("", "N/A");
+        HidePanelImmediately();
     }
 
     public override void SetInteractable(bool value)
