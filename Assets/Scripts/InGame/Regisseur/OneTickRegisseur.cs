@@ -166,11 +166,9 @@ public struct OneTickProcessorLevelState
     public int MuXresultPath;
 }
 
-public class OneTickRegisseur : BaseLevelRegisseur<OneTickProcessorLevelState, OneTickBusSegments>
+public class OneTickRegisseur
+    : ProcessorRegisseurBase<OneTickProcessorLevelState, OneTickBusSegments, OneTickProcessorInitialState>
 {
-    [Header("Initial values for level")]
-    public static OneTickProcessorInitialState Initial;
-
     [Header("Processor Specific Components")] [SerializeField]
     private RegisterVisualizer registerPCVisualizer;
 
@@ -199,11 +197,6 @@ public class OneTickRegisseur : BaseLevelRegisseur<OneTickProcessorLevelState, O
     private Register _pc;
     private RegisterFile _registerFile;
 
-    protected void Awake()
-    {
-        levelManager.SetLevelDialogue(Initial.customDialogueGraph);
-    }
-    
     protected override void Start()
     {
         base.Start();
@@ -212,7 +205,7 @@ public class OneTickRegisseur : BaseLevelRegisseur<OneTickProcessorLevelState, O
 
     protected override void OnLevelStart()
     {
-        if (Initial != null) levelTargetDescription = Initial.levelTarget;
+        base.OnLevelStart();
         
         _pc = new Register(Initial.pcRegisterInitialValue) { WriteEnable = true };
 
@@ -500,21 +493,8 @@ public class OneTickRegisseur : BaseLevelRegisseur<OneTickProcessorLevelState, O
         yield return WaitNoSignals;
     }
 
-    protected override bool CheckWinCondition()
-    {
-        return Initial.aufgabeTyp switch
-        {
-            ExerciseTyp.REGISTER_FIELD => _registerFile.Registers[Initial.registerFieldAddressAnswer] ==
-                                          Initial.registerFieldValueAnswer,
-            ExerciseTyp.MEMORY => _dataMemory.Memory.GetValueOrDefault(Initial.memoryAddressAnswer, 0) ==
-                                  Initial.memoryValueAnswer,
-            ExerciseTyp.BEQ => _pc.Output == Initial.pcValueAnswer,
-            ExerciseTyp.JAL => _pc.Output == Initial.pcValueAnswer &&
-                               _registerFile.Registers[Initial.registerFieldAddressAnswer] ==
-                               Initial.registerFieldValueAnswer,
-            _ => false
-        };
-    }
+    protected override bool CheckWinCondition() =>
+        ExerciseCheck.IsSolved(Initial, _registerFile.Registers, address => _dataMemory.Memory.GetValueOrDefault(address, 0), _pc.Output);
 
     protected override void UpdateVisualizers()
     {
@@ -588,26 +568,6 @@ public class OneTickRegisseur : BaseLevelRegisseur<OneTickProcessorLevelState, O
 
     private InstrMemoryControlPanel _infoInstructionMemory;
     private InstrMemoryControlPanel _infoDataMemory;
-
-    #endregion
-
-    #region transition to next level
-
-    private void OnEnable()
-    {
-        LevelManager.OnRequestNextLevelData += GetNextLevelData;
-    }
-
-    private void OnDisable()
-    {
-        LevelManager.OnRequestNextLevelData -= GetNextLevelData;
-    }
-
-    private static object GetNextLevelData()
-    {
-        if (Initial != null && Initial.nextSceneInitial != null) return Initial.nextSceneInitial;
-        return null;
-    }
 
     #endregion
 }

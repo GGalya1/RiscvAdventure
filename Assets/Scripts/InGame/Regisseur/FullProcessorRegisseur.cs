@@ -148,7 +148,8 @@ public class FullProcessorBusSegments: IBusSegmentProvider
     }
 }
 
-public class FullProcessorRegisseur : BaseLevelRegisseur<ProcessorLevelState, FullProcessorBusSegments>
+public class FullProcessorRegisseur
+    : ProcessorRegisseurBase<ProcessorLevelState, FullProcessorBusSegments, ProcessorInitialState>
 {
     [FormerlySerializedAs("_registerPCVisualizer")]
     [Header("Processor Specific Components")]
@@ -172,10 +173,6 @@ public class FullProcessorRegisseur : BaseLevelRegisseur<ProcessorLevelState, Fu
     [FormerlySerializedAs("_registerFileVisualizer")] [SerializeField] private RegisterFileVisualizer registerFileVisualizer;
 
     [FormerlySerializedAs("_numberBlinker")] [SerializeField] private Blinker numberBlinker;
-
-    [Header("Initial values for level")]
-    // [SerializeField] private ProcessorInitialState _initial;
-    public static ProcessorInitialState Initial;
 
     [FormerlySerializedAs("_sidePanelInformer")]
     [Header("Extra Panel Fields")]
@@ -208,10 +205,6 @@ public class FullProcessorRegisseur : BaseLevelRegisseur<ProcessorLevelState, Fu
 
     private int _currentBus; // [0, 10]
 
-    protected void Awake()
-    {
-        levelManager.SetLevelDialogue(Initial.customDialogueGraph);
-    }
     protected override void Start()
     {
         base.Start();
@@ -219,7 +212,7 @@ public class FullProcessorRegisseur : BaseLevelRegisseur<ProcessorLevelState, Fu
     }
     protected override void OnLevelStart()
     {
-        if (Initial != null) levelTargetDescription = Initial.levelTarget;
+        base.OnLevelStart();
         
         _pc = new Register(Initial.pcRegisterInitialValue)
         {
@@ -858,26 +851,4 @@ public class FullProcessorRegisseur : BaseLevelRegisseur<ProcessorLevelState, Fu
                 break;
         }
     }
-
-    #region transition to next level
-
-    private void OnEnable()
-    {
-        LevelManager.OnRequestNextLevelData += GetNextLevelData;
-    }
-
-    private void OnDisable()
-    {
-        LevelManager.OnRequestNextLevelData -= GetNextLevelData;
-    }
-
-    private static object GetNextLevelData()
-    {
-        if (Initial != null && Initial.nextSceneInitial != null)
-        {
-            return Initial.nextSceneInitial;
-        }
-        return null;
-    }
-    #endregion
 }
