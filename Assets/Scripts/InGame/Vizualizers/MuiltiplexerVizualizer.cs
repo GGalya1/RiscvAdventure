@@ -41,9 +41,12 @@ public class MultiplexerVisualizer: BaseVisualizer
             }
         }
 
-        UIController.FirstWayButton.onClick.AddListener(() => SelectPath(0));
-        UIController.SecondWayButton.onClick.AddListener(() => SelectPath(1));
-        UIController.ThirdWayButton.onClick.AddListener(() => SelectPath(2));
+        var buttons = UIController.WayButtons;
+        for (var i = 0; i < buttons.Length; i++)
+        {
+            var path = i;
+            buttons[i].onClick.AddListener(() => SelectPath(path));
+        }
 
         ResetVisualisation();
     }
@@ -82,11 +85,10 @@ public class MultiplexerVisualizer: BaseVisualizer
     }
 
     public override void SetInteractable(bool value) {
-        UIController.FirstWayButton.interactable = value;
-        UIController.SecondWayButton.interactable = value;
-
-        if (UIController.ThirdWayButton != null)
-            UIController.ThirdWayButton.interactable = value;
+        foreach (var button in UIController.WayButtons)
+        {
+            if (button != null) button.interactable = value;
+        }
     }
     #endregion
 }

@@ -142,14 +142,7 @@ namespace RiscvAdventure.PlayModeTests
         public void SelectMux(string field, int path)
         {
             var mux = Visual<MultiplexerVisualizer>(field);
-            var panel = mux.UIController;
-            var button = path switch
-            {
-                0 => panel.FirstWayButton,
-                1 => panel.SecondWayButton,
-                2 => panel.ThirdWayButton,
-                _ => null
-            };
+            var button = ButtonAt(mux.UIController.WayButtons, path);
             Assert.IsNotNull(button, Ctx($"'{field}' has no MUX input #{path}"));
 
             button.onClick.Invoke();
@@ -164,15 +157,7 @@ namespace RiscvAdventure.PlayModeTests
         private void ClickOperation(string field, int index, string label)
         {
             var vis = Visual<AluVisualiser>(field);
-            var panel = vis.uiController;
-            var button = index switch
-            {
-                0 => panel.FirstOperationButton,
-                1 => panel.SecondOperationButton,
-                2 => panel.ThirdOperationButton,
-                3 => panel.FourthOperationButton,
-                _ => null
-            };
+            var button = ButtonAt(vis.uiController.OperationButtons, index);
             Assert.IsNotNull(button, Ctx($"'{field}' has no button #{index}"));
 
             button.onClick.Invoke();
@@ -339,6 +324,10 @@ namespace RiscvAdventure.PlayModeTests
             Assert.IsInstanceOf<T>(value, Ctx($"Field '{name}' is not a {typeof(T).Name}"));
             return (T)value;
         }
+
+        /// <summary> Button with the given index of a panel button array, or null if there is none. </summary>
+        private static Button ButtonAt(Button[] buttons, int index) =>
+            buttons != null && index >= 0 && index < buttons.Length ? buttons[index] : null;
 
         // ------------------------------------------------------------------ events
 
