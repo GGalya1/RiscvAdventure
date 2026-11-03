@@ -148,13 +148,6 @@ public class FullProcessorBusSegments: IBusSegmentProvider
     }
 }
 
-public enum ExerciseTyp {
-    REGISTER_FIELD = 0,
-    MEMORY = 1,
-    BEQ = 2,
-    JAL = 3,
-}
-
 public class FullProcessorRegisseur : BaseLevelRegisseur<ProcessorLevelState, FullProcessorBusSegments>
 {
     [FormerlySerializedAs("_registerPCVisualizer")]
@@ -356,21 +349,8 @@ public class FullProcessorRegisseur : BaseLevelRegisseur<ProcessorLevelState, Fu
         numberBlinker.Trigger();
     }
 
-    protected override bool CheckWinCondition()
-    {
-        return Initial.aufgabeTyp switch
-        {
-            ExerciseTyp.REGISTER_FIELD => _registerFile.Registers[Initial.registerFieldAddressAnswer] ==
-                                          Initial.registerFieldValueAnswer,
-            ExerciseTyp.MEMORY => _dataInstructionMemory.Memory[Initial.memoryAddressAnswer] ==
-                                  Initial.memoryValueAnswer,
-            ExerciseTyp.BEQ => _pc.Output == Initial.pcValueAnswer,
-            ExerciseTyp.JAL => _pc.Output == Initial.pcValueAnswer &&
-                               _registerFile.Registers[Initial.registerFieldAddressAnswer] ==
-                               Initial.registerFieldValueAnswer,
-            _ => false
-        };
-    }
+    protected override bool CheckWinCondition() =>
+        ExerciseCheck.IsSolved(Initial, _registerFile.Registers, address => _dataInstructionMemory.Memory[address], _pc.Output);
 
     protected override ProcessorLevelState GetCurrentState()
     {
