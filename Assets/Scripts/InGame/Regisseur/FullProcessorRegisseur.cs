@@ -880,7 +880,6 @@ public class FullProcessorRegisseur : BaseLevelRegisseur<ProcessorLevelState, Fu
     }
 
     #region transition to next level
-    protected override bool HasNextSubLevel => GetNextLevelData() != null;
 
     private void OnEnable()
     {
