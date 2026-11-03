@@ -4,38 +4,39 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
+/*
+ Animates values traveling along bus segments (LineRenderers).
+ 
+ Levels describe an animation as a sequence of waves: all pulses of a wave start together,
+ the next wave starts when every signal of the previous one has arrived
+*/
 public class BusController : MonoBehaviour
 {
     [Header("UI Elements")] public Slider speedSlider;
 
     [Header("Motion settings")] public GameObject spherePrefab; // Sphere prefab (aka signal)
 
-    public float movementSpeed = 7f; // Velocity of sphere
+    public float movementSpeed = 7f;
 
     [Header("Pool settings")] [SerializeField]
     private int poolPreWarmCount = 5;
 
-    //[Header("All bus segments")]
-    // This is where we store references to all LineRenderers in the scene.
-    // These are assigned via the Inspector.
-    //public LineRenderer[] busSegments;
-
     private readonly HashSet<BusSignal> _activeSignals = new();
-
-
-    // A dictionary to store the path for each bus so it doesn't have to be calculated every time
-    private readonly Dictionary<LineRenderer, Vector3[]> _busPaths = new();
-
     private readonly Stack<BusSignal> _pool = new();
+
+    // World-space path of every registered segment
+    private readonly Dictionary<LineRenderer, Vector3[]> _busPaths = new();
     private readonly Dictionary<LineRenderer, Vector3[]> _reverseBusPaths = new();
 
     private BusSignal _spherePrefabSignal;
+    private WaitUntil _waitUntilIdle;
+
     public bool NoActiveSignals => _activeSignals.Count == 0;
 
     private void Awake()
     {
         _spherePrefabSignal = spherePrefab.GetComponent<BusSignal>();
-        //InitializePaths();
+        _waitUntilIdle = new WaitUntil(() => NoActiveSignals);
     }
 
     private void Start()
@@ -59,8 +60,8 @@ public class BusController : MonoBehaviour
     private void OnDestroy()
     {
         StopAllCoroutines();
-        
-        // all objects in pool need to be removed manual
+
+        // pooled objects are not children of this object and must be removed manually
         foreach (var signal in _activeSignals)
             if (signal != null)
                 Destroy(signal.gameObject);
@@ -70,12 +71,47 @@ public class BusController : MonoBehaviour
                 Destroy(signal.gameObject);
     }
 
+    #region Public API
+    //  Starts all pulses at once and waits until every signal on the buses has arrived
+    public IEnumerator Wave(params BusPulse[] pulses) => PlayWave(pulses, false);
 
-    public void StartBusSignal(LineRenderer targetBus, int value, bool reversedPath = false)
+    //  Same as Wave, but the signals travel from the end of each segment to its start
+    public IEnumerator WaveBack(params BusPulse[] pulses) => PlayWave(pulses, true);
+
+    // Plays the waves one after another
+    public IEnumerator Play(IReadOnlyList<BusPulse[]> waves)
     {
-        StartBusSignalInternal(targetBus, value, reversedPath);
+        foreach (var wave in waves)
+            yield return PlayWave(wave, false);
     }
 
+    // Plays the waves in reverse order and every signal in reverse direction
+    public IEnumerator PlayBackwards(IReadOnlyList<BusPulse[]> waves)
+    {
+        for (var i = waves.Count - 1; i >= 0; i--)
+            yield return PlayWave(waves[i], true);
+    }
+
+    // Waits until no signal is travelling
+    public IEnumerator WaitUntilIdle()
+    {
+        yield return _waitUntilIdle;
+    }
+
+    // Sends one value along targetBus without waiting
+    public void StartBusSignal(LineRenderer targetBus, int value, bool reversedPath = false)
+    {
+        var pathPoints = (reversedPath ? _reverseBusPaths : _busPaths).GetValueOrDefault(targetBus);
+        if (pathPoints == null || pathPoints.Length < 2) return;
+
+        var signal = GetSignal(pathPoints[0]);
+        signal.ShowValue(value);
+
+        _activeSignals.Add(signal);
+        StartCoroutine(MoveSphereAlongPath(signal, pathPoints));
+    }
+
+    // Pre-computes the world-space path of a segment
     public void RegisterSegment(LineRenderer lr)
     {
         if (lr == null)
@@ -84,61 +120,41 @@ public class BusController : MonoBehaviour
             return;
         }
 
-        // Idempotent - skip if already registered (e.g. present in busSegments[])
+        // Idempotent - skip if already registered
         if (_busPaths.ContainsKey(lr))
             return;
 
-        var t = lr.transform;
         var count = lr.positionCount;
-
         if (count < 2)
         {
             CustomLog.LogEditorWarning($" '{lr.gameObject.name}' has fewer than 2 vertices - skipping.");
             return;
         }
 
-        // Retrieve local positions and convert to world space
-        var localPoints = new Vector3[count];
-        lr.GetPositions(localPoints);
-
-        var worldPoints = new Vector3[count];
-        var reversedPts = new Vector3[count];
-
+        // local positions -> world space
+        var t = lr.transform;
+        var points = new Vector3[count];
+        lr.GetPositions(points);
         for (var i = 0; i < count; i++)
-            worldPoints[i] = t.TransformPoint(localPoints[i]);
+            points[i] = t.TransformPoint(points[i]);
 
-        Array.Copy(worldPoints, reversedPts, count);
-        Array.Reverse(reversedPts);
+        var reversed = new Vector3[count];
+        Array.Copy(points, reversed, count);
+        Array.Reverse(reversed);
 
-        _busPaths[lr] = worldPoints;
-        _reverseBusPaths[lr] = reversedPts;
+        _busPaths[lr] = points;
+        _reverseBusPaths[lr] = reversed;
     }
+    #endregion
 
-    #region Internal
-
-    /// <summary>
-    ///     A public method for triggering a signal on a specific bus.
-    ///     You will call this method from other scripts (for example, when clicking on the CPU block).
-    /// </summary>
-    /// <param name="targetBus">LineRenderer, through which the signal should be sent.</param>
-    /// <param name="reversedPath">bool, says if the path must be animated in reverse direction</param>
-    /// <param name="value">int, which signal carry</param>
-    private void StartBusSignalInternal(LineRenderer targetBus, int value, bool reversedPath = false)
+    private IEnumerator PlayWave(BusPulse[] pulses, bool reversed)
     {
-        var pathPoints = GetPathPoints(targetBus, reversedPath);
-        if (pathPoints == null || pathPoints.Length < 2) return;
+        foreach (var pulse in pulses)
+            StartBusSignal(pulse.Segment, pulse.Value, reversed);
 
-        // Create a sphere
-        var signal = GetSignal(pathPoints[0]);
-
-        signal.UIRegisterPanel.Display("Signal", value);
-
-        // Important: Adjust the speed and add it to the monitoring list
-        _activeSignals.Add(signal);
-        StartCoroutine(MoveSphereAlongPath(signal, pathPoints));
+        yield return _waitUntilIdle;
     }
 
-    // A coroutine to move a ball along a given array of points
     private IEnumerator MoveSphereAlongPath(BusSignal signal, Vector3[] pathPoints)
     {
         for (var i = 1; i < pathPoints.Length; i++)
@@ -155,7 +171,7 @@ public class BusController : MonoBehaviour
                 yield return null;
             }
         }
-        
+
         ReturnSignal(signal);
     }
 
@@ -163,17 +179,8 @@ public class BusController : MonoBehaviour
     {
         movementSpeed = value;
     }
-    
-    private Vector3[] GetPathPoints(LineRenderer targetBus, bool reversed)
-    {
-        // if (targetBus == null) return null;
-        return (reversed ? _reverseBusPaths : _busPaths).GetValueOrDefault(targetBus);
-    }
-
-    #endregion
 
     #region Pool
-
     private void PrewarmPool()
     {
         for (var i = 0; i < poolPreWarmCount; i++)
@@ -198,10 +205,9 @@ public class BusController : MonoBehaviour
     private void ReturnSignal(BusSignal signal)
     {
         _activeSignals.Remove(signal);
-        signal.ResetVisualisation(); // kill DOTWeen + ui panel
+        signal.ResetVisualisation();
         signal.gameObject.SetActive(false);
         _pool.Push(signal);
     }
-
     #endregion
 }
