@@ -3,7 +3,7 @@ using UnityEngine.UI;
 using TMPro;
 using UnityEngine.Serialization;
 
-public class InstrMemoryControlPanel: InfoPanelUI
+public class InstrMemoryControlPanel : InfoPanelUI, IWriteEnablePanel
 {
     [FormerlySerializedAs("_weButton")] [SerializeField] private Button weButton;
     public Button WeButton => weButton;
@@ -20,12 +20,12 @@ public class InstrMemoryControlPanel: InfoPanelUI
         thirdAddressValue.SetText("{0}", thirdVal);
         fourthAddressValue.SetText("{0}", fourthVal);
     }
-    
+
     public void Display(string firstVal, string secondVal, string thirdVal, string fourthVal)
     {
-        firstAddressValue.text =  firstVal;
-        secondAddressValue.text =  secondVal;
-        thirdAddressValue.text =  thirdVal;
-        fourthAddressValue.text =  fourthVal;
+        firstAddressValue.text = firstVal;
+        secondAddressValue.text = secondVal;
+        thirdAddressValue.text = thirdVal;
+        fourthAddressValue.text = fourthVal;
     }
 }
