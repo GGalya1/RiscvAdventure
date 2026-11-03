@@ -388,46 +388,7 @@ public class OneTickRegisseur
             adrMuxVisualizer.CurrentChosenMuxPath,
             _dataMemory.Memory);
 
-        // IF: PC fans out
-        busController.StartBusSignal(buses.pcToInstrMem, _pc.Output);
-        busController.StartBusSignal(buses.pcToPCPlus4, _pc.Output);
-        busController.StartBusSignal(buses.pcToBta, _pc.Output);
-        yield return WaitNoSignals;
-
-        // ID: instruction fans out to register file and extend
-        busController.StartBusSignal(buses.instrToA1, sig.Rs1);
-        busController.StartBusSignal(buses.instrToA2, sig.Rs2);
-        busController.StartBusSignal(buses.instrToA3, sig.Rd);
-        busController.StartBusSignal(buses.instrToExtend, sig.Instr);
-        yield return WaitNoSignals;
-
-        // EX part 1: register file and extend outputs
-        busController.StartBusSignal(buses.rd1ToAluSrcA, sig.Rd1);
-        busController.StartBusSignal(buses.rd2ToSrcBMux, sig.Rd2);
-        busController.StartBusSignal(buses.rd2ToDataMemWd, sig.Rd2);
-        busController.StartBusSignal(buses.immExtToSrcBMux, sig.ImmExt);
-        busController.StartBusSignal(buses.immExtToBta, sig.ImmExt);
-        yield return WaitNoSignals;
-
-        // EX part 2: mux/adder outputs
-        busController.StartBusSignal(buses.srcBMuxToAlu, sig.SrcB);
-        busController.StartBusSignal(buses.pcPlus4ToPcMux, sig.PcPlus4);
-        busController.StartBusSignal(buses.btaToPcMux, sig.Bta);
-        busController.StartBusSignal(buses.pcPlus4ToResultMux, sig.PcPlus4);
-        yield return WaitNoSignals;
-
-        // MEM: ALU result drives data memory
-        busController.StartBusSignal(buses.aluResToDataMemAddr, sig.AluResult);
-        busController.StartBusSignal(buses.aluResToResultMux, sig.AluResult);
-        yield return WaitNoSignals;
-
-        busController.StartBusSignal(buses.readDataToResultMux, sig.ReadData);
-        yield return WaitNoSignals;
-
-        // WB: results flow back to register file and PC
-        busController.StartBusSignal(buses.resultToRegFileWd3, sig.Result);
-        busController.StartBusSignal(buses.pcNextToPc, sig.PcNext);
-        yield return WaitNoSignals;
+        yield return Bus.Play(BuildWaves(_pc.Output, sig));
     }
 
     protected override IEnumerator ReverseBusVisualizations()
@@ -451,46 +412,46 @@ public class OneTickRegisseur
             s.MuXsrcBPath, s.MuXresultPath,
             s.MuXadrPath, savedDataMem);
 
-        // WB reversed
-        busController.StartBusSignal(buses.pcNextToPc, sig.PcNext, true);
-        busController.StartBusSignal(buses.resultToRegFileWd3, sig.Result, true);
-        yield return WaitNoSignals;
+        // the same waves as the forward animation, played backwards
+        yield return Bus.PlayBackwards(BuildWaves(s.RegisterPCValue, sig));
+    }
 
-        // MEM reversed
-        busController.StartBusSignal(buses.readDataToResultMux, sig.ReadData, true);
-        yield return WaitNoSignals;
+    /// <summary> The order in which the values of one cycle travel through the datapath. </summary>
+    private BusPulse[][] BuildWaves(int pc, CycleSignals sig)
+    {
+        return new[]
+        {
+            // IF: PC fans out
+            new BusPulse[] { (buses.pcToInstrMem, pc), (buses.pcToPCPlus4, pc), (buses.pcToBta, pc) },
 
-        busController.StartBusSignal(buses.aluResToDataMemAddr, sig.AluResult, true);
-        busController.StartBusSignal(buses.aluResToResultMux, sig.AluResult, true);
-        yield return WaitNoSignals;
+            // ID: instruction fans out to register file and extend
+            new BusPulse[]
+            {
+                (buses.instrToA1, sig.Rs1), (buses.instrToA2, sig.Rs2),
+                (buses.instrToA3, sig.Rd), (buses.instrToExtend, sig.Instr)
+            },
 
-        // EX part 2 reversed
-        busController.StartBusSignal(buses.srcBMuxToAlu, sig.SrcB, true);
-        busController.StartBusSignal(buses.pcPlus4ToPcMux, sig.PcPlus4, true);
-        busController.StartBusSignal(buses.btaToPcMux, sig.Bta, true);
-        busController.StartBusSignal(buses.pcPlus4ToResultMux, sig.PcPlus4,  true);
-        yield return WaitNoSignals;
+            // EX part 1: register file and extend outputs
+            new BusPulse[]
+            {
+                (buses.rd1ToAluSrcA, sig.Rd1), (buses.rd2ToSrcBMux, sig.Rd2), (buses.rd2ToDataMemWd, sig.Rd2),
+                (buses.immExtToSrcBMux, sig.ImmExt), (buses.immExtToBta, sig.ImmExt)
+            },
 
-        // EX part 1 reversed
-        busController.StartBusSignal(buses.rd1ToAluSrcA, sig.Rd1, true);
-        busController.StartBusSignal(buses.rd2ToSrcBMux, sig.Rd2, true);
-        busController.StartBusSignal(buses.rd2ToDataMemWd, sig.Rd2, true);
-        busController.StartBusSignal(buses.immExtToSrcBMux, sig.ImmExt, true);
-        busController.StartBusSignal(buses.immExtToBta, sig.ImmExt, true);
-        yield return WaitNoSignals;
+            // EX part 2: mux/adder outputs
+            new BusPulse[]
+            {
+                (buses.srcBMuxToAlu, sig.SrcB), (buses.pcPlus4ToPcMux, sig.PcPlus4),
+                (buses.btaToPcMux, sig.Bta), (buses.pcPlus4ToResultMux, sig.PcPlus4)
+            },
 
-        // ID reversed
-        busController.StartBusSignal(buses.instrToA1, sig.Rs1, true);
-        busController.StartBusSignal(buses.instrToA2, sig.Rs2, true);
-        busController.StartBusSignal(buses.instrToA3, sig.Rd, true);
-        busController.StartBusSignal(buses.instrToExtend, sig.Instr, true);
-        yield return WaitNoSignals;
+            // MEM: ALU result drives data memory
+            new BusPulse[] { (buses.aluResToDataMemAddr, sig.AluResult), (buses.aluResToResultMux, sig.AluResult) },
+            new BusPulse[] { (buses.readDataToResultMux, sig.ReadData) },
 
-        // IF reversed
-        busController.StartBusSignal(buses.pcToInstrMem, s.RegisterPCValue, true);
-        busController.StartBusSignal(buses.pcToPCPlus4, s.RegisterPCValue, true);
-        busController.StartBusSignal(buses.pcToBta, s.RegisterPCValue, true);
-        yield return WaitNoSignals;
+            // WB: results flow back to register file and PC
+            new BusPulse[] { (buses.resultToRegFileWd3, sig.Result), (buses.pcNextToPc, sig.PcNext) },
+        };
     }
 
     protected override bool CheckWinCondition() =>

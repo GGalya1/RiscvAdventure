@@ -63,9 +63,6 @@ public abstract class BaseLevelRegisseur<TState, TBus> : MonoBehaviour
     [SerializeField] protected BusController busController;
     [FormerlySerializedAs("_isProcessing")] public bool isProcessing;
     
-    // --- SIGNAL ANIMATION
-    protected WaitUntil WaitNoSignals;
-    
     [Header("Bus Segments")]
     public TBus buses;
 
@@ -117,7 +114,6 @@ public abstract class BaseLevelRegisseur<TState, TBus> : MonoBehaviour
         _history.Save(0, GetCurrentState());
         
         buses.RegisterAll(busController);
-        WaitNoSignals = new WaitUntil(() => busController.NoActiveSignals);
     }
 
     protected virtual void OnLevelStart()
@@ -243,21 +239,5 @@ public abstract class BaseLevelRegisseur<TState, TBus> : MonoBehaviour
         0 => v0, 1 => v1, 2 => v2,
         _ => 0
     };
-    
-    protected IEnumerator DelayedSignal(LineRenderer seg, int value, bool reverse = false)
-    {
-        yield return WaitNoSignals;
-        busController.StartBusSignal(seg, value, reverse);
-    }
-
-    protected IEnumerator DelayedSignals(
-        LineRenderer seg1, int val1,
-        LineRenderer seg2, int val2,
-        bool rev1 = false, bool rev2 = false)
-    {
-        yield return WaitNoSignals;
-        busController.StartBusSignal(seg1, val1, rev1);
-        busController.StartBusSignal(seg2, val2, rev2);
-    }
     # endregion
 }
