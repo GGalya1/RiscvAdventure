@@ -440,7 +440,7 @@ public class OneTickRegisseur : BaseLevelRegisseur<OneTickProcessorLevelState, O
     protected override IEnumerator ReverseBusVisualizations()
     {
         // Reconstruct the bus values that were flowing during the tick we're undoing
-        var s = TickStateValues[TickCounter]; // pre-tick state (TickCounter already --)
+        var s = StateAt(TickCounter); // pre-tick state (TickCounter already --)
 
         // Rebuild data memory dictionary from saved state to get the correct ReadData
         var savedDataMem = new Dictionary<int, int>

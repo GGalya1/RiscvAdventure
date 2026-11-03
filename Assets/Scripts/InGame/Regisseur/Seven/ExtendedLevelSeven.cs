@@ -201,7 +201,7 @@ public class ExtendedLevelSeven : BaseLevelRegisseur<ExtendedSevenLevelState, Ex
         _wd3.Input = Alu.Calculate(a, b, aluVisualizer.CurrentAluOperation);
         if (TickCounter - 1 >= 0)
         {
-            _registerFile.WriteAdress = TickStateValues[TickCounter - 1].RegisterA3Value;
+            _registerFile.WriteAdress = StateAt(TickCounter - 1).RegisterA3Value;
         }
         _registerFile.WriteData = _wd3.Output;
 

@@ -55,7 +55,7 @@ public abstract class BaseLevelRegisseur<TState, TBus> : MonoBehaviour
     
     // --- STATE ---
     protected int TickCounter;
-    protected TState[] TickStateValues;
+    private TickHistory<TState> _history;
     [FormerlySerializedAs("falledTries")] public int fallenTries; // Public for debugging
 
     [FormerlySerializedAs("_busController")]
@@ -111,8 +111,8 @@ public abstract class BaseLevelRegisseur<TState, TBus> : MonoBehaviour
         levelTargetText.text = levelTargetDescription.GetLocalizedString();
 
         // 2. Initializing history
-        TickStateValues = new TState[maxTickNumber]; // Can be _maxTickNumber + 1
-        SaveCurrentStateAt(0);
+        _history = new TickHistory<TState>(maxTickNumber);
+        _history.Save(0, GetCurrentState());
         
         buses.RegisterAll(busController);
         WaitNoSignals = new WaitUntil(() => busController.NoActiveSignals);
@@ -146,14 +146,7 @@ public abstract class BaseLevelRegisseur<TState, TBus> : MonoBehaviour
         currentTickText.SetText("{0}", TickCounter);
         UpdateVisualizers();
 
-        // The Logic of History
-        var idx = TickCounter;
-        if (idx >= 0 && idx < TickStateValues.Length)
-        {
-            SaveCurrentStateAt(idx);
-            //if (_tickStateValues[idx] == null) saveCurrentStateAt(idx);
-            //else if (!IsStateEqual(_tickStateValues[idx])) refreshStateMemoryFromCurrentStep();
-        }
+        _history.Save(TickCounter, GetCurrentState());
 
         isProcessing = false;
         nextClick.interactable = true;
@@ -182,7 +175,7 @@ public abstract class BaseLevelRegisseur<TState, TBus> : MonoBehaviour
         // We are waiting for the reverse rendering to finish
         yield return StartCoroutine(ReverseBusVisualizations());
 
-        ApplyState(TickStateValues[TickCounter]);
+        ApplyState(_history[TickCounter]);
         UpdateVisualizers();
 
         isProcessing = false;
@@ -222,10 +215,8 @@ public abstract class BaseLevelRegisseur<TState, TBus> : MonoBehaviour
     }
 
     #region HISTORY METHODS
-    private void SaveCurrentStateAt(int idx)
-    {
-        TickStateValues[idx] = GetCurrentState();
-    }
+    // Saved state of the given tick (0 = before the first tick)
+    protected TState StateAt(int tick) => _history[tick];
 
     protected abstract void UpdateVisualizers();
     #endregion

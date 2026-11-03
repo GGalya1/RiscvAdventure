@@ -219,7 +219,7 @@ public class SubExtendedRegisseur : BaseLevelRegisseur<SubExtendedSevenLevelStat
 
         if (TickCounter - 1 >= 0)
         {
-            _registerFile.WriteAdress = TickStateValues[TickCounter - 1].RegisterA3Value;
+            _registerFile.WriteAdress = StateAt(TickCounter - 1).RegisterA3Value;
         }
 
         _registerFile.WriteData = _wd3.Output;

@@ -198,21 +198,21 @@ public class LevelFourthRegisseur : BaseLevelRegisseur<LevelThreeState, LevelFou
 
             var upperBusSignal = 0;
             if (multiplexerVisualizer.CurrentChosenMuxPath == 0)
-                upperBusSignal = TickStateValues[TickCounter].RegisterPCValue;
+                upperBusSignal = StateAt(TickCounter).RegisterPCValue;
             else if (multiplexerVisualizer.CurrentChosenMuxPath == 1)
-                upperBusSignal = TickStateValues[TickCounter].RegisterInstrValue;
+                upperBusSignal = StateAt(TickCounter).RegisterInstrValue;
             yield return StartCoroutine(DelayedSignals(buses.muxToAdder, upperBusSignal, buses.constFourToAdder, 4,
                 true, true));
 
             yield return StartCoroutine(DelayedSignals(buses.srcBToDataMemWd,
-                TickStateValues[TickCounter].RegisterInstrValue, buses.srcBToExt,
-                TickStateValues[TickCounter].RegisterInstrValue, true, true));
+                StateAt(TickCounter).RegisterInstrValue, buses.srcBToExt,
+                StateAt(TickCounter).RegisterInstrValue, true, true));
 
-            yield return StartCoroutine(DelayedSignals(buses.pcToAdrMux, TickStateValues[TickCounter].RegisterPCValue,
+            yield return StartCoroutine(DelayedSignals(buses.pcToAdrMux, StateAt(TickCounter).RegisterPCValue,
                 buses.memDataToSrcB, _srcB.Input, true, true));
 
 
-            yield return StartCoroutine(DelayedSignal(buses.pcToMemAddr, TickStateValues[TickCounter].RegisterPCValue,
+            yield return StartCoroutine(DelayedSignal(buses.pcToMemAddr, StateAt(TickCounter).RegisterPCValue,
                 true));
 
 

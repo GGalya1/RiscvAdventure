@@ -83,7 +83,7 @@ namespace RiscvAdventure.PlayModeTests
 
             // Start() has finished once the tick history exists.
             var deadline = Time.realtimeSinceStartup + LoadTimeoutSeconds;
-            while (ReadObject("TickStateValues") == null)
+            while (ReadObject("_history") == null)
             {
                 if (Time.realtimeSinceStartup > deadline)
                 {

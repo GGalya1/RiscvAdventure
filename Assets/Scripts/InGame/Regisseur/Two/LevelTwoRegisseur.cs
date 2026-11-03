@@ -130,7 +130,7 @@ public class LevelTwoRegisseur : BaseLevelRegisseur<LevelTwoState, LevelTwoBusSe
             busController.StartBusSignal(buses.adderToPC, _srcA.Input, true);
 
             yield return StartCoroutine(DelayedSignals(
-                buses.pcToAdder, TickStateValues[TickCounter].RegisterAValue ,
+                buses.pcToAdder, StateAt(TickCounter).RegisterAValue ,
                 buses.constFourToAdder, 4, true, true
             ));
             

@@ -193,14 +193,14 @@ public class LevelSevenRegisseur : BaseLevelRegisseur<LevelSevenState, LevelSeve
 
 
             busController.StartBusSignal(buses.rd1ToAlu,
-                _registerFile.Registers[TickStateValues[TickCounter].RegisterAValue], true);
+                _registerFile.Registers[StateAt(TickCounter).RegisterAValue], true);
             busController.StartBusSignal(buses.rd2ToAlu,
-                _registerFile.Registers[TickStateValues[TickCounter].RegisterBValue], true);
+                _registerFile.Registers[StateAt(TickCounter).RegisterBValue], true);
             yield return WaitNoSignals;
 
-            busController.StartBusSignal(buses.srcAToRegFileA1, TickStateValues[TickCounter].RegisterAValue,
+            busController.StartBusSignal(buses.srcAToRegFileA1, StateAt(TickCounter).RegisterAValue,
                 true);
-            busController.StartBusSignal(buses.srcBToRegFileA2, TickStateValues[TickCounter].RegisterBValue,
+            busController.StartBusSignal(buses.srcBToRegFileA2, StateAt(TickCounter).RegisterBValue,
                 true);
 
 

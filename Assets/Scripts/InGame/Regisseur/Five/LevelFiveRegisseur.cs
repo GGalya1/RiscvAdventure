@@ -163,7 +163,7 @@ public class LevelFiveRegisseur : BaseLevelRegisseur<LevelFiveState, LevelFiveBu
         {
             busController.StartBusSignal(buses.extendToMux, _output.Input, true);
 
-            if (TickStateValues[TickCounter] is var s)
+            if (StateAt(TickCounter) is var s)
             {
                 yield return StartCoroutine(DelayedSignal(buses.instrRegToExtend, s.RegisterInstrValue, true));
 
@@ -282,11 +282,9 @@ public class LevelFiveRegisseur : BaseLevelRegisseur<LevelFiveState, LevelFiveBu
 
     protected override bool CheckWinCondition()
     {
-        if (TickStateValues == null) return false;
-
-        var val1 = (uint)TickStateValues[2].RegisterOutputValue;
-        var val2 = (uint)TickStateValues[3].RegisterOutputValue;
-        var val3 = (uint)TickStateValues[4].RegisterOutputValue;
+        var val1 = (uint)StateAt(2).RegisterOutputValue;
+        var val2 = (uint)StateAt(3).RegisterOutputValue;
+        var val3 = (uint)StateAt(4).RegisterOutputValue;
         var val4 = (uint)_output.Output;
 
         return val1 == 1000 &&
