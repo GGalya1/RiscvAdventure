@@ -1,10 +1,9 @@
 using System;
 using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 [Serializable]
-public class OneTickBusSegments: IBusSegmentProvider
+public class OneTickBusSegments : IBusSegmentProvider
 {
     [Header("IF - Instruction Fetch")] [Tooltip("PC -> Instruction Memory address input")]
     public LineRenderer pcToInstrMem;
@@ -90,69 +89,9 @@ public class OneTickBusSegments: IBusSegmentProvider
     }
 }
 
-/*
-    Immutable snapshot of every bus value for one execution cycle.
-    Computed once per tick so HandleClockUpdate / RunBusVisualizations / ReverseBusVisualizations all use the same numbers without re-computing.
-*/
-internal readonly struct CycleSignals
-{
-    public readonly int Instr;
-    public readonly int Rs1, Rs2, Rd;
-    public readonly int Rd1, Rd2;
-    public readonly int ImmExt;
-    public readonly int SrcB;
-    public readonly int AluResult;
-    public readonly bool AluZero;
-    public readonly int PcPlus4;
-    public readonly int Bta;
-    public readonly int ReadData;
-    public readonly int Result;
-    public readonly int PcNext;
-
-    public CycleSignals(
-        int instr, int rs1, int rs2, int rd,
-        int rd1, int rd2, int immExt,
-        int srcB, int aluResult, bool aluZero,
-        int pcPlus4, int bta,
-        int readData, int result, int pcNext)
-    {
-        Instr = instr;
-        Rs1 = rs1;
-        Rs2 = rs2;
-        Rd = rd;
-        Rd1 = rd1;
-        Rd2 = rd2;
-        ImmExt = immExt;
-        SrcB = srcB;
-        AluResult = aluResult;
-        AluZero = aluZero;
-        PcPlus4 = pcPlus4;
-        Bta = bta;
-        ReadData = readData;
-        Result = result;
-        PcNext = pcNext;
-    }
-}
-
-public struct OneTickProcessorLevelState
-{
-    public RegisterState Pc;
-    public MemoryState InstructionMemory;
-    public MemoryState DataMemory;
-    public RegisterFileState RegisterFile;
-
-    public AluOperation AluOperation;
-    public AluOperation PCAluOperation;
-    public AluOperation BtaOperation;
-    public ImmediateType ExtenderOperation;
-
-    public int MuXadrPath;
-    public int MuXsrcBPath;
-    public int MuXresultPath;
-}
-
+/// <summary> Single-cycle (Eintakt) processor level. The datapath itself is <see cref="SingleCycleProcessor"/>. </summary>
 public class OneTickRegisseur
-    : ProcessorRegisseurBase<OneTickProcessorLevelState, OneTickBusSegments, OneTickProcessorInitialState>
+    : ProcessorRegisseurBase<SingleCycleProcessorState, OneTickBusSegments, OneTickProcessorInitialState>
 {
     [Header("Processor Specific Components")] [SerializeField]
     private RegisterVisualizer registerPCVisualizer;
@@ -172,125 +111,51 @@ public class OneTickRegisseur
 
     [SerializeField] private Blinker numberBlinker;
 
-    private int _currentBus; // [0, 3]
-    private DataInstMemory _dataMemory;
-
-    private DataInstMemory _instructionMemory;
-
-    // Intern components for computations
-    private Register _pc;
-    private RegisterFile _registerFile;
-
-    protected override void Start()
-    {
-        base.Start();
-        buses.RegisterAll(busController);
-    }
-
-    private readonly Alu _alu = new();
-    private readonly Alu _pcAlu = new();
-    private readonly Alu _btaAlu = new();
-    private readonly Extender _extender = new();
-
-    private readonly Multiplexer _adrMux = new();
-    private readonly Multiplexer _srcBMux = new();
-    private readonly Multiplexer _resultMux = new();
+    private SingleCycleProcessor _cpu;
 
     protected override void OnLevelStart()
     {
         base.OnLevelStart();
 
-        adrMuxVisualizer.Bind(_adrMux);
-        srcBmuxVisualizer.Bind(_srcBMux);
-        resultMuxVisualizer.Bind(_resultMux);
+        _cpu = new SingleCycleProcessor(
+            Clock,
+            Initial.pcRegisterInitialValue,
+            instructions: new[]
+            {
+                Initial.firstInstructionWord, Initial.secondInstructionWord,
+                Initial.thirdInstructionWord, Initial.fourthInstructionWord
+            },
+            data: new[]
+            {
+                Initial.firstDataWord, Initial.secondDataWord,
+                Initial.thirdDataWord, Initial.fourthDataWord
+            },
+            registers: ProcessorDefaults.RegisterValues);
 
-        aluVisualizer.Bind(_alu);
-        pcAluVisualizer.Bind(_pcAlu);
-        btaAluVisualizer.Bind(_btaAlu);
-        extenderVisualizer.Bind(_extender);
+        aluVisualizer.Bind(_cpu.Alu);
+        pcAluVisualizer.Bind(_cpu.PcAlu);
+        btaAluVisualizer.Bind(_cpu.BtaAlu);
+        extenderVisualizer.Bind(_cpu.Extender);
 
-        _pc = new Register(Initial.pcRegisterInitialValue);
-
-        _instructionMemory = new DataInstMemory(writeEnable: false);
-        _instructionMemory.LoadWords(Initial.firstInstructionWord, Initial.secondInstructionWord, Initial.thirdInstructionWord, Initial.fourthInstructionWord);
-
-        _dataMemory = new DataInstMemory(writeEnable: false);
-        _dataMemory.LoadWords(Initial.firstDataWord, Initial.secondDataWord, Initial.thirdDataWord, Initial.fourthDataWord);
-
-        _registerFile = new RegisterFile(ProcessorDefaults.RegisterValues, writeEnable: false);
-
-        Clock.Add(_pc, _dataMemory, _registerFile);
+        adrMuxVisualizer.Bind(_cpu.PcMux);
+        srcBmuxVisualizer.Bind(_cpu.SrcBMux);
+        resultMuxVisualizer.Bind(_cpu.ResultMux);
 
         Show(
-            registerPCVisualizer.Bind(_pc, "PC Register"),
-            instructionMemoryVisualizer.Bind(_instructionMemory, MemoryDisplay.Instructions),
-            dataMemoryVisualizer.Bind(_dataMemory, MemoryDisplay.Instructions),
-            registerFileVisualizer.Bind(_registerFile));
+            registerPCVisualizer.Bind(_cpu.Pc, "PC Register"),
+            instructionMemoryVisualizer.Bind(_cpu.InstructionMemory, MemoryDisplay.Instructions),
+            dataMemoryVisualizer.Bind(_cpu.DataMemory, MemoryDisplay.Instructions),
+            registerFileVisualizer.Bind(_cpu.RegisterFile));
     }
 
-    protected override void HandleClockUpdate()
-    {
+    protected override void HandleClockUpdate() => _cpu.Step();
 
-        // implementation
+    protected override SingleCycleProcessorState GetCurrentState() => _cpu.Save();
 
-        // Compute all combinatorial values for this cycle (no side effects)
-        var sig = ComputeSignals(
-            _pc.Output, _registerFile.Registers,
-            _alu.Operation,
-            _pcAlu.Operation,
-            _btaAlu.Operation,
-            _extender.Type,
-            _srcBMux.SelectedInput,
-            _resultMux.SelectedInput,
-            _adrMux.SelectedInput,
-            _dataMemory);
+    protected override void ApplyState(SingleCycleProcessorState state) => _cpu.Restore(state);
 
-        // Prepare sequential element inputs
-        _registerFile.ReadAddress1 = sig.Rs1;
-        _registerFile.ReadAddress2 = sig.Rs2;
-        _registerFile.WriteAddress = sig.Rd;
-        _registerFile.WriteData = sig.Result;
-
-        _dataMemory.Address = sig.AluResult;
-        _dataMemory.WriteData = sig.Rd2;
-        _pc.Input = sig.PcNext;
-
-        Clock.Tick();
-    }
-
-    protected override OneTickProcessorLevelState GetCurrentState() => new()
-    {
-        Pc = _pc.Save(),
-        InstructionMemory = _instructionMemory.Save(),
-        DataMemory = _dataMemory.Save(),
-        RegisterFile = _registerFile.Save(),
-
-        AluOperation = _alu.Operation,
-        PCAluOperation = _pcAlu.Operation,
-        BtaOperation = _btaAlu.Operation,
-        ExtenderOperation = _extender.Type,
-
-        MuXadrPath = _adrMux.SelectedInput,
-        MuXsrcBPath = _srcBMux.SelectedInput,
-        MuXresultPath = _resultMux.SelectedInput
-    };
-
-    protected override void ApplyState(OneTickProcessorLevelState s)
-    {
-        _pc.Restore(s.Pc);
-        _instructionMemory.Restore(s.InstructionMemory);
-        _dataMemory.Restore(s.DataMemory);
-        _registerFile.Restore(s.RegisterFile);
-
-        _alu.Operation = s.AluOperation;
-        _pcAlu.Operation = s.PCAluOperation;
-        _btaAlu.Operation = s.BtaOperation;
-        _extender.Type = s.ExtenderOperation;
-
-        _adrMux.SelectedInput = s.MuXadrPath;
-        _srcBMux.SelectedInput = s.MuXsrcBPath;
-        _resultMux.SelectedInput = s.MuXresultPath;
-    }
+    protected override bool CheckWinCondition() =>
+        ExerciseCheck.IsSolved(Initial, _cpu.RegisterFile.Registers, _cpu.DataMemory, _cpu.Pc.Output);
 
     protected override void BlinkClockedComponents()
     {
@@ -298,45 +163,25 @@ public class OneTickRegisseur
         numberBlinker.Trigger();
     }
 
+    #region Bus animation
     protected override IEnumerator RunBusVisualizations()
     {
-        var sig = ComputeSignals(
-            _pc.Output, _registerFile.Registers,
-            _alu.Operation,
-            _pcAlu.Operation,
-            _btaAlu.Operation,
-            _extender.Type,
-            _srcBMux.SelectedInput,
-            _resultMux.SelectedInput,
-            _adrMux.SelectedInput,
-            _dataMemory);
-
-        yield return Bus.Play(BuildWaves(_pc.Output, sig));
+        yield return Bus.Play(BuildWaves(_cpu.ComputeSignals()));
     }
 
     protected override IEnumerator ReverseBusVisualizations()
     {
-        // Reconstruct the bus values that were flowing during the tick we're undoing
-        var s = StateAt(TickCounter); // pre-tick state (TickCounter already --)
-
-        var sig = ComputeSignals(
-            s.Pc.Value, s.RegisterFile.Values,
-            s.AluOperation, s.PCAluOperation,
-            s.BtaOperation, s.ExtenderOperation,
-            s.MuXsrcBPath, s.MuXresultPath,
-            s.MuXadrPath, s.DataMemory);
-
-        // the same waves as the forward animation, played backwards
-        yield return Bus.PlayBackwards(BuildWaves(s.Pc.Value, sig));
+        // replay the tick that is undone, starting from its saved pre-tick state
+        yield return Bus.PlayBackwards(BuildWaves(_cpu.ComputeSignals(StateAt(TickCounter))));
     }
 
     /// <summary> The order in which the values of one cycle travel through the datapath. </summary>
-    private BusPulse[][] BuildWaves(int pc, CycleSignals sig)
+    private BusPulse[][] BuildWaves(SingleCycleSignals sig)
     {
         return new[]
         {
             // IF: PC fans out
-            new BusPulse[] { (buses.pcToInstrMem, pc), (buses.pcToPCPlus4, pc), (buses.pcToBta, pc) },
+            new BusPulse[] { (buses.pcToInstrMem, sig.Pc), (buses.pcToPCPlus4, sig.Pc), (buses.pcToBta, sig.Pc) },
 
             // ID: instruction fans out to register file and extend
             new BusPulse[]
@@ -367,51 +212,5 @@ public class OneTickRegisseur
             new BusPulse[] { (buses.resultToRegFileWd3, sig.Result), (buses.pcNextToPc, sig.PcNext) },
         };
     }
-
-    protected override bool CheckWinCondition() =>
-        ExerciseCheck.IsSolved(Initial, _registerFile.Registers, _dataMemory, _pc.Output);
-
-    private CycleSignals ComputeSignals(
-        int pc, IReadOnlyList<int> regValues,
-        AluOperation aluOp, AluOperation pcAluOp, AluOperation btaOp, ImmediateType extOp,
-        int srcBPath, int resultPath, int adrPath,
-        IReadableMemory dataMem)
-    {
-        // IF: read instruction
-        var instr = _instructionMemory.Read(pc);
-
-        // ID: decode register addresses
-        var rs1 = InstructionFields.Rs1(instr);
-        var rs2 = InstructionFields.Rs2(instr);
-        var rd = InstructionFields.Rd(instr);
-
-        // ID: read register file  (x0 is hardwired to 0)
-        var rd1 = RegisterFile.ReadPort(regValues, rs1);
-        var rd2 = RegisterFile.ReadPort(regValues, rs2);
-
-        // ID: sign-extend immediate
-        var immExt = Extender.Evaluate(extOp, (uint)instr);
-
-        // EX: SrcB mux, main ALU, PC adders
-        var srcB = Multiplexer.Select(srcBPath, rd2, immExt, 0);
-
-        var aluResult = Alu.Calculate(rd1, srcB, aluOp);
-        var aluZero = aluResult == 0;
-        var pcPlus4 = Alu.Calculate(pc, 4, pcAluOp);
-        var bta = Alu.Calculate(pc, immExt, btaOp);
-
-        // MEM: data memory read
-        var readData = dataMem.Read(aluResult);
-
-        // WB: result and next PC selection
-        var result = Multiplexer.Select(resultPath, aluResult, readData, pcPlus4);
-        var pcNext = Multiplexer.Select(adrPath, pcPlus4, bta, 0);
-
-        return new CycleSignals(
-            instr, rs1, rs2, rd,
-            rd1, rd2, immExt,
-            srcB, aluResult, aluZero,
-            pcPlus4, bta,
-            readData, result, pcNext);
-    }
+    #endregion
 }
