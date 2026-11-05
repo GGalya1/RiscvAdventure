@@ -178,28 +178,21 @@ namespace RiscvAdventure.PlayModeTests
         
         public void SetWriteEnable(string field, bool enabled)
         {
-            var target = ReadObject(field);
-            Assert.IsNotNull(target, Ctx($"Field '{field}' is not assigned in the scene"));
+            // registers, register file and memories: the WE button writes straight into the bound model
+            var view = Visual<SequentialVisualizer>(field);
+            var model = view.Model;
+            Assert.IsNotNull(model, Ctx($"'{field}' is not bound to a model (Bind was not called in OnLevelStart)"));
 
-            bool Current() => target switch
+            if (model.WriteEnable != enabled)
             {
-                RegisterVisualizer r => r.isWriteEnabled,
-                InstructionDataMemoryVisualizer m => m.isWriteEnabled,
-                RegisterFileVisualizer f => f.isWriteEnabled,
-                _ => throw new AssertionException($"'{field}' is a {target.GetType().Name}, which has no write-enable switch")
-            };
+                var button = PanelOf<IWriteEnablePanel>(view, field).WeButton;
+                Assert.IsNotNull(button, Ctx($"'{field}' has no write-enable button"));
+                button.onClick.Invoke();
+            }
 
-            Button button = target switch
-            {
-                RegisterVisualizer r => r.UIRegisterPanel.WeButton,
-                InstructionDataMemoryVisualizer m => m.UIRegisterPanel.WeButton,
-                RegisterFileVisualizer f => f.UIRegisterPanel.WeButton,
-                _ => null
-            };
-
-            if (Current() != enabled) button.onClick.Invoke();
             Note($"{field}: write-enable {(enabled ? "ON" : "OFF")}");
-            Assert.AreEqual(enabled, Current(), Ctx($"could not switch write-enable of '{field}'"));
+            Assert.AreEqual(enabled, model.WriteEnable,
+                Ctx($"could not switch write-enable of '{field}' (does it have a writeEnableIndicator in the scene?)"));
         }
         
         public IEnumerator Tick()

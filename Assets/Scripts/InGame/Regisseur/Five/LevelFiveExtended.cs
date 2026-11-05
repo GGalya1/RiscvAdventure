@@ -45,7 +45,6 @@ public class LevelFiveExtended : BaseLevelRegisseur<LevelFiveExtendedState, Leve
 
     [FormerlySerializedAs("InputRegisterValue")] [SerializeField]
     private uint inputRegisterValue;
-    
 
     private Register _output;
 
@@ -64,10 +63,9 @@ public class LevelFiveExtended : BaseLevelRegisseur<LevelFiveExtendedState, Leve
 
         Clock.Add(_srcA, _output);
 
-        _infoSrcARegister = registerSrcAVisualizer.UIRegisterPanel;
-        _infoOutputRegister = registerOutputVisualizer.UIRegisterPanel;
-
-        UpdateVisualizers();
+        Show(
+            registerSrcAVisualizer.Bind(_srcA, "Register 1", word => RiscVDecoder.CommandBuilder((uint)word)),
+            registerOutputVisualizer.Bind(_output, "Register 2"));
     }
 
     protected override void ApplyState(LevelFiveExtendedState s)
@@ -79,12 +77,6 @@ public class LevelFiveExtended : BaseLevelRegisseur<LevelFiveExtendedState, Leve
         _output.WriteEnable = s.RegisterOutputWe;
 
         _extender.Type = s.ExtenderOperation;
-    }
-
-    protected override void BlinkClockedComponents()
-    {
-        registerSrcAVisualizer.TriggerBlink();
-        registerOutputVisualizer.TriggerBlink();
     }
 
     protected override bool CheckWinCondition()
@@ -108,10 +100,6 @@ public class LevelFiveExtended : BaseLevelRegisseur<LevelFiveExtendedState, Leve
 
     protected override void HandleClockUpdate()
     {
-        // synchronize visualizers and concrete objects
-        _srcA.WriteEnable = registerSrcAVisualizer.isWriteEnabled;
-        _output.WriteEnable = registerOutputVisualizer.isWriteEnabled;
-
         _output.Input = _extender.Extend(_srcA.Output);
 
         Clock.Tick();
@@ -126,19 +114,4 @@ public class LevelFiveExtended : BaseLevelRegisseur<LevelFiveExtendedState, Leve
     {
         yield return Bus.Wave((buses.srcAToExtend, _srcA.Output), (buses.extendToOutput, _output.Output));
     }
-
-    protected override void UpdateVisualizers()
-    {
-        _infoSrcARegister.Display("Register 1", RiscVDecoder.CommandBuilder((uint)_srcA.Output));
-        _infoOutputRegister.Display("Register 2", _output.Output);
-        registerSrcAVisualizer.ForceUpdateWriteEnableVisualization(_srcA.WriteEnable);
-        registerOutputVisualizer.ForceUpdateWriteEnableVisualization(_output.WriteEnable);
-    }
-
-    #region CACHED UI REFERENCES
-
-    private InfoPanelUI _infoSrcARegister;
-    private InfoPanelUI _infoOutputRegister;
-
-    #endregion
 }

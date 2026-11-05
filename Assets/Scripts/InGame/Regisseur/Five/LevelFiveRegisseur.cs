@@ -82,7 +82,6 @@ public class LevelFiveRegisseur : BaseLevelRegisseur<LevelFiveState, LevelFiveBu
     [FormerlySerializedAs("_blinkerNumber")] [SerializeField]
     private Blinker blinkerNumber;
 
-
     private int _currentBus; // [0, 6]
     private DataInstMemory _dataInstructionMemory;
     private Register _output;
@@ -116,15 +115,11 @@ public class LevelFiveRegisseur : BaseLevelRegisseur<LevelFiveState, LevelFiveBu
 
         Clock.Add(_srcA, _srcB, _output, _dataInstructionMemory);
 
-        // Caching of UI panels for visualizers
-        _infoSrcARegister = registerSrcAVisualizer.UIRegisterPanel;
-        _infoSrcBRegister = registerSrcBVisualizer.UIRegisterPanel;
-        _infoOutputRegister = registerOutputVisualizer.UIRegisterPanel;
-
-        memoryVisualizer.UIRegisterPanel.Display(_dataInstructionMemory.Read(0),
-            _dataInstructionMemory.Read(4), _dataInstructionMemory.Read(8),
-            _dataInstructionMemory.Read(12));
-        UpdateVisualizers();
+        Show(
+            registerSrcAVisualizer.Bind(_srcA, "Register 1"),
+            registerSrcBVisualizer.Bind(_srcB, "Register 2", word => RiscVDecoder.CommandBuilder((uint)word)),
+            registerOutputVisualizer.Bind(_output, "Register 3"),
+            memoryVisualizer.Bind(_dataInstructionMemory, MemoryDisplay.Instructions));
     }
 
     protected override IEnumerator RunBusVisualizations()
@@ -161,11 +156,8 @@ public class LevelFiveRegisseur : BaseLevelRegisseur<LevelFiveState, LevelFiveBu
 
     protected override void HandleClockUpdate()
     {
-        // synchronize visualizers and concrete objects
-        _srcA.WriteEnable = registerSrcAVisualizer.isWriteEnabled;
-        _srcB.WriteEnable = registerSrcBVisualizer.isWriteEnabled;
-        _output.WriteEnable = registerOutputVisualizer.isWriteEnabled;
-        _dataInstructionMemory.WriteEnable = registerOutputVisualizer.isWriteEnabled;
+        // In this level the memory WE follows the WE of the output register.
+        _dataInstructionMemory.WriteEnable = _output.WriteEnable;
 
         // implementation
         _srcB.Input = _dataInstructionMemory.Read(_srcA.Output);
@@ -210,7 +202,6 @@ public class LevelFiveRegisseur : BaseLevelRegisseur<LevelFiveState, LevelFiveBu
             RegisterInstrWe = _srcB.WriteEnable,
             RegisterOutputWe = _output.WriteEnable,
 
-
             AluOperation = _alu.Operation,
 
             ExtenderOperation = _extender.Type
@@ -229,17 +220,13 @@ public class LevelFiveRegisseur : BaseLevelRegisseur<LevelFiveState, LevelFiveBu
         _srcB.WriteEnable = s.RegisterInstrWe;
         _output.WriteEnable = s.RegisterOutputWe;
 
-
         _alu.Operation = s.AluOperation;
         _extender.Type = s.ExtenderOperation;
     }
 
     protected override void BlinkClockedComponents()
     {
-        registerSrcAVisualizer.TriggerBlink();
-        registerSrcBVisualizer.TriggerBlink();
-        registerOutputVisualizer.TriggerBlink();
-        memoryVisualizer.TriggerBlink();
+        base.BlinkClockedComponents();
         blinkerNumber.Trigger();
     }
 
@@ -255,31 +242,4 @@ public class LevelFiveRegisseur : BaseLevelRegisseur<LevelFiveState, LevelFiveBu
                val3 == 8 &&
                val4 == 4;
     }
-
-    protected override void UpdateVisualizers()
-    {
-        _infoSrcARegister.Display("Register 1", _srcA.Output);
-        _infoSrcBRegister.Display("Register 2", RiscVDecoder.CommandBuilder((uint)_srcB.Output));
-        _infoOutputRegister.Display("Register 3", _output.Output);
-        registerSrcAVisualizer.ForceUpdateWriteEnableVisualization(_srcA.WriteEnable);
-        registerSrcBVisualizer.ForceUpdateWriteEnableVisualization(_srcB.WriteEnable);
-        registerOutputVisualizer.ForceUpdateWriteEnableVisualization(_output.WriteEnable);
-
-
-        memoryVisualizer.UIRegisterPanel.Display(
-            RiscVDecoder.CommandBuilder((uint)_dataInstructionMemory.Read(0)),
-            RiscVDecoder.CommandBuilder((uint)_dataInstructionMemory.Read(4)),
-            RiscVDecoder.CommandBuilder((uint)_dataInstructionMemory.Read(8)),
-            RiscVDecoder.CommandBuilder((uint)_dataInstructionMemory.Read(12))
-        );
-        memoryVisualizer.ForceUpdateWriteEnableVisualization(_dataInstructionMemory.WriteEnable);
-    }
-
-    #region CACHED UI REFERENCES
-
-    private InfoPanelUI _infoSrcARegister;
-    private InfoPanelUI _infoSrcBRegister;
-    private InfoPanelUI _infoOutputRegister;
-
-    #endregion
 }

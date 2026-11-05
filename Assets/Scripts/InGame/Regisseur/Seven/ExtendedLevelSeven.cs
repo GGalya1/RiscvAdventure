@@ -67,13 +67,6 @@ public class ExtendedLevelSeven : BaseLevelRegisseur<ExtendedSevenLevelState, Ex
 
     [FormerlySerializedAs("_registerFileVisualizer")] [SerializeField] protected RegisterFileVisualizer registerFileVisualizer;
 
-    #region CACHED UI REFERENCES
-    private InfoPanelUI _infoSrcARegister;
-    private InfoPanelUI _infoSrcBRegister;
-    private InfoPanelUI _infoA3Register;
-    private InfoPanelUI _infoWd3Register;
-    #endregion
-
     // Intern components for computations
     private Register _srcA;
     private Register _srcB;
@@ -81,7 +74,6 @@ public class ExtendedLevelSeven : BaseLevelRegisseur<ExtendedSevenLevelState, Ex
     private Register _wd3;
 
     private RegisterFile _registerFile;
-
 
     private int _currentBus; // [0, 10]
 
@@ -104,13 +96,12 @@ public class ExtendedLevelSeven : BaseLevelRegisseur<ExtendedSevenLevelState, Ex
 
         Clock.Add(_srcA, _srcB, _a3, _wd3, _registerFile);
 
-        // Caching of UI panels for visualizers
-        _infoSrcARegister = registerSrcAVisualizer.UIRegisterPanel;
-        _infoSrcBRegister = registerSrcBVisualizer.UIRegisterPanel;
-        _infoA3Register = registerA3Visualizer.UIRegisterPanel;
-        _infoWd3Register = registerWd3Visualizer.UIRegisterPanel;
-
-        UpdateVisualizers();
+        Show(
+            registerSrcAVisualizer.Bind(_srcA, "Register A1"),
+            registerSrcBVisualizer.Bind(_srcB, "Register A2"),
+            registerA3Visualizer.Bind(_a3, "Register A3"),
+            registerWd3Visualizer.Bind(_wd3, "Register WD3"),
+            registerFileVisualizer.Bind(_registerFile));
     }
 
     protected override void ApplyState(ExtendedSevenLevelState s)
@@ -128,17 +119,6 @@ public class ExtendedLevelSeven : BaseLevelRegisseur<ExtendedSevenLevelState, Ex
         _wd3.WriteEnable = s.RegisterWd3We;
 
         _alu.Operation = s.AluOperation;
-    }
-
-    protected override void BlinkClockedComponents()
-    {
-        registerSrcAVisualizer.TriggerBlink();
-        registerSrcBVisualizer.TriggerBlink();
-        registerA3Visualizer.TriggerBlink();
-        registerWd3Visualizer.TriggerBlink();
-
-        registerFileVisualizer.TriggerBlink();
-
     }
 
     protected override bool CheckWinCondition()
@@ -167,13 +147,6 @@ public class ExtendedLevelSeven : BaseLevelRegisseur<ExtendedSevenLevelState, Ex
 
     protected override void HandleClockUpdate()
     {
-        _srcA.WriteEnable = registerSrcAVisualizer.isWriteEnabled;
-        _srcB.WriteEnable = registerSrcBVisualizer.isWriteEnabled;
-        _a3.WriteEnable = registerA3Visualizer.isWriteEnabled;
-        _wd3.WriteEnable = registerWd3Visualizer.isWriteEnabled;
-
-        _registerFile.WriteEnable = registerFileVisualizer.isWriteEnabled;
-
         // implementation
         // A1: [19:15] (Register Source 1)
         _registerFile.ReadAddress1 = _srcA.Output;
@@ -232,25 +205,5 @@ public class ExtendedLevelSeven : BaseLevelRegisseur<ExtendedSevenLevelState, Ex
 
             _currentBus++;
         }
-    }
-
-    protected override void UpdateVisualizers()
-    {
-        _infoSrcARegister.Display("Register A1", _srcA.Output);
-        _infoSrcBRegister.Display("Register A2", _srcB.Output);
-        _infoA3Register.Display("Register A3", _a3.Output);
-        _infoWd3Register.Display("Register WD3", _wd3.Output);
-
-
-        registerFileVisualizer.UIRegisterPanel.Display(_registerFile.Registers);
-
-
-        // ==============================  WE SECTION  =====================================
-        registerSrcAVisualizer.ForceUpdateWriteEnableVisualization(_srcA.WriteEnable);
-        registerSrcBVisualizer.ForceUpdateWriteEnableVisualization(_srcB.WriteEnable);
-        registerA3Visualizer.ForceUpdateWriteEnableVisualization(_a3.WriteEnable);
-        registerWd3Visualizer.ForceUpdateWriteEnableVisualization(_wd3.WriteEnable);
-
-        registerFileVisualizer.ForceUpdateWriteEnableVisualization(_registerFile.WriteEnable);
     }
 }

@@ -83,7 +83,6 @@ public class LevelThirdRegisseur : BaseLevelRegisseur<LevelThreeState, LevelThir
     [FormerlySerializedAs("_numberBlinker")] [SerializeField]
     private Blinker numberBlinker;
 
-
     private int _currentBus; // [0, 5]
     private DataInstMemory _dataInstructionMemory;
 
@@ -108,18 +107,17 @@ public class LevelThirdRegisseur : BaseLevelRegisseur<LevelThreeState, LevelThir
 
         Clock.Add(_srcA, _srcB, _dataInstructionMemory);
 
-        // Caching of UI panels for visualizers
-        _infoSrcARegister = registerSrcAVisualizer.UIRegisterPanel;
-        _infoSrcBRegister = registerSrcBVisualizer.UIRegisterPanel;
-
-        UpdateVisualizers();
+        Show(
+            registerSrcAVisualizer.Bind(_srcA, "Register 1"),
+            registerSrcBVisualizer.Bind(_srcB, "Register 2"),
+            registerOutputVisualizer.Bind(_dataInstructionMemory, MemoryDisplay.Values));
     }
 
     protected override void ApplyState(LevelThreeState s)
     {
         _srcA.Reset(s.RegisterPCValue);
         _srcB.Reset(s.RegisterInstrValue);
-        
+
         _dataInstructionMemory.WriteEnable = s.InstrDataMemoryWe;
         _dataInstructionMemory.LoadWords(s.FirstMemoryValue, s.SecondMemoryValue, s.ThirdMemoryValue, s.FourthMemoryValue);
 
@@ -131,9 +129,7 @@ public class LevelThirdRegisseur : BaseLevelRegisseur<LevelThreeState, LevelThir
 
     protected override void BlinkClockedComponents()
     {
-        registerSrcAVisualizer.TriggerBlink();
-        registerSrcBVisualizer.TriggerBlink();
-        registerOutputVisualizer.TriggerBlink();
+        base.BlinkClockedComponents();
         numberBlinker.Trigger();
     }
 
@@ -165,14 +161,8 @@ public class LevelThirdRegisseur : BaseLevelRegisseur<LevelThreeState, LevelThir
 
     protected override void HandleClockUpdate()
     {
-        // synchronize visualizers and concrete objects
-        _srcA.WriteEnable = registerSrcAVisualizer.isWriteEnabled;
-        _srcB.WriteEnable = registerSrcBVisualizer.isWriteEnabled;
-        _dataInstructionMemory.WriteEnable = registerOutputVisualizer.isWriteEnabled;
-
         // implementation
         _srcB.Input = _dataInstructionMemory.Read(_srcA.Output);
-
 
         var p = _mux.SelectedInput;
         switch (p)
@@ -250,24 +240,4 @@ public class LevelThirdRegisseur : BaseLevelRegisseur<LevelThreeState, LevelThir
             _currentBus++;
         }
     }
-
-    protected override void UpdateVisualizers()
-    {
-        _infoSrcARegister.Display("Register 1", _srcA.Output);
-        _infoSrcBRegister.Display("Register 2", _srcB.Output);
-        registerOutputVisualizer.UIRegisterPanel.Display(_dataInstructionMemory.Read(0),
-            _dataInstructionMemory.Read(4), _dataInstructionMemory.Read(8),
-            _dataInstructionMemory.Read(12));
-
-        registerSrcAVisualizer.ForceUpdateWriteEnableVisualization(_srcA.WriteEnable);
-        registerSrcBVisualizer.ForceUpdateWriteEnableVisualization(_srcB.WriteEnable);
-        registerOutputVisualizer.ForceUpdateWriteEnableVisualization(_dataInstructionMemory.WriteEnable);
-    }
-
-    #region CACHED UI REFERENCES
-
-    private InfoPanelUI _infoSrcARegister;
-    private InfoPanelUI _infoSrcBRegister;
-
-    #endregion
 }

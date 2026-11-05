@@ -10,7 +10,7 @@ public class OneTickBusSegments: IBusSegmentProvider
     public LineRenderer pcToInstrMem;
 
     [Tooltip("PC -> PC+4 adder")] public LineRenderer pcToPCPlus4;
-    
+
     [Tooltip("PC+4 -> ResultMUX")] public LineRenderer pcPlus4ToResultMux;
 
     [Tooltip("PC -> BTA adder")] public LineRenderer pcToBta;
@@ -151,7 +151,7 @@ public struct OneTickProcessorLevelState
     public int[] RegisterFieldValue;
 
     public bool RegisterPCwe;
-    
+
     public bool DataMemoryWrite;
     public bool RegisterFileWriteEnable;
 
@@ -186,7 +186,6 @@ public class OneTickRegisseur
     [SerializeField] private RegisterFileVisualizer registerFileVisualizer;
 
     [SerializeField] private Blinker numberBlinker;
-
 
     private int _currentBus; // [0, 3]
     private DataInstMemory _dataMemory;
@@ -224,7 +223,7 @@ public class OneTickRegisseur
         pcAluVisualizer.Bind(_pcAlu);
         btaAluVisualizer.Bind(_btaAlu);
         extenderVisualizer.Bind(_extender);
-        
+
         _pc = new Register(Initial.pcRegisterInitialValue);
 
         _instructionMemory = new DataInstMemory(writeEnable: false);
@@ -234,27 +233,18 @@ public class OneTickRegisseur
         _dataMemory.LoadWords(Initial.firstDataWord, Initial.secondDataWord, Initial.thirdDataWord, Initial.fourthDataWord);
 
         _registerFile = new RegisterFile(ProcessorDefaults.RegisterValues, writeEnable: false);
-        
+
         Clock.Add(_pc, _dataMemory, _registerFile);
 
-        // Caching of UI panels for visualizers
-        _infoPCRegister = registerPCVisualizer.UIRegisterPanel;
-        _infoInstructionMemory = instructionMemoryVisualizer.UIRegisterPanel;
-        _infoDataMemory = dataMemoryVisualizer.UIRegisterPanel;
-        
-
-        UpdateVisualizers();
+        Show(
+            registerPCVisualizer.Bind(_pc, "PC Register"),
+            instructionMemoryVisualizer.Bind(_instructionMemory, MemoryDisplay.Instructions),
+            dataMemoryVisualizer.Bind(_dataMemory, MemoryDisplay.Instructions),
+            registerFileVisualizer.Bind(_registerFile));
     }
 
     protected override void HandleClockUpdate()
     {
-        // synchronize visualizers and concrete objects
-        _pc.WriteEnable = registerPCVisualizer.isWriteEnabled;
-        // instruction memory is not tickted
-        // _instructionMemory.WriteEnable = instructionMemoryVisualizer.isWriteEnabled;
-        _dataMemory.WriteEnable = dataMemoryVisualizer.isWriteEnabled;
-        _registerFile.WriteEnable = registerFileVisualizer.isWriteEnabled;
-
 
         // implementation
 
@@ -279,7 +269,6 @@ public class OneTickRegisseur
         _dataMemory.Address = sig.AluResult;
         _dataMemory.WriteData = sig.Rd2;
         _pc.Input = sig.PcNext;
-
 
         Clock.Tick();
     }
@@ -343,7 +332,6 @@ public class OneTickRegisseur
         _pc.WriteEnable = s.RegisterPCwe;
         _registerFile.WriteEnable  = s.RegisterFileWriteEnable;
 
-
         _alu.Operation = s.AluOperation;
         _pcAlu.Operation = s.PCAluOperation;
         _btaAlu.Operation = s.BtaOperation;
@@ -352,14 +340,7 @@ public class OneTickRegisseur
 
     protected override void BlinkClockedComponents()
     {
-        registerPCVisualizer.TriggerBlink();
-
-        // no tick for this component
-        // instructionMemoryVisualizer.TriggerBlink();
-        dataMemoryVisualizer.TriggerBlink();
-
-        registerFileVisualizer.TriggerBlink();
-
+        base.BlinkClockedComponents();
         numberBlinker.Trigger();
     }
 
@@ -440,29 +421,6 @@ public class OneTickRegisseur
     protected override bool CheckWinCondition() =>
         ExerciseCheck.IsSolved(Initial, _registerFile.Registers, _dataMemory, _pc.Output);
 
-    protected override void UpdateVisualizers()
-    {
-        _infoPCRegister.Display("PC Register", _pc.Output);
-        registerPCVisualizer.ForceUpdateWriteEnableVisualization(_pc.WriteEnable);
-
-        instructionMemoryVisualizer.UIRegisterPanel.Display(
-            RiscVDecoder.CommandBuilder((uint)_instructionMemory.Read(0)),
-            RiscVDecoder.CommandBuilder((uint)_instructionMemory.Read(4)),
-            RiscVDecoder.CommandBuilder((uint)_instructionMemory.Read(8)),
-            RiscVDecoder.CommandBuilder((uint)_instructionMemory.Read(12))
-        );
-        dataMemoryVisualizer.UIRegisterPanel.Display(
-            RiscVDecoder.CommandBuilder((uint)_dataMemory.Read(0)),
-            RiscVDecoder.CommandBuilder((uint)_dataMemory.Read(4)),
-            RiscVDecoder.CommandBuilder((uint)_dataMemory.Read(8)),
-            RiscVDecoder.CommandBuilder((uint)_dataMemory.Read(12))
-        );
-        registerFileVisualizer.UIRegisterPanel.Display(_registerFile.Registers);
-        registerFileVisualizer.ForceUpdateWriteEnableVisualization(_registerFile.WriteEnable);
-        instructionMemoryVisualizer.ForceUpdateWriteEnableVisualization(_instructionMemory.WriteEnable);
-        dataMemoryVisualizer.ForceUpdateWriteEnableVisualization(_dataMemory.WriteEnable);
-    }
-
     private CycleSignals ComputeSignals(
         int pc, int[] regValues,
         AluOperation aluOp, AluOperation pcAluOp, AluOperation btaOp, ImmediateType extOp,
@@ -506,13 +464,4 @@ public class OneTickRegisseur
             pcPlus4, bta,
             readData, result, pcNext);
     }
-
-    #region CACHED UI REFERENCES
-
-    private InfoPanelUI _infoPCRegister;
-
-    private InstrMemoryControlPanel _infoInstructionMemory;
-    private InstrMemoryControlPanel _infoDataMemory;
-
-    #endregion
 }

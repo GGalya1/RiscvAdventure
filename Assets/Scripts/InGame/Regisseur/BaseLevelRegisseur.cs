@@ -1,19 +1,27 @@
+using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
-using System.Collections;
 using UnityEngine.Localization;
 using UnityEngine.Serialization;
 
-// A base class for all levels that manages time, history, and completion.
-public abstract class BaseLevelRegisseur<TState, TBus> : MonoBehaviour 
-    where TState: struct
-    where TBus: IBusSegmentProvider
+/// <summary>
+/// Base class of every level. Owns the level flow:
+/// <br/>- the clock buttons (next/previous tick) and the tick history,
+/// <br/>- refreshing and blinking the bound component views,
+/// <br/>- checking the solution.
+/// <br/>A level only builds its circuit in <see cref="OnLevelStart"/>, binds the views to the
+/// components and describes what happens on a clock edge and how the buses are animated.
+/// </summary>
+public abstract class BaseLevelRegisseur<TState, TBus> : MonoBehaviour
+    where TState : struct
+    where TBus : IBusSegmentProvider
 {
     [FormerlySerializedAs("_levelTargetDescription")]
     [Header("Level Content Configuration")]
     [SerializeField] protected LocalizedString levelTargetDescription;
-    
+
     [Header("Interactable Components")]
     [SerializeField] private BaseVisualizer[] managedInteractable;
 
@@ -40,7 +48,6 @@ public abstract class BaseLevelRegisseur<TState, TBus> : MonoBehaviour
     [FormerlySerializedAs("_levelManager")] [SerializeField] protected LevelManager levelManager;
     [FormerlySerializedAs("_levelTargetText")] [SerializeField] protected TMP_Text levelTargetText;
 
-    // Requirements for earning stars
     [FormerlySerializedAs("_threeStarCondition")]
     [Header("Star Conditions (Number of failed tries)")]
     [SerializeField] protected int threeStarCondition;
@@ -52,139 +59,163 @@ public abstract class BaseLevelRegisseur<TState, TBus> : MonoBehaviour
     [SerializeField] protected GameObject crossIndicator;
     [FormerlySerializedAs("_crossDisplayDuration")] [SerializeField] protected float crossDisplayDuration = 0.3f;
 
-    
-    // --- STATE ---
-    protected int TickCounter;
-    private TickHistory<TState> _history;
     [FormerlySerializedAs("falledTries")] public int fallenTries; // Public for debugging
 
     [FormerlySerializedAs("_busController")]
     [Header("Bus Visualisation")]
     [SerializeField] protected BusController busController;
     [FormerlySerializedAs("_isProcessing")] public bool isProcessing;
-    
+
     [Header("Bus Segments")]
     public TBus buses;
 
-    protected BusController Bus => busController;
+    // --- STATE ---
+    /// <summary>
+    /// Number of completed ticks. While a tick is executed (bus animation and <see cref="HandleClockUpdate"/>)
+    /// it is the index of that tick; while a tick is undone (<see cref="ReverseBusVisualizations"/>)
+    /// it is the index of the tick being undone.
+    /// </summary>
+    protected int TickCounter;
 
     /// <summary> All sequential components of the level. <see cref="HandleClockUpdate"/> ends with <c>Clock.Tick()</c>. </summary>
     protected readonly ClockDomain Clock = new();
 
+    protected BusController Bus => busController;
 
-    #region ABSTRACT METHODS (Unique to each level)
-    /// <summary> The main method that implements the logic of a single clock cycle (PreClock/Clock). </summary>
+    private readonly List<IComponentView> _views = new();
+    private TickHistory<TState> _history;
+
+    #region LEVEL DEFINITION (implemented by every level)
+    /// <summary> Create the components, add the sequential ones to <see cref="Clock"/> and bind the views (<see cref="Show"/>). </summary>
+    protected virtual void OnLevelStart() { }
+
+    /// <summary> One clock edge: drive the inputs of the sequential components, then call <c>Clock.Tick()</c>. </summary>
     protected abstract void HandleClockUpdate();
 
-    /// <summary> Must return the current state in a format unique to the level (e.g., levelOneState). </summary>
     protected abstract TState GetCurrentState();
 
-    /// <summary> Applies the saved state to the level's internal components. </summary>
+    /// <summary> Restores a saved state into the components (bound views update themselves / on refresh). </summary>
     protected abstract void ApplyState(TState state);
 
-    /// <summary> Visually indicates when a tick is triggered (e.g., flashing registers). </summary>
-    protected abstract void BlinkClockedComponents();
-    #endregion
-
-    /// <summary> 
-    /// New abstract method: Runs a bus visualization specific to the current cycle.
-    /// Must be implemented in a subclass.
-    /// </summary>
+    /// <summary> Bus animation of the tick that is about to be executed (state before the clock edge). </summary>
     protected abstract IEnumerator RunBusVisualizations();
 
-    /// <summary> 
-    /// New abstract method: Stops and destroys all active signals 
-    /// (or resets them) when transitioning to the previous bar.
-    /// Must be implemented in a subclass.
-    /// </summary>
+    /// <summary> Bus animation of the tick that is being undone (state still after the clock edge). </summary>
     protected abstract IEnumerator ReverseBusVisualizations();
+
+    protected abstract bool CheckWinCondition();
+    #endregion
+
+    #region VIEWS
+    /// <summary> Registers views that display component state; they are refreshed after every tick and undo. </summary>
+    protected void Show(params IComponentView[] views)
+    {
+        foreach (var view in views)
+        {
+            if (view != null && !_views.Contains(view)) _views.Add(view);
+        }
+    }
+
+    /// <summary> Default: every shown view whose component is clocked blinks on the clock edge. </summary>
+    protected virtual void BlinkClockedComponents()
+    {
+        foreach (var view in _views)
+        {
+            if (view is SequentialVisualizer sequential && Clock.Contains(sequential.Model))
+                sequential.Blink();
+        }
+    }
+
+    /// <summary> Hook for displays that are not component views (e.g. the side panel). </summary>
+    protected virtual void OnViewsRefreshed() { }
+
+    private void RefreshViews()
+    {
+        foreach (var view in _views) view.Refresh();
+        OnViewsRefreshed();
+    }
+
+    /// <summary> Saved state of the given tick (0 = before the first tick). </summary>
+    protected TState StateAt(int tick) => _history[tick];
+    #endregion
 
     // --- UNITY LIFECYCLE & CORE LOGIC ---
 
     protected virtual void Start()
     {
         OnLevelStart();
+        RefreshViews();
 
-        // 1. Initializing the UI and subscriptions
         nextClick.onClick.AddListener(HandleNextTick);
         prevClick.onClick.AddListener(HandlePrevTick);
         checkSolutionButton.onClick.AddListener(CheckSolution);
         currentTickText.SetText("{0}", TickCounter);
         levelTargetText.text = levelTargetDescription.GetLocalizedString();
 
-        // 2. Initializing history
         _history = new TickHistory<TState>(maxTickNumber);
         _history.Save(0, GetCurrentState());
-        
+
         buses.RegisterAll(busController);
     }
 
-    protected virtual void OnLevelStart()
-    {
-        // A method for overriding in a subclass (e.g., setting initial values for registers or strings)
-    }
-
+    #region CLOCK
     private void HandleNextTick()
     {
-        if (TickCounter >= maxTickNumber || isProcessing) { return; }
+        if (TickCounter >= maxTickNumber || isProcessing) return;
         StartCoroutine(NextTickSequence());
     }
+
     private IEnumerator NextTickSequence()
     {
-        isProcessing = true;
-        nextClick.interactable = false; // Visually disable the buttons
-        prevClick.interactable = false;
-        BlockInGameInteractable();
+        SetProcessing(true);
 
         BlinkClockedComponents();
-
-        // We are waiting for the entire rendering to complete in the child class
         yield return StartCoroutine(RunBusVisualizations());
 
         HandleClockUpdate();
 
         TickCounter++;
         currentTickText.SetText("{0}", TickCounter);
-        UpdateVisualizers();
-
+        RefreshViews();
         _history.Save(TickCounter, GetCurrentState());
 
-        isProcessing = false;
-        nextClick.interactable = true;
-        prevClick.interactable = true;
-        ReleaseInGameInteractable();
+        SetProcessing(false);
     }
 
     private void HandlePrevTick()
     {
-        if (TickCounter <= 0 || isProcessing) { return; }
-        
+        if (TickCounter <= 0 || isProcessing) return;
+
         AchievementManager.Increment(AchievementIds.RollingBackFiftyTimes);
-        
+
         StartCoroutine(PrevTickSequence());
     }
+
     private IEnumerator PrevTickSequence()
     {
-        isProcessing = true;
-        nextClick.interactable = false;
-        prevClick.interactable = false;
-        BlockInGameInteractable();
+        SetProcessing(true);
 
         TickCounter--;
         currentTickText.SetText("{0}", TickCounter);
 
-        // We are waiting for the reverse rendering to finish
         yield return StartCoroutine(ReverseBusVisualizations());
 
         ApplyState(_history[TickCounter]);
-        UpdateVisualizers();
+        RefreshViews();
 
-        isProcessing = false;
-        nextClick.interactable = true;
-        prevClick.interactable = true;
-        ReleaseInGameInteractable();
+        SetProcessing(false);
     }
 
+    private void SetProcessing(bool value)
+    {
+        isProcessing = value;
+        nextClick.interactable = !value;
+        prevClick.interactable = !value;
+        foreach (var v in managedInteractable) v.SetInteractable(!value);
+    }
+    #endregion
+
+    #region SOLUTION
     protected virtual void CheckSolution()
     {
         if (CheckWinCondition())
@@ -206,19 +237,5 @@ public abstract class BaseLevelRegisseur<TState, TBus> : MonoBehaviour
             StartCoroutine(new WrongAnswerFeedback(crossIndicator, crossDisplayDuration).Play());
         }
     }
-    protected abstract bool CheckWinCondition();
-    
-    private void BlockInGameInteractable() {
-        foreach (var v in managedInteractable) v.SetInteractable(false);
-    }
-    private void ReleaseInGameInteractable() {
-        foreach (var v in managedInteractable) v.SetInteractable(true);
-    }
-
-    #region HISTORY METHODS
-    /// <summary> Saved state of the given tick (0 = before the first tick). </summary>
-    protected TState StateAt(int tick) => _history[tick];
-
-    protected abstract void UpdateVisualizers();
     #endregion
 }

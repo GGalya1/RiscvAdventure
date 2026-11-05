@@ -35,10 +35,6 @@ public class LevelTwoRegisseur : BaseLevelRegisseur<LevelTwoState, LevelTwoBusSe
     [FormerlySerializedAs("_registerSrcAVisualizer")] [SerializeField] private RegisterVisualizer registerSrcAVisualizer;
     [FormerlySerializedAs("_numberBlinker")] [SerializeField] private Blinker numberBlinker;
 
-    #region CACHED UI REFERENCES
-    private InfoPanelUI _infoSrcARegister;
-    #endregion
-
     private Register _srcA;
 
     protected override int RightAnswerValue => 8;
@@ -56,9 +52,7 @@ public class LevelTwoRegisseur : BaseLevelRegisseur<LevelTwoState, LevelTwoBusSe
 
         Clock.Add(_srcA);
 
-        _infoSrcARegister = registerSrcAVisualizer.UIRegisterPanel;
-
-        UpdateVisualizers();
+        Show(registerSrcAVisualizer.Bind(_srcA, "Register 1"));
     }
 
     protected override void ApplyState(LevelTwoState s)
@@ -71,7 +65,7 @@ public class LevelTwoRegisseur : BaseLevelRegisseur<LevelTwoState, LevelTwoBusSe
 
     protected override void BlinkClockedComponents()
     {
-        registerSrcAVisualizer.TriggerBlink();
+        base.BlinkClockedComponents();
         numberBlinker.Trigger();
     }
 
@@ -92,18 +86,8 @@ public class LevelTwoRegisseur : BaseLevelRegisseur<LevelTwoState, LevelTwoBusSe
 
     protected override void HandleClockUpdate()
     {
-        // synchronize visualizers and concrete objects
-        _srcA.WriteEnable = registerSrcAVisualizer.isWriteEnabled;
-
         _srcA.Input = _alu.Compute(_srcA.Output, 4);
         Clock.Tick();
-    }
-
-    protected override void UpdateVisualizers()
-    {
-        _infoSrcARegister.Display("Register 1", _srcA.Output);
-
-        registerSrcAVisualizer.ForceUpdateWriteEnableVisualization(_srcA.WriteEnable);
     }
 
     #region busVizualisation

@@ -179,18 +179,6 @@ public class FullProcessorRegisseur
     [Header("Extra Panel Fields")]
     [SerializeField] private SidePanelStateInformer sidePanelInformer;
 
-    #region CACHED UI REFERENCES
-    private InfoPanelUI _infoPCRegister;
-    private InfoPanelUI _infoOldPCRegister;
-    private InfoPanelUI _infoInstructionRegister;
-    private InfoPanelUI _infoDataRegister;
-    private InfoPanelUI _infoSrcARegister;
-    private InfoPanelUI _infoSrcBRegister;
-    private InfoPanelUI _infoAluOutRegister;
-
-    private InstrMemoryControlPanel _infoDataMemory;
-    #endregion
-
     // Intern components for computations
     private Register _pc;
     private Register _oldPC;
@@ -202,7 +190,6 @@ public class FullProcessorRegisseur
 
     private DataInstMemory _dataInstructionMemory;
     private RegisterFile _registerFile;
-
 
     private int _currentBus; // [0, 10]
 
@@ -230,7 +217,7 @@ public class FullProcessorRegisseur
 
         aluVisualizer.Bind(_alu);
         extenderVisualizer.Bind(_extender);
-        
+
         _pc = new Register(Initial.pcRegisterInitialValue);
         _oldPC = new Register();
         _instructionReg = new Register();
@@ -247,18 +234,18 @@ public class FullProcessorRegisseur
 
         Clock.Add(_pc, _oldPC, _instructionReg, _dataReg, _srcA, _srcB, _aluOutReg, _dataInstructionMemory, _registerFile);
 
-        // Caching of UI panels for visualizers
-        _infoPCRegister = registerPCVisualizer.UIRegisterPanel;
-        _infoOldPCRegister = registerOldPCVisualizer.UIRegisterPanel;
-        _infoInstructionRegister = registerInstructionVisualizer.UIRegisterPanel;
-        _infoDataRegister = registerDataVisualizer.UIRegisterPanel;
-        _infoSrcARegister = registerSrcAVisualizer.UIRegisterPanel;
-        _infoSrcBRegister = registerSrcBVisualizer.UIRegisterPanel;
-        _infoAluOutRegister = registerAluOutVisualizer.UIRegisterPanel;
-
-        UpdateVisualizers();
+        Show(
+            registerPCVisualizer.Bind(_pc, "PC Register"),
+            registerOldPCVisualizer.Bind(_oldPC, "Old PC Register"),
+            registerInstructionVisualizer.Bind(_instructionReg, "Instruction Register", word => RiscVDecoder.CommandBuilder((uint)word)),
+            registerDataVisualizer.Bind(_dataReg, "Data Register"),
+            registerSrcAVisualizer.Bind(_srcA, "SrcA Register"),
+            registerSrcBVisualizer.Bind(_srcB, "SrcB Register"),
+            registerAluOutVisualizer.Bind(_aluOutReg, "ALU Out Register"),
+            memoryVisualizer.Bind(_dataInstructionMemory, MemoryDisplay.Instructions),
+            registerFileVisualizer.Bind(_registerFile));
     }
-    
+
     private MehrtaktSignals ComputeMehrtaktSignals()
     {
         var ext = _extender.Extend(_instructionReg.Output);
@@ -283,12 +270,12 @@ public class FullProcessorRegisseur
         _srcA.Reset(s.RegisterScrAValue);
         _srcB.Reset(s.RegisterSrcBValue);
         _aluOutReg.Reset(s.RegisterAluOutValue);
-        
+
         _adrMux.SelectedInput = s.MuXadrPath;
         _srcAMux.SelectedInput = s.MuXsrcAPath;
         _srcBMux.SelectedInput = s.MuXsrcBPath;
         _resultMux.SelectedInput = s.MuXresultPath;
-        
+
         // WE for dataInstrMem ???
         _dataInstructionMemory.LoadWords(s.FirstMemoryValue, s.SecondMemoryValue, s.ThirdMemoryValue, s.FourthMemoryValue);
 
@@ -309,17 +296,7 @@ public class FullProcessorRegisseur
 
     protected override void BlinkClockedComponents()
     {
-        registerPCVisualizer.TriggerBlink();
-        registerOldPCVisualizer.TriggerBlink();
-        registerInstructionVisualizer.TriggerBlink();
-        registerDataVisualizer.TriggerBlink();
-        registerSrcAVisualizer.TriggerBlink();
-        registerSrcBVisualizer.TriggerBlink();
-        registerAluOutVisualizer.TriggerBlink();
-
-        memoryVisualizer.TriggerBlink();
-        registerFileVisualizer.TriggerBlink();
-
+        base.BlinkClockedComponents();
         numberBlinker.Trigger();
     }
 
@@ -366,17 +343,6 @@ public class FullProcessorRegisseur
 
     protected override void HandleClockUpdate()
     {
-        // synchronize visualizers and concrete objects
-        _pc.WriteEnable = registerPCVisualizer.isWriteEnabled;
-        _oldPC.WriteEnable = registerOldPCVisualizer.isWriteEnabled;
-        _instructionReg.WriteEnable = registerInstructionVisualizer.isWriteEnabled;
-        _dataReg.WriteEnable = registerDataVisualizer.isWriteEnabled;
-        _srcA.WriteEnable = registerSrcAVisualizer.isWriteEnabled;
-        _srcB.WriteEnable = registerSrcBVisualizer.isWriteEnabled;
-        _aluOutReg.WriteEnable = registerAluOutVisualizer.isWriteEnabled;
-        _dataInstructionMemory.WriteEnable = memoryVisualizer.isWriteEnabled;
-        _registerFile.WriteEnable = registerFileVisualizer.isWriteEnabled;
-
         var sig = ComputeMehrtaktSignals();
 
         // implementation
@@ -400,7 +366,7 @@ public class FullProcessorRegisseur
         _registerFile.ReadAddress2 = InstructionFields.Rs2(_instructionReg.Output);
 
         _registerFile.ReadRegisters();
-        
+
         // A3: [11:7] (Register Destination / rd)
 
         _srcA.Input = _registerFile.ReadData1;
@@ -414,14 +380,13 @@ public class FullProcessorRegisseur
         #endregion
 
         #region fourth step (WB)
-        
+
         /*if (TickCounter - 2 >= 0) {
             _registerFile.WriteAddress = ((StateAt(TickCounter - 2).RegisterInstrValue >> 7) & 0x1F);
             // _registerFile.WriteData = StateAt(TickCounter - 2).RegisterInstrValue;
         }*/
-        
-        _registerFile.WriteAddress = InstructionFields.Rd(_instructionReg.Output);
 
+        _registerFile.WriteAddress = InstructionFields.Rd(_instructionReg.Output);
 
         var tmpResult = sig.ResultMuxOut;
         _registerFile.WriteData = tmpResult;
@@ -549,41 +514,6 @@ public class FullProcessorRegisseur
     }
     #endregion
 
-    protected override void UpdateVisualizers()
-    {
-        UpdateSidePanel();
-
-        _infoPCRegister.Display("PC Register", _pc.Output);
-        _infoOldPCRegister.Display("Old PC Register", _oldPC.Output);
-        _infoInstructionRegister.Display("Instruction Register", RiscVDecoder.CommandBuilder((uint)_instructionReg.Output));
-        _infoDataRegister.Display("Data Register", _dataReg.Output);
-        _infoSrcARegister.Display("SrcA Register", _srcA.Output);
-        _infoSrcBRegister.Display("SrcB Register", _srcB.Output);
-        _infoAluOutRegister.Display("ALU Out Register", _aluOutReg.Output);
-
-        memoryVisualizer.UIRegisterPanel.Display(
-            RiscVDecoder.CommandBuilder((uint)_dataInstructionMemory.Read(0)),
-            RiscVDecoder.CommandBuilder((uint)_dataInstructionMemory.Read(4)),
-            RiscVDecoder.CommandBuilder((uint)_dataInstructionMemory.Read(8)),
-            RiscVDecoder.CommandBuilder((uint)_dataInstructionMemory.Read(12))
-        );
-        registerFileVisualizer.UIRegisterPanel.Display(_registerFile.Registers);
-
-
-        // ==============================  WE SECTION  =====================================
-        registerPCVisualizer.ForceUpdateWriteEnableVisualization(_pc.WriteEnable);
-        registerOldPCVisualizer.ForceUpdateWriteEnableVisualization(_oldPC.WriteEnable);
-        registerInstructionVisualizer.ForceUpdateWriteEnableVisualization(_instructionReg.WriteEnable);
-        registerDataVisualizer.ForceUpdateWriteEnableVisualization(_dataReg.WriteEnable);
-        registerSrcAVisualizer.ForceUpdateWriteEnableVisualization(_srcA.WriteEnable);
-        registerSrcBVisualizer.ForceUpdateWriteEnableVisualization(_srcB.WriteEnable);
-        registerAluOutVisualizer.ForceUpdateWriteEnableVisualization(_aluOutReg.WriteEnable);
-
-        registerFileVisualizer.ForceUpdateWriteEnableVisualization(_registerFile.WriteEnable);
-        memoryVisualizer.ForceUpdateWriteEnableVisualization(_dataInstructionMemory.WriteEnable);
-    }
-
-
     /*private void UpdateSidePanel() {
         var containsKey = _pc.Output % 4 == 0 
                           && _pc.Output is <= 12 and >= 0
@@ -664,11 +594,13 @@ public class FullProcessorRegisseur
             sidePanelInformer.SetStateInfo(StateName.UNKNOWN);
         }
     }*/
-    
+
+    protected override void OnViewsRefreshed() => UpdateSidePanel();
+
     private void UpdateSidePanel()
     {
         var stage = _currentBus % 4;
- 
+
         // FETCH (Phase 0): Liegt am PC eine gültige Instruktion?
         if (stage == 0)
         {
@@ -679,23 +611,23 @@ public class FullProcessorRegisseur
             sidePanelInformer.SetStateInfo(hasFetch ? StateName.FETCH : StateName.UNKNOWN);
             return;
         }
- 
+
         // Phasen 1-3: InstrReg muss eine gültige Instruktion enthalten
         if (_instructionReg.Output <= GameConstants.MinValidInstruction)
         {
             sidePanelInformer.SetStateInfo(StateName.UNKNOWN);
             return;
         }
- 
+
         var opcode = _instructionReg.Output & 0x7F;
- 
+
         switch (stage)
         {
             // DECODE: unabhängig vom Instruktionstyp immer gleich
             case 1:
                 sidePanelInformer.SetStateInfo(StateName.DECODE);
                 break;
-            
+
             case 2:
                 sidePanelInformer.SetStateInfo(opcode switch
                 {

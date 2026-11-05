@@ -62,12 +62,10 @@ public class LevelZeroRegisseur : BaseLevelRegisseur<LevelZeroState, LevelZeroBu
 
         Clock.Add(_srcA, _srcB, _output);
 
-        // Caching of UI panels for visualizers
-        _infoSrcARegister = registerSrcAVisualizer.UIRegisterPanel;
-        _infoSrcBRegister = registerSrcBVisualizer.UIRegisterPanel;
-        _infoOutputRegister = registerOutputVisualizer.UIRegisterPanel;
-
-        UpdateVisualizers();
+        Show(
+            registerSrcAVisualizer.Bind(_srcA, "Register 1"),
+            registerSrcBVisualizer.Bind(_srcB, "Register 2"),
+            registerOutputVisualizer.Bind(_output, "Register 3"));
     }
 
     protected override void ApplyState(LevelZeroState s)
@@ -78,13 +76,6 @@ public class LevelZeroRegisseur : BaseLevelRegisseur<LevelZeroState, LevelZeroBu
         _srcA.WriteEnable = s.RegisterAwe;
         _srcB.WriteEnable = s.RegisterBwe;
         _output.WriteEnable = s.OutputRegisterWe;
-    }
-
-    protected override void BlinkClockedComponents()
-    {
-        registerSrcAVisualizer.TriggerBlink();
-        registerSrcBVisualizer.TriggerBlink();
-        registerOutputVisualizer.TriggerBlink();
     }
 
     protected override bool CheckWinCondition()
@@ -107,27 +98,10 @@ public class LevelZeroRegisseur : BaseLevelRegisseur<LevelZeroState, LevelZeroBu
 
     protected override void HandleClockUpdate()
     {
-        // synchronize visualizers and concrete objects
-        _srcA.WriteEnable = registerSrcAVisualizer.isWriteEnabled;
-        _srcB.WriteEnable = registerSrcBVisualizer.isWriteEnabled;
-        _output.WriteEnable = registerOutputVisualizer.isWriteEnabled;
-
-
         _srcB.Input = _srcA.Output;
         _output.Input = _srcB.Output;
 
         Clock.Tick();
-    }
-
-    protected override void UpdateVisualizers()
-    {
-        _infoSrcARegister.Display("Register 1", _srcA.Output);
-        _infoSrcBRegister.Display("Register 2", _srcB.Output);
-        _infoOutputRegister.Display("Register 3", _output.Output);
-
-        registerSrcAVisualizer.ForceUpdateWriteEnableVisualization(_srcA.WriteEnable);
-        registerSrcBVisualizer.ForceUpdateWriteEnableVisualization(_srcB.WriteEnable);
-        registerOutputVisualizer.ForceUpdateWriteEnableVisualization(_output.WriteEnable);
     }
 
     protected override IEnumerator RunBusVisualizations()
@@ -149,12 +123,4 @@ public class LevelZeroRegisseur : BaseLevelRegisseur<LevelZeroState, LevelZeroBu
 
         _currentBus--;
     }
-
-    #region CACHED UI REFERENCES
-
-    private InfoPanelUI _infoSrcARegister;
-    private InfoPanelUI _infoSrcBRegister;
-    private InfoPanelUI _infoOutputRegister;
-
-    #endregion
 }

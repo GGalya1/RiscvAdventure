@@ -57,10 +57,6 @@ public class LevelFourthRegisseur : BaseLevelRegisseur<LevelThreeState, LevelFou
 
     private int _currentBus;
     private DataInstMemory _dataInstructionMemory;
-    private InstrMemoryControlPanel _infoDataMemory;
-
-    private InfoPanelUI _infoSrcA;
-    private InfoPanelUI _infoSrcB;
 
     private Register _srcA;
     private Register _srcB;
@@ -82,11 +78,10 @@ public class LevelFourthRegisseur : BaseLevelRegisseur<LevelThreeState, LevelFou
 
         Clock.Add(_srcA, _srcB, _dataInstructionMemory);
 
-        // Caching of UI panels for visualizers
-        _infoSrcA = registerSrcAVisualizer.UIRegisterPanel;
-        _infoSrcB = registerSrcBVisualizer.UIRegisterPanel;
-
-        UpdateVisualizers();
+        Show(
+            registerSrcAVisualizer.Bind(_srcA, "Register 1"),
+            registerSrcBVisualizer.Bind(_srcB, "Register 2"),
+            registerOutputVisualizer.Bind(_dataInstructionMemory, MemoryDisplay.Values));
     }
 
     protected override bool CheckWinCondition()
@@ -96,11 +91,6 @@ public class LevelFourthRegisseur : BaseLevelRegisseur<LevelThreeState, LevelFou
 
     protected override void HandleClockUpdate()
     {
-        // synchronize visualizer and concrete objects
-        _srcA.WriteEnable = registerSrcAVisualizer.isWriteEnabled;
-        _srcB.WriteEnable = registerSrcBVisualizer.isWriteEnabled;
-        _dataInstructionMemory.WriteEnable = registerOutputVisualizer.isWriteEnabled;
-
         // implementation
         _srcB.Input = _dataInstructionMemory.Read(_srcA.Output);
 
@@ -223,25 +213,7 @@ public class LevelFourthRegisseur : BaseLevelRegisseur<LevelThreeState, LevelFou
 
     protected override void BlinkClockedComponents()
     {
-        registerSrcAVisualizer.TriggerBlink();
-        registerSrcBVisualizer.TriggerBlink();
-        registerOutputVisualizer.TriggerBlink();
+        base.BlinkClockedComponents();
         numberBlinker.Trigger();
-    }
-
-    protected override void UpdateVisualizers()
-    {
-        _infoSrcA.Display("Register 1", _srcA.Output);
-        _infoSrcB.Display("Register 2", _srcB.Output);
-        registerOutputVisualizer.UIRegisterPanel.Display(
-            _dataInstructionMemory.Read(0),
-            _dataInstructionMemory.Read(4),
-            _dataInstructionMemory.Read(8),
-            _dataInstructionMemory.Read(12)
-        );
-
-        registerSrcAVisualizer.ForceUpdateWriteEnableVisualization(_srcA.WriteEnable);
-        registerSrcBVisualizer.ForceUpdateWriteEnableVisualization(_srcB.WriteEnable);
-        registerOutputVisualizer.ForceUpdateWriteEnableVisualization(_dataInstructionMemory.WriteEnable);
     }
 }

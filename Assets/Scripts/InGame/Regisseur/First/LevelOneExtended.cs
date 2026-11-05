@@ -86,7 +86,6 @@ public class LevelOneExtended : BaseLevelRegisseur<ExtendedFirstLevelState, Leve
     private Blinker[] numberBlinkers;
 
     private int _currentBus; // [0, 2]
-    private InfoPanelUI _infoOutputRegister;
 
     private Register _output;
 
@@ -104,11 +103,10 @@ public class LevelOneExtended : BaseLevelRegisseur<ExtendedFirstLevelState, Leve
         downMuxVisualizer.Bind(_downMux);
         outputMuxVisualizer.Bind(_outputMux);
 
-        _infoOutputRegister = registerOutputVisualizer.UIRegisterPanel;
         _output = new Register(11);
         Clock.Add(_output);
 
-        UpdateVisualizers();
+        Show(registerOutputVisualizer.Bind(_output, "Register 1"));
     }
 
     protected override void ApplyState(ExtendedFirstLevelState s) // "s" for state
@@ -151,7 +149,6 @@ public class LevelOneExtended : BaseLevelRegisseur<ExtendedFirstLevelState, Leve
         var down = _downMux.Route(left, -8, -12);
 
         _output.Input = _outputMux.Route(up, 4, down);
-        _output.WriteEnable = registerOutputVisualizer.isWriteEnabled;
 
         Clock.Tick();
     }
@@ -193,10 +190,5 @@ public class LevelOneExtended : BaseLevelRegisseur<ExtendedFirstLevelState, Leve
 
             _currentBus++;
         }
-    }
-
-    protected override void UpdateVisualizers()
-    {
-        _infoOutputRegister.Display("Register 1", _output.Output);
     }
 }

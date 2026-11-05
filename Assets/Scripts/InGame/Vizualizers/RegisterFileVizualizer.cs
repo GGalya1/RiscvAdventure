@@ -1,16 +1,29 @@
-// Visualizer of the register file: register values, WE state, blinking on the clock edge
+/// <summary> View of a <see cref="RegisterFile"/>: shows the register values, WE state and blinks on the clock edge. </summary>
 public class RegisterFileVisualizer : SequentialVisualizer
 {
-    public RegisterFieldPanelUI UIRegisterPanel { get; private set; }
+    private RegisterFieldPanelUI _panel;
+    private RegisterFile _registerFile;
 
     protected override void InitializePanel()
     {
-        UIRegisterPanel = RequirePanel<RegisterFieldPanelUI>();
+        _panel = RequirePanel<RegisterFieldPanelUI>();
     }
 
     protected override void Awake()
     {
         base.Awake();
-        if (UIRegisterPanel != null) UIRegisterPanel.Display(new int[16]);
+        if (_panel != null) _panel.Display(new int[16]);
+    }
+
+    public RegisterFileVisualizer Bind(RegisterFile registerFile)
+    {
+        _registerFile = registerFile;
+        BindModel(registerFile);
+        return this;
+    }
+
+    protected override void RefreshContent()
+    {
+        _panel.Display(_registerFile.Registers);
     }
 }

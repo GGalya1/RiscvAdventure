@@ -2,24 +2,33 @@ using UnityEngine;
 using UnityEngine.Serialization;
 using UnityEngine.UI;
 
-/*
- Base class for visualizers of clocked components (registers, register file, memories).
- Shared behaviour: the WE toggle (button in the panel + STOP indicator on the model)
- and blinking on the clock edge.
-*/
-public abstract class SequentialVisualizer : BaseVisualizer
+/// <summary>
+/// Base class for visualizers of clocked components (registers, register file, memories).
+/// <br/>Shared behaviour: the WE toggle (button in the panel + STOP indicator on the model)
+/// and blinking on the clock edge. The WE button writes directly into the bound model,
+/// so the level never has to copy UI state into the simulation.
+/// </summary>
+public abstract class SequentialVisualizer : BaseVisualizer, IComponentView
 {
     [FormerlySerializedAs("_writeEnableIndicator")]
     [Header("Write Enable Visualization")]
     [Tooltip("Object that shows the STOP image while WE is off. Without it the player cannot toggle WE.")]
     [SerializeField] private GameObject writeEnableIndicator;
-    public bool isWriteEnabled;
+
+    [FormerlySerializedAs("isWriteEnabled")]
+    [Tooltip("WE value used when there is no indicator (the player cannot toggle WE then).")]
+    [SerializeField] private bool fixedWriteEnable = true;
 
     [FormerlySerializedAs("_blinker")]
     [Header("Blinker of sequential component")]
     [SerializeField] private Blinker blinker;
 
     private Button _weButton;
+
+    /// <summary> The bound simulation element. </summary>
+    public ISequentialLogic Model { get; private set; }
+
+    private bool CanToggleWriteEnable => writeEnableIndicator != null;
 
     protected override void Awake()
     {
@@ -28,23 +37,34 @@ public abstract class SequentialVisualizer : BaseVisualizer
         if (panelInstance.TryGetComponent<IWriteEnablePanel>(out var wePanel))
             _weButton = wePanel.WeButton;
 
-        // initial state of the STOP indicator
-        if (writeEnableIndicator != null)
+        if (CanToggleWriteEnable)
         {
             writeEnableIndicator.SetActive(false);
-            isWriteEnabled = true;
-            if (_weButton != null) _weButton.onClick.AddListener(SwitchWriteEnableVisualization);
+            if (_weButton != null) _weButton.onClick.AddListener(ToggleWriteEnable);
         }
     }
 
-    public void ForceUpdateWriteEnableVisualization(bool flag)
+    /// <summary> Connects this view to its simulation element. Call from the concrete Bind method. </summary>
+    protected void BindModel(ISequentialLogic model)
     {
-        if (writeEnableIndicator == null) return;
-        isWriteEnabled = flag;
-        writeEnableIndicator.SetActive(!isWriteEnabled);
+        Model = model;
+
+        // Without the toggle UI the WE signal is a fixed scene setting.
+        if (!CanToggleWriteEnable) model.WriteEnable = fixedWriteEnable;
     }
 
-    public void TriggerBlink()
+    public void Refresh()
+    {
+        if (Model == null) return;
+
+        if (CanToggleWriteEnable) writeEnableIndicator.SetActive(!Model.WriteEnable);
+        RefreshContent();
+    }
+
+    /// <summary> Writes the model state into the info panel. </summary>
+    protected abstract void RefreshContent();
+
+    public void Blink()
     {
         if (blinker != null) blinker.Trigger();
     }
@@ -54,12 +74,12 @@ public abstract class SequentialVisualizer : BaseVisualizer
         if (_weButton != null) _weButton.interactable = value;
     }
 
-    private void SwitchWriteEnableVisualization()
+    private void ToggleWriteEnable()
     {
-        if (writeEnableIndicator == null) return;
-        // WE on -> indicator hidden, WE off -> indicator (STOP) shown
-        isWriteEnabled = !isWriteEnabled;
-        writeEnableIndicator.SetActive(!isWriteEnabled);
+        if (Model == null) return;
+
+        Model.WriteEnable = !Model.WriteEnable;
+        writeEnableIndicator.SetActive(!Model.WriteEnable);
         HideData();
     }
 }

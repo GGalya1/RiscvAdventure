@@ -62,7 +62,6 @@ public class LevelSevenRegisseur : BaseLevelRegisseur<LevelSevenState, LevelSeve
     [FormerlySerializedAs("_aluVizualizer")] [SerializeField]
     protected AluVisualiser aluVisualizer;
 
-
     private int _currentBus; // [0, 2]
     private Register _output;
     private RegisterFile _registerFile;
@@ -95,14 +94,11 @@ public class LevelSevenRegisseur : BaseLevelRegisseur<LevelSevenState, LevelSeve
 
         Clock.Add(_srcA, _srcB, _output, _registerFile);
 
-        // Caching of UI panels for visualizers
-        _infoSrcARegister = registerSrcAVisualizer.UIRegisterPanel;
-        _infoSrcBRegister = registerSrcBVisualizer.UIRegisterPanel;
-        _infoOutputRegister = registerOutputVisualizer.UIRegisterPanel;
-
-
-        UpdateVisualizers();
-        UpdateRegisterFileVisualisation();
+        Show(
+            registerSrcAVisualizer.Bind(_srcA, "Register 1"),
+            registerSrcBVisualizer.Bind(_srcB, "Register 2"),
+            registerOutputVisualizer.Bind(_output, "Register 3"),
+            registerFileVisualizer.Bind(_registerFile));
     }
 
     protected override void ApplyState(LevelSevenState s)
@@ -117,15 +113,6 @@ public class LevelSevenRegisseur : BaseLevelRegisseur<LevelSevenState, LevelSeve
         _registerFile.WriteEnable = s.RegisterFileWe;
 
         _alu.Operation = s.AluOperation;
-    }
-
-    protected override void BlinkClockedComponents()
-    {
-        registerSrcAVisualizer.TriggerBlink();
-        registerSrcBVisualizer.TriggerBlink();
-        registerOutputVisualizer.TriggerBlink();
-
-        registerFileVisualizer.TriggerBlink();
     }
 
     protected override bool CheckWinCondition()
@@ -152,12 +139,6 @@ public class LevelSevenRegisseur : BaseLevelRegisseur<LevelSevenState, LevelSeve
 
     protected override void HandleClockUpdate()
     {
-        // synchronize visualizers and concrete objects
-        _srcA.WriteEnable = registerSrcAVisualizer.isWriteEnabled;
-        _srcB.WriteEnable = registerSrcBVisualizer.isWriteEnabled;
-        _output.WriteEnable = registerOutputVisualizer.isWriteEnabled;
-        _registerFile.WriteEnable = registerFileVisualizer.isWriteEnabled;
-
         // implementation
         _registerFile.ReadAddress1 = _srcA.Output;
         _registerFile.ReadAddress2 = _srcB.Output;
@@ -196,29 +177,4 @@ public class LevelSevenRegisseur : BaseLevelRegisseur<LevelSevenState, LevelSeve
             _currentBus++;
         }
     }
-
-    protected override void UpdateVisualizers()
-    {
-        _infoSrcARegister.Display("Register 1", _srcA.Output);
-        _infoSrcBRegister.Display("Register 2", _srcB.Output);
-        _infoOutputRegister.Display("Register 3", _output.Output);
-
-        registerSrcAVisualizer.ForceUpdateWriteEnableVisualization(_srcA.WriteEnable);
-        registerSrcBVisualizer.ForceUpdateWriteEnableVisualization(_srcB.WriteEnable);
-        registerOutputVisualizer.ForceUpdateWriteEnableVisualization(_output.WriteEnable);
-        registerFileVisualizer.ForceUpdateWriteEnableVisualization(_registerFile.WriteEnable);
-    }
-
-    private void UpdateRegisterFileVisualisation()
-    {
-        registerFileVisualizer.UIRegisterPanel.Display(_registerFile.Registers);
-    }
-
-    #region CACHED UI REFERENCES
-
-    private InfoPanelUI _infoSrcARegister;
-    private InfoPanelUI _infoSrcBRegister;
-    private InfoPanelUI _infoOutputRegister;
-
-    #endregion
 }

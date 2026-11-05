@@ -77,14 +77,6 @@ public class SubExtendedRegisseur : BaseLevelRegisseur<SubExtendedSevenLevelStat
     [FormerlySerializedAs("extenderVizualizer")] [FormerlySerializedAs("_extenderVizualizer")] [SerializeField] private ExtenderVisualizer extenderVisualizer;
     [FormerlySerializedAs("_MUXVisualizer")] [SerializeField] private MultiplexerVisualizer muxVisualizer;
 
-    #region CACHED UI REFERENCES
-
-    private InfoPanelUI _infoSrcARegister;
-    private InfoPanelUI _infoImmRegister;
-    private InfoPanelUI _infoA3Register;
-    private InfoPanelUI _infoWd3Register;
-    #endregion
-
     // Intern components for computations
     private Register _srcA;
     private Register _immValue;
@@ -120,13 +112,12 @@ public class SubExtendedRegisseur : BaseLevelRegisseur<SubExtendedSevenLevelStat
 
         Clock.Add(_srcA, _immValue, _a3, _wd3, _registerFile);
 
-        // Caching of UI panels for visualizers
-        _infoSrcARegister = registerSrcAVisualizer.UIRegisterPanel;
-        _infoImmRegister = registerImmediateVisualizer.UIRegisterPanel;
-        _infoA3Register = registerA3Visualizer.UIRegisterPanel;
-        _infoWd3Register = registerWd3Visualizer.UIRegisterPanel;
-        
-        UpdateVisualizers();
+        Show(
+            registerSrcAVisualizer.Bind(_srcA, "Register A1"),
+            registerImmediateVisualizer.Bind(_immValue, "Register A2", word => RiscVDecoder.CommandBuilder((uint)word)),
+            registerA3Visualizer.Bind(_a3, "Register A3"),
+            registerWd3Visualizer.Bind(_wd3, "Register WD3"),
+            registerFileVisualizer.Bind(_registerFile));
     }
 
     protected override void ApplyState(SubExtendedSevenLevelState s)
@@ -147,16 +138,6 @@ public class SubExtendedRegisseur : BaseLevelRegisseur<SubExtendedSevenLevelStat
         _extender.Type = s.ExtenderOperation;
 
         _mux.SelectedInput = s.MuxPath;
-    }
-
-    protected override void BlinkClockedComponents()
-    {
-        registerSrcAVisualizer.TriggerBlink();
-        registerImmediateVisualizer.TriggerBlink();
-        registerA3Visualizer.TriggerBlink();
-        registerWd3Visualizer.TriggerBlink();
-
-        registerFileVisualizer.TriggerBlink();
     }
 
     protected override bool CheckWinCondition()
@@ -190,14 +171,6 @@ public class SubExtendedRegisseur : BaseLevelRegisseur<SubExtendedSevenLevelStat
 
     protected override void HandleClockUpdate()
     {
-        // synchronize visualizers and concrete objects
-        _srcA.WriteEnable = registerSrcAVisualizer.isWriteEnabled;
-        _immValue.WriteEnable = registerImmediateVisualizer.isWriteEnabled;
-        _a3.WriteEnable = registerA3Visualizer.isWriteEnabled;
-        _wd3.WriteEnable = registerWd3Visualizer.isWriteEnabled;
-        
-        _registerFile.WriteEnable = registerFileVisualizer.isWriteEnabled;
-
         // implementation
         _registerFile.ReadAddress1 = _srcA.Output;
         _registerFile.ReadAddress2 = 0;
@@ -261,24 +234,5 @@ public class SubExtendedRegisseur : BaseLevelRegisseur<SubExtendedSevenLevelStat
 
             _currentBus++;
         }
-    }
-
-    protected override void UpdateVisualizers()
-    {
-        _infoSrcARegister.Display("Register A1", _srcA.Output);
-        _infoImmRegister.Display("Register A2", RiscVDecoder.CommandBuilder((uint)_immValue.Output));
-        _infoA3Register.Display("Register A3", _a3.Output);
-        _infoWd3Register.Display("Register WD3", _wd3.Output);
-
-        registerFileVisualizer.UIRegisterPanel.Display(_registerFile.Registers);
-
-
-        // ==============================  WE SECTION  =====================================
-        registerSrcAVisualizer.ForceUpdateWriteEnableVisualization(_srcA.WriteEnable);
-        registerImmediateVisualizer.ForceUpdateWriteEnableVisualization(_immValue.WriteEnable);
-        registerA3Visualizer.ForceUpdateWriteEnableVisualization(_a3.WriteEnable);
-        registerWd3Visualizer.ForceUpdateWriteEnableVisualization(_wd3.WriteEnable);
-
-        registerFileVisualizer.ForceUpdateWriteEnableVisualization(_registerFile.WriteEnable);
     }
 }
