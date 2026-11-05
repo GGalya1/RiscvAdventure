@@ -98,6 +98,8 @@ public class ExtendedLevelSeven : BaseLevelRegisseur<ExtendedSevenLevelState, Ex
                                                      60, 61, 0, 25, 54, 0, 28,
                                                      70, 30, 31, 0});
 
+        Clock.Add(_srcA, _srcB, _a3, _wd3, _registerFile);
+
         // Caching of UI panels for visualizers
         _infoSrcARegister = registerSrcAVisualizer.UIRegisterPanel;
         _infoSrcBRegister = registerSrcBVisualizer.UIRegisterPanel;
@@ -189,17 +191,7 @@ public class ExtendedLevelSeven : BaseLevelRegisseur<ExtendedSevenLevelState, Ex
         }
         _registerFile.WriteData = _wd3.Output;
 
-
-        _srcA.PreClockUpdate();
-        _srcB.PreClockUpdate();
-        _a3.PreClockUpdate();
-        _wd3.PreClockUpdate();
-
-        _srcA.Clock();
-        _srcB.Clock();
-        _a3.Clock();
-        _wd3.Clock();
-        _registerFile.Clock();
+        Clock.Tick();
     }
 
     protected override IEnumerator ReverseBusVisualizations()

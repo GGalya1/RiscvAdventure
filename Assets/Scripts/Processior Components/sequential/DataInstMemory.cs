@@ -51,6 +51,12 @@ public class DataInstMemory : ISequentialLogic, IReadableMemory
             LoadWord(i * WordSize, words[i]);
     }
 
+    // Removes all stored words
+    public void Clear()
+    {
+        _words.Clear();
+    }
+
     public int Read(int address) => _words.TryGetValue(address, out var word) ? word : 0;
 
     public bool Contains(int address) => _words.ContainsKey(address);

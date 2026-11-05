@@ -66,6 +66,8 @@ public class LevelOneRegisseur : BaseLevelRegisseur<LevelOneState, LevelOneBusSe
         _srcB = new Register(2);
         _output = new Register();
 
+        Clock.Add(_srcA, _srcB, _output);
+
         _infoSrcARegister = registerSrcAVisualizer.UIRegisterPanel;
         _infoSrcBRegister = registerSrcBVisualizer.UIRegisterPanel;
         _infoOutputRegister = registerOutputVisualizer.UIRegisterPanel;
@@ -141,16 +143,8 @@ public class LevelOneRegisseur : BaseLevelRegisseur<LevelOneState, LevelOneBusSe
         _srcB.WriteEnable = registerSrcBVisualizer.isWriteEnabled;
         _output.WriteEnable = registerOutputVisualizer.isWriteEnabled;
 
-        _srcA.PreClockUpdate();
-        _srcB.PreClockUpdate();
-
         _output.Input = res;
-        _output.PreClockUpdate();
-
-        // Only if WriteEnable = true, call Clock
-        _srcA.Clock();
-        _srcB.Clock();
-        _output.Clock();
+        Clock.Tick();
     }
 
     protected override bool CheckWinCondition()

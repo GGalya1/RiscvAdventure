@@ -60,6 +60,8 @@ public class LevelZeroRegisseur : BaseLevelRegisseur<LevelZeroState, LevelZeroBu
         _srcB = new Register(srcBValue);
         _output = new Register();
 
+        Clock.Add(_srcA, _srcB, _output);
+
         // Caching of UI panels for visualizers
         _infoSrcARegister = registerSrcAVisualizer.UIRegisterPanel;
         _infoSrcBRegister = registerSrcBVisualizer.UIRegisterPanel;
@@ -114,14 +116,7 @@ public class LevelZeroRegisseur : BaseLevelRegisseur<LevelZeroState, LevelZeroBu
         _srcB.Input = _srcA.Output;
         _output.Input = _srcB.Output;
 
-        _srcA.PreClockUpdate();
-        _srcB.PreClockUpdate();
-        _output.PreClockUpdate();
-
-        // Only if WriteEnable = true, call Clock
-        _srcA.Clock();
-        _srcB.Clock();
-        _output.Clock();
+        Clock.Tick();
     }
 
     protected override void UpdateVisualizers()

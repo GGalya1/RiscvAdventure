@@ -108,6 +108,8 @@ public class LevelFiveRegisseur : BaseLevelRegisseur<LevelFiveState, LevelFiveBu
             7603235,     // S-type (8)
             4301059);    // I-type (4)
 
+        Clock.Add(_srcA, _srcB, _output, _dataInstructionMemory);
+
         // Caching of UI panels for visualizers
         _infoSrcARegister = registerSrcAVisualizer.UIRegisterPanel;
         _infoSrcBRegister = registerSrcBVisualizer.UIRegisterPanel;
@@ -182,17 +184,7 @@ public class LevelFiveRegisseur : BaseLevelRegisseur<LevelFiveState, LevelFiveBu
                 break;
         }
 
-
-        _srcA.PreClockUpdate();
-        _srcB.PreClockUpdate();
-        _output.PreClockUpdate();
-        _dataInstructionMemory.PreClockUpdate();
-
-
-        _srcA.Clock();
-        _srcB.Clock();
-        _output.Clock();
-        _dataInstructionMemory.Clock();
+        Clock.Tick();
     }
 
     protected override LevelFiveState GetCurrentState()

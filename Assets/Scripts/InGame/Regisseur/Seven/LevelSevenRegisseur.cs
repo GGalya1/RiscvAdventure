@@ -89,6 +89,8 @@ public class LevelSevenRegisseur : BaseLevelRegisseur<LevelSevenState, LevelSeve
             70, 30, 31, 0
         });
 
+        Clock.Add(_srcA, _srcB, _output, _registerFile);
+
         // Caching of UI panels for visualizers
         _infoSrcARegister = registerSrcAVisualizer.UIRegisterPanel;
         _infoSrcBRegister = registerSrcBVisualizer.UIRegisterPanel;
@@ -158,17 +160,7 @@ public class LevelSevenRegisseur : BaseLevelRegisseur<LevelSevenState, LevelSeve
         _output.Input = Alu.Calculate(_registerFile.ReadData1, _registerFile.ReadData2,
             aluVisualizer.CurrentAluOperation);
 
-        _srcA.PreClockUpdate();
-        _srcB.PreClockUpdate();
-        _output.PreClockUpdate();
-        _registerFile.PreClockUpdate();
-
-
-        // Only if WriteEnable = true, call Clock
-        _srcA.Clock();
-        _srcB.Clock();
-        _output.Clock();
-        _registerFile.Clock();
+        Clock.Tick();
     }
 
     protected override IEnumerator ReverseBusVisualizations()

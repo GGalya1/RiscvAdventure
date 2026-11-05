@@ -233,6 +233,8 @@ public class FullProcessorRegisseur
 
         _dataInstructionMemory.LoadWords(Initial.firstMemoWord, Initial.secondMemoWord, Initial.thirdMemoWord, Initial.fourthMemoWord);
 
+        Clock.Add(_pc, _oldPC, _instructionReg, _dataReg, _srcA, _srcB, _aluOutReg, _dataInstructionMemory, _registerFile);
+
         // Caching of UI panels for visualizers
         _infoPCRegister = registerPCVisualizer.UIRegisterPanel;
         _infoOldPCRegister = registerOldPCVisualizer.UIRegisterPanel;
@@ -414,25 +416,7 @@ public class FullProcessorRegisseur
         _pc.Input = tmpResult;
         #endregion
 
-        _pc.PreClockUpdate();
-        _oldPC.PreClockUpdate();
-        _instructionReg.PreClockUpdate();
-        _dataReg.PreClockUpdate();
-        _srcA.PreClockUpdate();
-        _srcB.PreClockUpdate();
-        _aluOutReg.PreClockUpdate();
-        _dataInstructionMemory.PreClockUpdate();
-        _registerFile.PreClockUpdate();
-
-        _pc.Clock();
-        _oldPC.Clock();
-        _instructionReg.Clock();
-        _dataReg.Clock();
-        _srcA.Clock();
-        _srcB.Clock();
-        _aluOutReg.Clock();
-        _dataInstructionMemory.Clock();
-        _registerFile.Clock();
+        Clock.Tick();
     }
 
     protected override IEnumerator RunBusVisualizations()

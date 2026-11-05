@@ -73,6 +73,8 @@ public class LevelFourthRegisseur : BaseLevelRegisseur<LevelThreeState, LevelFou
         _dataInstructionMemory = new DataInstMemory();
         _dataInstructionMemory.LoadWords(0, 3, -256, -1024);
 
+        Clock.Add(_srcA, _srcB, _dataInstructionMemory);
+
         // Caching of UI panels for visualizers
         _infoSrcA = registerSrcAVisualizer.UIRegisterPanel;
         _infoSrcB = registerSrcBVisualizer.UIRegisterPanel;
@@ -118,16 +120,7 @@ public class LevelFourthRegisseur : BaseLevelRegisseur<LevelThreeState, LevelFou
             _srcA.Input = 0;
         }
 
-
-        _srcA.PreClockUpdate();
-        _srcB.PreClockUpdate();
-        _dataInstructionMemory.PreClockUpdate();
-
-
-        // Only if WriteEnable = true, call Clock
-        _srcA.Clock();
-        _srcB.Clock();
-        _dataInstructionMemory.Clock();
+        Clock.Tick();
     }
 
     protected override IEnumerator RunBusVisualizations()

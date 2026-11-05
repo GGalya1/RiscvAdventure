@@ -223,6 +223,8 @@ public class OneTickRegisseur
             25, 54, 0, 28, 70, 30, 31, 0
         }, writeEnable: false);
         
+        Clock.Add(_pc, _dataMemory, _registerFile);
+
         // Caching of UI panels for visualizers
         _infoPCRegister = registerPCVisualizer.UIRegisterPanel;
         _infoInstructionMemory = instructionMemoryVisualizer.UIRegisterPanel;
@@ -267,14 +269,7 @@ public class OneTickRegisseur
         _pc.Input = sig.PcNext;
 
 
-        // apply data
-        _pc.PreClockUpdate();
-        _dataMemory.PreClockUpdate();
-        _registerFile.PreClockUpdate();
-
-        _pc.Clock();
-        _dataMemory.Clock();
-        _registerFile.Clock();
+        Clock.Tick();
     }
 
     protected override OneTickProcessorLevelState GetCurrentState()
@@ -320,11 +315,14 @@ public class OneTickRegisseur
         ApplyMuxState(s.MuXsrcBPath, srcBmuxVisualizer);
         ApplyMuxState(s.MuXresultPath, resultMuxVisualizer);
 
-        _instructionMemory = new DataInstMemory(writeEnable: false);
+        // restore in place: the memories are registered in the clock domain
+        _instructionMemory.Clear();
+        _instructionMemory.WriteEnable = false;
         _instructionMemory.LoadWords(
             s.FirstInstructionMemory, s.SecondInstructionMemory, s.ThirdInstructionMemory, s.FourthInstructionMemory);
 
-        _dataMemory = new DataInstMemory(s.DataMemoryWrite);
+        _dataMemory.Clear();
+        _dataMemory.WriteEnable = s.DataMemoryWrite;
         _dataMemory.LoadWords(s.FirstDataMemory, s.SecondDataMemory, s.ThirdDataMemory, s.FourthDataMemory);
 
         // noch Register File einfuegen

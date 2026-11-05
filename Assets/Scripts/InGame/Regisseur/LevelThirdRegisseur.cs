@@ -99,6 +99,8 @@ public class LevelThirdRegisseur : BaseLevelRegisseur<LevelThreeState, LevelThir
         _dataInstructionMemory = new DataInstMemory();
         _dataInstructionMemory.LoadWords(256, 128, -89, 66);
 
+        Clock.Add(_srcA, _srcB, _dataInstructionMemory);
+
         // Caching of UI panels for visualizers
         _infoSrcARegister = registerSrcAVisualizer.UIRegisterPanel;
         _infoSrcBRegister = registerSrcBVisualizer.UIRegisterPanel;
@@ -184,16 +186,7 @@ public class LevelThirdRegisseur : BaseLevelRegisseur<LevelThreeState, LevelThir
                 break;
         }
 
-
-        _srcA.PreClockUpdate();
-        _srcB.PreClockUpdate();
-        _dataInstructionMemory.PreClockUpdate();
-
-
-        // Only if WriteEnable = true, call Clock
-        _srcA.Clock();
-        _srcB.Clock();
-        _dataInstructionMemory.Clock();
+        Clock.Tick();
     }
 
     protected override IEnumerator ReverseBusVisualizations()

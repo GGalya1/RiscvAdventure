@@ -68,6 +68,9 @@ public abstract class BaseLevelRegisseur<TState, TBus> : MonoBehaviour
 
     protected BusController Bus => busController;
 
+    /// <summary> All sequential components of the level. <see cref="HandleClockUpdate"/> ends with <c>Clock.Tick()</c>. </summary>
+    protected readonly ClockDomain Clock = new();
+
 
     #region ABSTRACT METHODS (Unique to each level)
     /// <summary> The main method that implements the logic of a single clock cycle (PreClock/Clock). </summary>

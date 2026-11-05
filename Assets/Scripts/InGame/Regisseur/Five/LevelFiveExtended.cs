@@ -58,6 +58,8 @@ public class LevelFiveExtended : BaseLevelRegisseur<LevelFiveExtendedState, Leve
         _srcA = new Register((int)inputRegisterValue);
         _output = new Register();
 
+        Clock.Add(_srcA, _output);
+
         _infoSrcARegister = registerSrcAVisualizer.UIRegisterPanel;
         _infoOutputRegister = registerOutputVisualizer.UIRegisterPanel;
 
@@ -108,12 +110,7 @@ public class LevelFiveExtended : BaseLevelRegisseur<LevelFiveExtendedState, Leve
 
         _output.Input = Extender.Evaluate(extenderVisualizer.CurrentAluOperation, (uint)_srcA.Output);
 
-
-        _srcA.PreClockUpdate();
-        _output.PreClockUpdate();
-
-        _srcA.Clock();
-        _output.Clock();
+        Clock.Tick();
     }
 
     protected override IEnumerator ReverseBusVisualizations()

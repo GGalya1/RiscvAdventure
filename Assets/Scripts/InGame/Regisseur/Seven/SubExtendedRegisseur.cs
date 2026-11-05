@@ -109,6 +109,8 @@ public class SubExtendedRegisseur : BaseLevelRegisseur<SubExtendedSevenLevelStat
                                                      60, 61, 0, 25, 54, 0, 28,
                                                      70, 30, 31, 0});
 
+        Clock.Add(_srcA, _immValue, _a3, _wd3, _registerFile);
+
         // Caching of UI panels for visualizers
         _infoSrcARegister = registerSrcAVisualizer.UIRegisterPanel;
         _infoImmRegister = registerImmediateVisualizer.UIRegisterPanel;
@@ -208,20 +210,7 @@ public class SubExtendedRegisseur : BaseLevelRegisseur<SubExtendedSevenLevelStat
 
         _registerFile.WriteData = _wd3.Output;
 
-
-
-        _srcA.PreClockUpdate();
-        _immValue.PreClockUpdate();
-        _a3.PreClockUpdate();
-        _wd3.PreClockUpdate();
-
-
-        // Only if WriteEnable = true, call Clock
-        _srcA.Clock();
-        _immValue.Clock();
-        _a3.Clock();
-        _wd3.Clock();
-        _registerFile.Clock();
+        Clock.Tick();
     }
 
     protected override IEnumerator ReverseBusVisualizations()

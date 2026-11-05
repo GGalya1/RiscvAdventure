@@ -50,6 +50,8 @@ public class LevelTwoRegisseur : BaseLevelRegisseur<LevelTwoState, LevelTwoBusSe
         _srcA = new Register(1);
         // second argument must be 4
 
+        Clock.Add(_srcA);
+
         _infoSrcARegister = registerSrcAVisualizer.UIRegisterPanel;
 
         UpdateVisualizers();
@@ -90,8 +92,7 @@ public class LevelTwoRegisseur : BaseLevelRegisseur<LevelTwoState, LevelTwoBusSe
         _srcA.WriteEnable = registerSrcAVisualizer.isWriteEnabled;
 
         _srcA.Input = Alu.Calculate(_srcA.Output, 4, aluVisualizer.CurrentAluOperation);
-        _srcA.PreClockUpdate();
-        _srcA.Clock();
+        Clock.Tick();
     }
 
     protected override void UpdateVisualizers()

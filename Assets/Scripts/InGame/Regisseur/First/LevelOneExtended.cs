@@ -96,6 +96,7 @@ public class LevelOneExtended : BaseLevelRegisseur<ExtendedFirstLevelState, Leve
     {
         _infoOutputRegister = registerOutputVisualizer.UIRegisterPanel;
         _output = new Register(11);
+        Clock.Add(_output);
 
         UpdateVisualizers();
     }
@@ -142,8 +143,7 @@ public class LevelOneExtended : BaseLevelRegisseur<ExtendedFirstLevelState, Leve
         _output.Input = EvaluateMux(outputMuxVisualizer.CurrentChosenMuxPath, up, 4, down);
         _output.WriteEnable = registerOutputVisualizer.isWriteEnabled;
 
-        _output.PreClockUpdate();
-        _output.Clock();
+        Clock.Tick();
     }
 
     protected override IEnumerator ReverseBusVisualizations()

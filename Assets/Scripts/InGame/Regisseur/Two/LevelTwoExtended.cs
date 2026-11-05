@@ -61,6 +61,8 @@ public class LevelTwoExtended : BaseLevelRegisseur<LevelTwoExtendedState, LevelT
         _srcB = new Register(srcBValue);
         _output = new Register();
 
+        Clock.Add(_srcA, _srcB, _output);
+
         _infoSrcARegister = registerSrcAVisualizer.UIRegisterPanel;
         _infoSrcBRegister = registerSrcBVisualizer.UIRegisterPanel;
         _infoOutputRegister = registerOutputVisualizer.UIRegisterPanel;
@@ -117,13 +119,8 @@ public class LevelTwoExtended : BaseLevelRegisseur<LevelTwoExtendedState, LevelT
         _output.WriteEnable = registerOutputVisualizer.isWriteEnabled;
 
         _output.Input = Alu.Calculate(_srcA.Output, _srcB.Output, aluVisualizer.CurrentAluOperation);
-        _srcA.PreClockUpdate();
-        _srcB.PreClockUpdate();
-        _output.PreClockUpdate();
 
-        _srcA.Clock();
-        _srcB.Clock();
-        _output.Clock();
+        Clock.Tick();
     }
 
     protected override IEnumerator ReverseBusVisualizations()
