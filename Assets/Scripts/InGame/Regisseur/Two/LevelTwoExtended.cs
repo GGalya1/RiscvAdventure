@@ -57,18 +57,9 @@ public class LevelTwoExtended : BaseLevelRegisseur<LevelTwoExtendedState, LevelT
     
     protected override void OnLevelStart()
     {
-        _srcA = new Register(srcAValue)
-        {
-            WriteEnable = true
-        };
-        _srcB = new Register(srcBValue)
-        {
-            WriteEnable = true
-        };
-        _output = new Register()
-        {
-            WriteEnable = true
-        };
+        _srcA = new Register(srcAValue);
+        _srcB = new Register(srcBValue);
+        _output = new Register();
 
         _infoSrcARegister = registerSrcAVisualizer.UIRegisterPanel;
         _infoSrcBRegister = registerSrcBVisualizer.UIRegisterPanel;

@@ -87,27 +87,12 @@ public class ExtendedLevelSeven : BaseLevelRegisseur<ExtendedSevenLevelState, Ex
 
     protected override void OnLevelStart()
     {
-        _srcA = new Register(2)
-        {
-            WriteEnable = true
-        };
-        _srcB = new Register(8)
-        {
-            WriteEnable = true
-        };
-        _a3 = new Register()
-        {
-            WriteEnable = true
-        };
-        _wd3 = new Register()
-        {
-            WriteEnable = true
-        };
+        _srcA = new Register(2);
+        _srcB = new Register(8);
+        _a3 = new Register();
+        _wd3 = new Register();
 
-        _registerFile = new RegisterFile
-        {
-            RegisterWriteEnable = true
-        };
+        _registerFile = new RegisterFile();
         _registerFile.InitializeRegisters(new [] { 0, 1, 39, 43, 5, 6, 8,
                                                      40, 3, 39, 13, 56, 64, 20,
                                                      50, 51, 0, 12, 53, 65, 29,
@@ -182,7 +167,7 @@ public class ExtendedLevelSeven : BaseLevelRegisseur<ExtendedSevenLevelState, Ex
         _a3.WriteEnable = registerA3Visualizer.isWriteEnabled;
         _wd3.WriteEnable = registerWd3Visualizer.isWriteEnabled;
 
-        _registerFile.RegisterWriteEnable = registerFileVisualizer.isWriteEnabled;
+        _registerFile.WriteEnable = registerFileVisualizer.isWriteEnabled;
 
         // implementation
         // A1: [19:15] (Register Source 1)
@@ -271,6 +256,6 @@ public class ExtendedLevelSeven : BaseLevelRegisseur<ExtendedSevenLevelState, Ex
         registerA3Visualizer.ForceUpdateWriteEnableVisualization(_a3.WriteEnable);
         registerWd3Visualizer.ForceUpdateWriteEnableVisualization(_wd3.WriteEnable);
 
-        registerFileVisualizer.ForceUpdateWriteEnableVisualization(_registerFile.RegisterWriteEnable);
+        registerFileVisualizer.ForceUpdateWriteEnableVisualization(_registerFile.WriteEnable);
     }
 }

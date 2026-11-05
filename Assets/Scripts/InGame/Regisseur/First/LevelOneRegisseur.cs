@@ -62,18 +62,9 @@ public class LevelOneRegisseur : BaseLevelRegisseur<LevelOneState, LevelOneBusSe
     protected override void OnLevelStart()
     {
         // Initialization of logical components
-        _srcA = new Register(4)
-        {
-            WriteEnable = true
-        };
-        _srcB = new Register(2)
-        {
-            WriteEnable = true
-        };
-        _output = new Register
-        {
-            WriteEnable = true
-        };
+        _srcA = new Register(4);
+        _srcB = new Register(2);
+        _output = new Register();
 
         _infoSrcARegister = registerSrcAVisualizer.UIRegisterPanel;
         _infoSrcBRegister = registerSrcBVisualizer.UIRegisterPanel;

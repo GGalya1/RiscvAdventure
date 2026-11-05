@@ -215,49 +215,22 @@ public class FullProcessorRegisseur
     {
         base.OnLevelStart();
         
-        _pc = new Register(Initial.pcRegisterInitialValue)
-        {
-            WriteEnable = true
-        };
-        _oldPC = new Register()
-        {
-            WriteEnable = true
-        };
-        _instructionReg = new Register()
-        {
-            WriteEnable = true
-        };
-        _dataReg = new Register()
-        {
-            WriteEnable = true
-        };
-        _srcA = new Register()
-        {
-            WriteEnable = true
-        };
-        _srcB = new Register()
-        {
-            WriteEnable = true
-        };
-        _aluOutReg = new Register()
-        {
-            WriteEnable = true
-        };
+        _pc = new Register(Initial.pcRegisterInitialValue);
+        _oldPC = new Register();
+        _instructionReg = new Register();
+        _dataReg = new Register();
+        _srcA = new Register();
+        _srcB = new Register();
+        _aluOutReg = new Register();
 
-        _registerFile = new RegisterFile
-        {
-            RegisterWriteEnable = true
-        };
+        _registerFile = new RegisterFile();
         _registerFile.InitializeRegisters(new [] { 0, 1, 39, 43, 5, 6, 8,
                                                      40, 3, 39, 13, 56, 63, 20,
                                                      50, 51, 0, 12, 53, 65, 29,
                                                      60, 61, 0, 25, 54, 0, 28,
                                                      70, 30, 31, 0});
 
-        _dataInstructionMemory = new DataInstMemory
-        {
-            MemoryWrite = true
-        };
+        _dataInstructionMemory = new DataInstMemory();
 
         _dataInstructionMemory.LoadWord(0, Initial.firstMemoWord);
         _dataInstructionMemory.LoadWord(4, Initial.secondMemoWord);
@@ -394,8 +367,8 @@ public class FullProcessorRegisseur
         _srcA.WriteEnable = registerSrcAVisualizer.isWriteEnabled;
         _srcB.WriteEnable = registerSrcBVisualizer.isWriteEnabled;
         _aluOutReg.WriteEnable = registerAluOutVisualizer.isWriteEnabled;
-        _dataInstructionMemory.MemoryWrite = memoryVisualizer.isWriteEnabled;
-        _registerFile.RegisterWriteEnable = registerFileVisualizer.isWriteEnabled;
+        _dataInstructionMemory.WriteEnable = memoryVisualizer.isWriteEnabled;
+        _registerFile.WriteEnable = registerFileVisualizer.isWriteEnabled;
 
         var sig = ComputeMehrtaktSignals();
 
@@ -625,8 +598,8 @@ public class FullProcessorRegisseur
         registerSrcBVisualizer.ForceUpdateWriteEnableVisualization(_srcB.WriteEnable);
         registerAluOutVisualizer.ForceUpdateWriteEnableVisualization(_aluOutReg.WriteEnable);
 
-        registerFileVisualizer.ForceUpdateWriteEnableVisualization(_registerFile.RegisterWriteEnable);
-        memoryVisualizer.ForceUpdateWriteEnableVisualization(_dataInstructionMemory.MemoryWrite);
+        registerFileVisualizer.ForceUpdateWriteEnableVisualization(_registerFile.WriteEnable);
+        memoryVisualizer.ForceUpdateWriteEnableVisualization(_dataInstructionMemory.WriteEnable);
     }
 
 

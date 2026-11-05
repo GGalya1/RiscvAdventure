@@ -4,8 +4,8 @@ public class RegisterFile: ISequentialLogic
 
     #region INPUTS
 
-    // WE
-    public bool RegisterWriteEnable { get; set; }
+    // WE3
+    public bool WriteEnable { get; set; }
 
     // WD3
     public int WriteData { get; set; }
@@ -34,7 +34,7 @@ public class RegisterFile: ISequentialLogic
     }
 
     public void Clock() {
-        if (RegisterWriteEnable) {
+        if (WriteEnable) {
             if (WriteAdress < Registers.Length && WriteAdress >= 0) {
                 Registers[WriteAdress] = WriteData;
             }
@@ -42,9 +42,10 @@ public class RegisterFile: ISequentialLogic
     }
     #endregion
 
-    public RegisterFile()
+    public RegisterFile(bool writeEnable = true)
     {
         Registers = new int[32];
+        WriteEnable = writeEnable;
     }
 
     public void InitializeRegisters(int[] values) {

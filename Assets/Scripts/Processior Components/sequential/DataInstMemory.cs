@@ -1,10 +1,10 @@
 using System.Collections.Generic;
 
-public class DataInstMemory
+public class DataInstMemory : ISequentialLogic
 {
     #region INPUTS
     // WE
-    public bool MemoryWrite { get; set; }
+    public bool WriteEnable { get; set; }
 
     // WD
     public int WriteData { get; set; }
@@ -21,6 +21,11 @@ public class DataInstMemory
     // all information is stored as a pair (adress - object). For Objects stays instructions and data
     public readonly Dictionary<int, int> Memory = new();
 
+    public DataInstMemory(bool writeEnable = true)
+    {
+        WriteEnable = writeEnable;
+    }
+
     public void LoadWord(int address, int data) { 
         Memory[address] = data;
     }
@@ -32,7 +37,7 @@ public class DataInstMemory
     }
 
     public void Clock() {
-        if (MemoryWrite) {
+        if (WriteEnable) {
             Memory[Address] = WriteData;
         }
     }

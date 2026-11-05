@@ -95,10 +95,7 @@ public class LevelOneExtended : BaseLevelRegisseur<ExtendedFirstLevelState, Leve
     protected override void OnLevelStart()
     {
         _infoOutputRegister = registerOutputVisualizer.UIRegisterPanel;
-        _output = new Register(11)
-        {
-            WriteEnable = true
-        };
+        _output = new Register(11);
 
         UpdateVisualizers();
     }

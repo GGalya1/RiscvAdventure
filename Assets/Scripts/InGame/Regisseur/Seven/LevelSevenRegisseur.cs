@@ -76,23 +76,11 @@ public class LevelSevenRegisseur : BaseLevelRegisseur<LevelSevenState, LevelSeve
     protected override void OnLevelStart()
     {
         // Initialization of logical components
-        _srcA = new Register(6)
-        {
-            WriteEnable = true
-        };
-        _srcB = new Register(7)
-        {
-            WriteEnable = true
-        };
-        _output = new Register
-        {
-            WriteEnable = true
-        };
+        _srcA = new Register(6);
+        _srcB = new Register(7);
+        _output = new Register();
 
-        _registerFile = new RegisterFile
-        {
-            RegisterWriteEnable = true
-        };
+        _registerFile = new RegisterFile();
         _registerFile.InitializeRegisters(new[]
         {
             0, 1, 39, 43, 5, 6, 2,
@@ -121,7 +109,7 @@ public class LevelSevenRegisseur : BaseLevelRegisseur<LevelSevenState, LevelSeve
         _srcA.WriteEnable = s.RegisterAwe;
         _srcB.WriteEnable = s.RegisterBwe;
         _output.WriteEnable = s.RegisterOutputWe;
-        _registerFile.RegisterWriteEnable = s.RegisterFileWe;
+        _registerFile.WriteEnable = s.RegisterFileWe;
 
         aluVisualizer.ChooseAluOperation(s.AluOperation);
     }
@@ -151,7 +139,7 @@ public class LevelSevenRegisseur : BaseLevelRegisseur<LevelSevenState, LevelSeve
             RegisterAwe = _srcA.WriteEnable,
             RegisterBwe = _srcB.WriteEnable,
             RegisterOutputWe = _output.WriteEnable,
-            RegisterFileWe = _registerFile.RegisterWriteEnable,
+            RegisterFileWe = _registerFile.WriteEnable,
 
             AluOperation = aluVisualizer.CurrentAluOperation
         };
@@ -163,7 +151,7 @@ public class LevelSevenRegisseur : BaseLevelRegisseur<LevelSevenState, LevelSeve
         _srcA.WriteEnable = registerSrcAVisualizer.isWriteEnabled;
         _srcB.WriteEnable = registerSrcBVisualizer.isWriteEnabled;
         _output.WriteEnable = registerOutputVisualizer.isWriteEnabled;
-        _registerFile.RegisterWriteEnable = registerFileVisualizer.isWriteEnabled;
+        _registerFile.WriteEnable = registerFileVisualizer.isWriteEnabled;
 
         // implementation
         _registerFile.ReadAdress1 = _srcA.Output;
@@ -224,7 +212,7 @@ public class LevelSevenRegisseur : BaseLevelRegisseur<LevelSevenState, LevelSeve
         registerSrcAVisualizer.ForceUpdateWriteEnableVisualization(_srcA.WriteEnable);
         registerSrcBVisualizer.ForceUpdateWriteEnableVisualization(_srcB.WriteEnable);
         registerOutputVisualizer.ForceUpdateWriteEnableVisualization(_output.WriteEnable);
-        registerFileVisualizer.ForceUpdateWriteEnableVisualization(_registerFile.RegisterWriteEnable);
+        registerFileVisualizer.ForceUpdateWriteEnableVisualization(_registerFile.WriteEnable);
     }
 
     private void UpdateRegisterFileVisualisation()

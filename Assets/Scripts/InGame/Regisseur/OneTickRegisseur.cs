@@ -207,21 +207,21 @@ public class OneTickRegisseur
     {
         base.OnLevelStart();
         
-        _pc = new Register(Initial.pcRegisterInitialValue) { WriteEnable = true };
+        _pc = new Register(Initial.pcRegisterInitialValue);
 
-        _instructionMemory = new DataInstMemory { MemoryWrite = false };
+        _instructionMemory = new DataInstMemory(writeEnable: false);
         _instructionMemory.LoadWord(0, Initial.firstInstructionWord);
         _instructionMemory.LoadWord(4, Initial.secondInstructionWord);
         _instructionMemory.LoadWord(8, Initial.thirdInstructionWord);
         _instructionMemory.LoadWord(12, Initial.fourthInstructionWord);
 
-        _dataMemory = new DataInstMemory { MemoryWrite = false };
+        _dataMemory = new DataInstMemory(writeEnable: false);
         _dataMemory.LoadWord(0, Initial.firstDataWord);
         _dataMemory.LoadWord(4, Initial.secondDataWord);
         _dataMemory.LoadWord(8, Initial.thirdDataWord);
         _dataMemory.LoadWord(12, Initial.fourthDataWord);
 
-        _registerFile = new RegisterFile { RegisterWriteEnable = false };
+        _registerFile = new RegisterFile(writeEnable: false);
         _registerFile.InitializeRegisters(new[]
         {
             0, 1, 39, 43, 5, 6, 8, 40,
@@ -245,8 +245,8 @@ public class OneTickRegisseur
         _pc.WriteEnable = registerPCVisualizer.isWriteEnabled;
         // instruction memory is not tickted
         // _instructionMemory.MemoryWrite = instructionMemoryVisualizer.isWriteEnabled;
-        _dataMemory.MemoryWrite = dataMemoryVisualizer.isWriteEnabled;
-        _registerFile.RegisterWriteEnable = registerFileVisualizer.isWriteEnabled;
+        _dataMemory.WriteEnable = dataMemoryVisualizer.isWriteEnabled;
+        _registerFile.WriteEnable = registerFileVisualizer.isWriteEnabled;
 
 
         // implementation
@@ -303,8 +303,8 @@ public class OneTickRegisseur
             FourthDataMemory = _dataMemory.Memory[12],
 
             RegisterPCwe = _pc.WriteEnable,
-            DataMemoryWrite           = _dataMemory.MemoryWrite,
-            RegisterFileWriteEnable   = _registerFile.RegisterWriteEnable,
+            DataMemoryWrite           = _dataMemory.WriteEnable,
+            RegisterFileWriteEnable   = _registerFile.WriteEnable,
 
             PCAluOperation = pcAluVisualizer.CurrentAluOperation,
             BtaOperation   = btaAluVisualizer.CurrentAluOperation,
@@ -327,7 +327,7 @@ public class OneTickRegisseur
         ApplyMuxState(s.MuXsrcBPath, srcBmuxVisualizer);
         ApplyMuxState(s.MuXresultPath, resultMuxVisualizer);
 
-        _instructionMemory = new DataInstMemory
+        _instructionMemory = new DataInstMemory(writeEnable: false)
         {
             Memory =
             {
@@ -339,7 +339,7 @@ public class OneTickRegisseur
         };
         _dataMemory = new DataInstMemory
         {
-            MemoryWrite = s.DataMemoryWrite,
+            WriteEnable = s.DataMemoryWrite,
             Memory =
             {
                 [0] = s.FirstDataMemory,
@@ -353,7 +353,7 @@ public class OneTickRegisseur
         _registerFile.InitializeRegisters(s.RegisterFieldValue);
 
         _pc.WriteEnable = s.RegisterPCwe;
-        _registerFile.RegisterWriteEnable  = s.RegisterFileWriteEnable;
+        _registerFile.WriteEnable  = s.RegisterFileWriteEnable;
 
 
         aluVisualizer.ChooseAluOperation(s.AluOperation);
@@ -475,9 +475,9 @@ public class OneTickRegisseur
             RiscVDecoder.CommandBuilder((uint)_dataMemory.Memory[12])
         );
         registerFileVisualizer.UIRegisterPanel.Display(_registerFile.Registers);
-        registerFileVisualizer.ForceUpdateWriteEnableVisualization(_registerFile.RegisterWriteEnable);
-        instructionMemoryVisualizer.ForceUpdateWriteEnableVisualization(_instructionMemory.MemoryWrite);
-        dataMemoryVisualizer.ForceUpdateWriteEnableVisualization(_dataMemory.MemoryWrite);
+        registerFileVisualizer.ForceUpdateWriteEnableVisualization(_registerFile.WriteEnable);
+        instructionMemoryVisualizer.ForceUpdateWriteEnableVisualization(_instructionMemory.WriteEnable);
+        dataMemoryVisualizer.ForceUpdateWriteEnableVisualization(_dataMemory.WriteEnable);
     }
 
     private CycleSignals ComputeSignals(

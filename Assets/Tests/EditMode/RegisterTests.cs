@@ -19,6 +19,13 @@ public class RegisterTests
     }
 
     [Test]
+    public void Constructor_WriteEnable_DefaultsToTrue()
+    {
+        Assert.IsTrue(new Register().WriteEnable);
+        Assert.IsFalse(new Register(3, writeEnable: false).WriteEnable);
+    }
+
+    [Test]
     public void ClockCycle_WriteEnabled_StoresInputAsNewOutput()
     {
         var register = new Register() { Input = 7, WriteEnable = true };

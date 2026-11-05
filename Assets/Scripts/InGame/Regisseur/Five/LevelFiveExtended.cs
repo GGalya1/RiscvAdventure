@@ -55,14 +55,8 @@ public class LevelFiveExtended : BaseLevelRegisseur<LevelFiveExtendedState, Leve
 
     protected override void OnLevelStart()
     {
-        _srcA = new Register((int)inputRegisterValue)
-        {
-            WriteEnable = true
-        };
-        _output = new Register
-        {
-            WriteEnable = true
-        };
+        _srcA = new Register((int)inputRegisterValue);
+        _output = new Register();
 
         _infoSrcARegister = registerSrcAVisualizer.UIRegisterPanel;
         _infoOutputRegister = registerOutputVisualizer.UIRegisterPanel;

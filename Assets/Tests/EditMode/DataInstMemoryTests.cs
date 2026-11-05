@@ -13,6 +13,26 @@ public class DataInstMemoryTests
     }
 
     [Test]
+    public void Constructor_WriteEnable_DefaultsToTrue()
+    {
+        Assert.IsTrue(new DataInstMemory().WriteEnable);
+        Assert.IsFalse(new DataInstMemory(writeEnable: false).WriteEnable);
+    }
+
+    [Test]
+    public void Memory_IsClockedThroughISequentialLogic()
+    {
+        var memory = new DataInstMemory { Address = 4, WriteData = 5, WriteEnable = true };
+        ISequentialLogic element = memory;
+
+        element.PreClockUpdate();
+        element.Clock();
+        element.PreClockUpdate();
+
+        Assert.AreEqual(5, memory.ReadData);
+    }
+
+    [Test]
     public void LoadWord_ThenRead_ReturnsLoadedValue()
     {
         var memory = new DataInstMemory();
@@ -27,7 +47,7 @@ public class DataInstMemoryTests
     [Test]
     public void Clock_WriteEnabled_StoresDataAtAddress()
     {
-        var memory = new DataInstMemory { Address = 8, WriteData = 42, MemoryWrite = true };
+        var memory = new DataInstMemory { Address = 8, WriteData = 42, WriteEnable = true };
 
         memory.Clock();
 
@@ -37,7 +57,7 @@ public class DataInstMemoryTests
     [Test]
     public void Clock_WriteDisabled_DoesNotStoreData()
     {
-        var memory = new DataInstMemory { Address = 8, WriteData = 42, MemoryWrite = false };
+        var memory = new DataInstMemory { Address = 8, WriteData = 42, WriteEnable = false };
 
         memory.Clock();
 
@@ -45,13 +65,13 @@ public class DataInstMemoryTests
     }
 
     [Test]
-    public void PreClockUpdate_ReadsIndependentlyOfMemoryWriteFlag()
+    public void PreClockUpdate_ReadsIndependentlyOfWriteEnable()
     {
         var memory = new DataInstMemory();
         memory.LoadWord(2, 15);
 
         memory.Address = 2;
-        memory.MemoryWrite = true; // a pending write intent should not block the read phase
+        memory.WriteEnable = true; // a pending write intent should not block the read phase
         memory.PreClockUpdate();
 
         Assert.AreEqual(15, memory.ReadData);
@@ -67,7 +87,7 @@ public class DataInstMemoryTests
 
         memory.Address = 1;
         memory.WriteData = 200;
-        memory.MemoryWrite = true;
+        memory.WriteEnable = true;
         memory.PreClockUpdate(); // reads the OLD value
 
         Assert.AreEqual(100, memory.ReadData);
@@ -81,7 +101,7 @@ public class DataInstMemoryTests
     [Test]
     public void WriteThenReadDifferentAddress_DoesNotAffectOtherAddresses()
     {
-        var memory = new DataInstMemory { Address = 5, WriteData = 9, MemoryWrite = true };
+        var memory = new DataInstMemory { Address = 5, WriteData = 9, WriteEnable = true };
         memory.Clock();
 
         memory.Address = 6;

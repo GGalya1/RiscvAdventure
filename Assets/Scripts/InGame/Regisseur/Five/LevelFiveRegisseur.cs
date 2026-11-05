@@ -96,23 +96,11 @@ public class LevelFiveRegisseur : BaseLevelRegisseur<LevelFiveState, LevelFiveBu
     protected override void OnLevelStart()
     {
         // Initialization of logical components
-        _srcA = new Register
-        {
-            WriteEnable = true
-        };
-        _srcB = new Register
-        {
-            WriteEnable = true
-        };
-        _output = new Register
-        {
-            WriteEnable = true
-        };
+        _srcA = new Register();
+        _srcB = new Register();
+        _output = new Register();
 
-        _dataInstructionMemory = new DataInstMemory
-        {
-            MemoryWrite = true
-        };
+        _dataInstructionMemory = new DataInstMemory();
 
         _dataInstructionMemory.LoadWord(0, 1048576239); // J-Typ (1000)
         _dataInstructionMemory.LoadWord(4, 4314211); // B-Typ (16)
@@ -168,7 +156,7 @@ public class LevelFiveRegisseur : BaseLevelRegisseur<LevelFiveState, LevelFiveBu
         _srcA.WriteEnable = registerSrcAVisualizer.isWriteEnabled;
         _srcB.WriteEnable = registerSrcBVisualizer.isWriteEnabled;
         _output.WriteEnable = registerOutputVisualizer.isWriteEnabled;
-        _dataInstructionMemory.MemoryWrite = registerOutputVisualizer.isWriteEnabled;
+        _dataInstructionMemory.WriteEnable = registerOutputVisualizer.isWriteEnabled;
 
         // implementation
         _srcB.Input = _dataInstructionMemory.Memory.GetValueOrDefault(_srcA.Output, 0);
@@ -288,7 +276,7 @@ public class LevelFiveRegisseur : BaseLevelRegisseur<LevelFiveState, LevelFiveBu
             RiscVDecoder.CommandBuilder((uint)_dataInstructionMemory.Memory[8]),
             RiscVDecoder.CommandBuilder((uint)_dataInstructionMemory.Memory[12])
         );
-        memoryVisualizer.ForceUpdateWriteEnableVisualization(_dataInstructionMemory.MemoryWrite);
+        memoryVisualizer.ForceUpdateWriteEnableVisualization(_dataInstructionMemory.WriteEnable);
     }
 
     #region CACHED UI REFERENCES

@@ -12,6 +12,13 @@ public class RegisterFileTests
     }
 
     [Test]
+    public void Constructor_WriteEnable_DefaultsToTrue()
+    {
+        Assert.IsTrue(new RegisterFile().WriteEnable);
+        Assert.IsFalse(new RegisterFile(writeEnable: false).WriteEnable);
+    }
+
+    [Test]
     public void ReadRegisters_RegisterZero_AlwaysReadsAsZero()
     {
         // x0 is hardwired to zero in RISC-V: even if something is written to it,
@@ -19,7 +26,7 @@ public class RegisterFileTests
         var registerFile = new RegisterFile();
         registerFile.WriteAdress = 0;
         registerFile.WriteData = 123;
-        registerFile.RegisterWriteEnable = true;
+        registerFile.WriteEnable = true;
         registerFile.Clock();
 
         registerFile.ReadAdress1 = 0;
@@ -87,7 +94,7 @@ public class RegisterFileTests
         var registerFile = new RegisterFile();
         registerFile.WriteAdress = 3;
         registerFile.WriteData = 55;
-        registerFile.RegisterWriteEnable = true;
+        registerFile.WriteEnable = true;
 
         registerFile.Clock();
 
@@ -100,7 +107,7 @@ public class RegisterFileTests
         var registerFile = new RegisterFile();
         registerFile.WriteAdress = 3;
         registerFile.WriteData = 55;
-        registerFile.RegisterWriteEnable = false;
+        registerFile.WriteEnable = false;
 
         registerFile.Clock();
 
@@ -114,7 +121,7 @@ public class RegisterFileTests
         var registerFile = new RegisterFile();
         registerFile.WriteAdress = address;
         registerFile.WriteData = 999;
-        registerFile.RegisterWriteEnable = true;
+        registerFile.WriteEnable = true;
 
         Assert.DoesNotThrow(registerFile.Clock);
     }
@@ -127,7 +134,7 @@ public class RegisterFileTests
         // Cycle 1: write 42 into x7
         registerFile.WriteAdress = 7;
         registerFile.WriteData = 42;
-        registerFile.RegisterWriteEnable = true;
+        registerFile.WriteEnable = true;
         registerFile.Clock();
 
         // Cycle 2: read x7 back

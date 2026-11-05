@@ -1,6 +1,4 @@
-/// <summary>
-/// Defines the set of possible character emotions for UI representation.
-/// </summary>
+// Defines the set of possible character emotions for UI representation.
 public enum EmotionType
 {
     Alert = 0,

@@ -41,10 +41,12 @@ public class Register: ISequentialLogic
     /// Initializes a new instance of the Register.
     /// </summary>
     /// <param name="initialValue">The starting value for both <see cref="Output"/> and the internal buffer.</param>
-    public Register(int initialValue = 0)
+    /// <param name="writeEnable">Initial value of the WE signal.</param>
+    public Register(int initialValue = 0, bool writeEnable = true)
     {
         Output = initialValue;
         _nextValue = initialValue;
+        WriteEnable = writeEnable;
     }
     #endregion
 

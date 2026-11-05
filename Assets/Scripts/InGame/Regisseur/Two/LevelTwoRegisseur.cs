@@ -47,10 +47,7 @@ public class LevelTwoRegisseur : BaseLevelRegisseur<LevelTwoState, LevelTwoBusSe
 
     protected override void OnLevelStart()
     {
-        _srcA = new Register(1)
-        {
-            WriteEnable = true
-        };
+        _srcA = new Register(1);
         // second argument must be 4
 
         _infoSrcARegister = registerSrcAVisualizer.UIRegisterPanel;

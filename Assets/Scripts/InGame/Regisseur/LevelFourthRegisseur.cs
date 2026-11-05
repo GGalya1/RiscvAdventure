@@ -68,18 +68,9 @@ public class LevelFourthRegisseur : BaseLevelRegisseur<LevelThreeState, LevelFou
     protected override void OnLevelStart()
     {
         // Initialization of logical components
-        _srcA = new Register
-        {
-            WriteEnable = true
-        };
-        _srcB = new Register(8)
-        {
-            WriteEnable = true
-        };
-        _dataInstructionMemory = new DataInstMemory
-        {
-            MemoryWrite = true
-        };
+        _srcA = new Register();
+        _srcB = new Register(8);
+        _dataInstructionMemory = new DataInstMemory();
         _dataInstructionMemory.LoadWord(0, 0);
         _dataInstructionMemory.LoadWord(4, 3);
         _dataInstructionMemory.LoadWord(8, -256);
@@ -102,7 +93,7 @@ public class LevelFourthRegisseur : BaseLevelRegisseur<LevelThreeState, LevelFou
         // synchronize visualizer and concrete objects
         _srcA.WriteEnable = registerSrcAVisualizer.isWriteEnabled;
         _srcB.WriteEnable = registerSrcBVisualizer.isWriteEnabled;
-        _dataInstructionMemory.MemoryWrite = registerOutputVisualizer.isWriteEnabled;
+        _dataInstructionMemory.WriteEnable = registerOutputVisualizer.isWriteEnabled;
 
         // implementation
         _srcB.Input = _dataInstructionMemory.Memory.GetValueOrDefault(_srcA.Output, 0);
@@ -212,7 +203,7 @@ public class LevelFourthRegisseur : BaseLevelRegisseur<LevelThreeState, LevelFou
 
             RegisterPcwe = _srcA.WriteEnable,
             RegisterInstrWe = _srcB.WriteEnable,
-            InstrDataMemoryWe = _dataInstructionMemory.MemoryWrite,
+            InstrDataMemoryWe = _dataInstructionMemory.WriteEnable,
 
             CurrentChosenMuxPath = multiplexerVisualizer.CurrentChosenMuxPath,
             AluOperation = aluVisualizer.CurrentAluOperation
@@ -231,7 +222,7 @@ public class LevelFourthRegisseur : BaseLevelRegisseur<LevelThreeState, LevelFou
 
         _srcA.WriteEnable = s.RegisterPcwe;
         _srcB.WriteEnable = s.RegisterInstrWe;
-        _dataInstructionMemory.MemoryWrite = s.InstrDataMemoryWe;
+        _dataInstructionMemory.WriteEnable = s.InstrDataMemoryWe;
 
         ApplyMuxState(s.CurrentChosenMuxPath, multiplexerVisualizer);
     }
@@ -257,6 +248,6 @@ public class LevelFourthRegisseur : BaseLevelRegisseur<LevelThreeState, LevelFou
 
         registerSrcAVisualizer.ForceUpdateWriteEnableVisualization(_srcA.WriteEnable);
         registerSrcBVisualizer.ForceUpdateWriteEnableVisualization(_srcB.WriteEnable);
-        registerOutputVisualizer.ForceUpdateWriteEnableVisualization(_dataInstructionMemory.MemoryWrite);
+        registerOutputVisualizer.ForceUpdateWriteEnableVisualization(_dataInstructionMemory.WriteEnable);
     }
 }
