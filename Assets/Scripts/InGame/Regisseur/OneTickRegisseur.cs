@@ -215,13 +215,7 @@ public class OneTickRegisseur
         _dataMemory = new DataInstMemory(writeEnable: false);
         _dataMemory.LoadWords(Initial.firstDataWord, Initial.secondDataWord, Initial.thirdDataWord, Initial.fourthDataWord);
 
-        _registerFile = new RegisterFile(new[]
-        {
-            0, 1, 39, 43, 5, 6, 8, 40,
-            3, 39, 13, 56, 63, 20, 50, 51,
-            0, 12, 53, 65, 29, 60, 61, 0,
-            25, 54, 0, 28, 70, 30, 31, 0
-        }, writeEnable: false);
+        _registerFile = new RegisterFile(ProcessorDefaults.RegisterValues, writeEnable: false);
         
         Clock.Add(_pc, _dataMemory, _registerFile);
 
@@ -461,9 +455,9 @@ public class OneTickRegisseur
         var instr = _instructionMemory.Read(pc);
 
         // ID: decode register addresses
-        var rs1 = (instr >> 15) & 0x1F;
-        var rs2 = (instr >> 20) & 0x1F;
-        var rd = (instr >> 7) & 0x1F;
+        var rs1 = InstructionFields.Rs1(instr);
+        var rs2 = InstructionFields.Rs2(instr);
+        var rd = InstructionFields.Rd(instr);
 
         // ID: read register file  (x0 is hardwired to 0)
         var rd1 = rs1 > 0 && rs1 < regValues.Length ? regValues[rs1] : 0;

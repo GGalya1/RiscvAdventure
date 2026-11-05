@@ -223,11 +223,7 @@ public class FullProcessorRegisseur
         _srcB = new Register();
         _aluOutReg = new Register();
 
-        _registerFile = new RegisterFile(new [] { 0, 1, 39, 43, 5, 6, 8,
-                                                     40, 3, 39, 13, 56, 63, 20,
-                                                     50, 51, 0, 12, 53, 65, 29,
-                                                     60, 61, 0, 25, 54, 0, 28,
-                                                     70, 30, 31, 0});
+        _registerFile = new RegisterFile(ProcessorDefaults.RegisterValues);
 
         _dataInstructionMemory = new DataInstMemory();
 
@@ -382,10 +378,10 @@ public class FullProcessorRegisseur
         #region second step (register file)
 
         // A1: [19:15] (Register Source 1)
-        _registerFile.ReadAddress1 = (_instructionReg.Output >> 15) & 0x1F;
+        _registerFile.ReadAddress1 = InstructionFields.Rs1(_instructionReg.Output);
 
         // A2: [24:20] (Register Source 2)
-        _registerFile.ReadAddress2 = (_instructionReg.Output >> 20) & 0x1F;
+        _registerFile.ReadAddress2 = InstructionFields.Rs2(_instructionReg.Output);
 
         _registerFile.ReadRegisters();
         
@@ -408,7 +404,7 @@ public class FullProcessorRegisseur
             // _registerFile.WriteData = StateAt(TickCounter - 2).RegisterInstrValue;
         }*/
         
-        _registerFile.WriteAddress = (_instructionReg.Output >> 7) & 0x1F;
+        _registerFile.WriteAddress = InstructionFields.Rd(_instructionReg.Output);
 
 
         var tmpResult = sig.ResultMuxOut;
@@ -471,8 +467,8 @@ public class FullProcessorRegisseur
     private IEnumerator RunDecodeVisualisation()
     {
         var instr = _instructionReg.Output;
-        var rs1 = (instr >> 15) & 0x1F;
-        var rs2 = (instr >> 20) & 0x1F;
+        var rs1 = InstructionFields.Rs1(instr);
+        var rs2 = InstructionFields.Rs2(instr);
 
         yield return Bus.Wave((buses.instrToRegFileA1, instr), (buses.instrToRegFileA2, instr), (buses.instrToExtend, instr));
         yield return Bus.Wave((buses.rd1ToSrcAMux, _registerFile.Registers[rs1]), (buses.rd2ToSrcBMux, _registerFile.Registers[rs2]));
