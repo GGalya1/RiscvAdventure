@@ -16,9 +16,9 @@ public struct SubExtendedSevenLevelState
     public bool RegisterA3We;
     public bool RegisterWd3We;
 
-    public int AluOperation;
+    public AluOperation AluOperation;
 
-    public int ExtenderOperation;
+    public ImmediateType ExtenderOperation;
 
     public int MuxPath;
 }
@@ -95,8 +95,14 @@ public class SubExtendedRegisseur : BaseLevelRegisseur<SubExtendedSevenLevelStat
 
     private int _currentBus;
 
+    private readonly Alu _alu = new();
+    private readonly Extender _extender = new();
+
     protected override void OnLevelStart()
     {
+        aluVisualizer.Bind(_alu);
+        extenderVisualizer.Bind(_extender);
+
         // addi x0, x4, 256
         _srcA = new Register(4);
         _immValue = new Register(268566547);
@@ -134,8 +140,8 @@ public class SubExtendedRegisseur : BaseLevelRegisseur<SubExtendedSevenLevelStat
         _a3.WriteEnable = s.RegisterA3We;
         _wd3.WriteEnable = s.RegisterWd3We;
 
-        aluVisualizer.ChooseAluOperation(s.AluOperation);
-        extenderVisualizer.ChooseAluOperation(s.ExtenderOperation);
+        _alu.Operation = s.AluOperation;
+        _extender.Type = s.ExtenderOperation;
 
         ApplyMuxState(s.MuxPath, muxVisualizer);
     }
@@ -171,9 +177,9 @@ public class SubExtendedRegisseur : BaseLevelRegisseur<SubExtendedSevenLevelStat
             RegisterA3We = _a3.WriteEnable,
             RegisterWd3We = _wd3.WriteEnable,
 
-            AluOperation = aluVisualizer.CurrentAluOperation,
+            AluOperation = _alu.Operation,
 
-            ExtenderOperation = extenderVisualizer.CurrentAluOperation,
+            ExtenderOperation = _extender.Type,
 
             MuxPath = muxVisualizer.CurrentChosenMuxPath,
         };
@@ -198,10 +204,10 @@ public class SubExtendedRegisseur : BaseLevelRegisseur<SubExtendedSevenLevelStat
         var a = 0;
         if (_srcA.Output is > 0 and < 16)
             a = _registerFile.Registers[_srcA.Output];
-        var ext = Extender.Evaluate((ImmediateType)extenderVisualizer.CurrentAluOperation, (uint)_immValue.Output);
+        var ext = _extender.Extend(_immValue.Output);
         var muxVal = Multiplexer.Select(muxVisualizer.CurrentChosenMuxPath, 0, ext, -1);
 
-        _wd3.Input = Alu.Calculate(a, muxVal, (AluOperation)aluVisualizer.CurrentAluOperation);
+        _wd3.Input = _alu.Compute(a, muxVal);
 
         if (TickCounter - 1 >= 0)
         {
@@ -217,7 +223,7 @@ public class SubExtendedRegisseur : BaseLevelRegisseur<SubExtendedSevenLevelStat
     {
         if (_currentBus >= 1 && _currentBus <= maxTickNumber)
         {
-            var ext = Extender.Evaluate((ImmediateType)extenderVisualizer.CurrentAluOperation, (uint)_immValue.Output);
+            var ext = _extender.Extend(_immValue.Output);
             var mux = Multiplexer.Select(0, ext, -1, muxVisualizer.CurrentChosenMuxPath);
 
             yield return Bus.WaveBack((buses.wd3RegToRegFile, _wd3.Input));
@@ -240,14 +246,14 @@ public class SubExtendedRegisseur : BaseLevelRegisseur<SubExtendedSevenLevelStat
         if (_currentBus >= 0 && _currentBus < maxTickNumber)
         {
             var a = DisplayedRegister(_srcA.Output);
-            var ext = Extender.Evaluate((ImmediateType)extenderVisualizer.CurrentAluOperation, (uint)_immValue.Output);
+            var ext = _extender.Extend(_immValue.Output);
             var mux = Multiplexer.Select(0, ext, -1, muxVisualizer.CurrentChosenMuxPath);
 
             yield return Bus.Wave(
                 (buses.srcAToRegFileA1, _srcA.Output), (buses.a3ToRegFileA3, _a3.Output), (buses.immToExtend, _immValue.Output));
             yield return Bus.Wave((buses.zeroToSrcBMux, 0), (buses.extToSrcBMux, ext));
             yield return Bus.Wave((buses.rd1ToAlu, a), (buses.srcBMuxToAlu, mux));
-            yield return Bus.Wave((buses.aluToWd3Reg, Alu.Calculate(a, mux, (AluOperation)aluVisualizer.CurrentAluOperation)));
+            yield return Bus.Wave((buses.aluToWd3Reg, _alu.Compute(a, mux)));
             yield return Bus.Wave((buses.wd3RegToRegFile, _wd3.Output));
 
             _currentBus++;

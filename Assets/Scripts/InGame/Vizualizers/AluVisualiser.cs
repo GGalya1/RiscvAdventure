@@ -1,75 +1,40 @@
-using UnityEngine;
-using TMPro;
-using UnityEngine.Serialization;
-
-public class AluVisualiser : BaseVisualizer
+/// <summary> View of an <see cref="Alu"/>: the four buttons set its operation, the banner shows the chosen one. </summary>
+public class AluVisualiser : OperationSelectorVisualizer
 {
-    [FormerlySerializedAs("_operationBanner")]
-    [Header("Operations Renderers (Optional 3D Text/Objects)")]
-    [SerializeField] protected GameObject operationBanner;
-    [FormerlySerializedAs("_symbolForOperation")] [SerializeField] protected TMP_Text symbolForOperation;
+    private Alu _alu;
 
-    [FormerlySerializedAs("_uiController")] public AluControlPanel uiController;
+    protected override string Title => "ALU";
 
-    protected int Operation;
-    public int CurrentAluOperation => Operation;
-
-
-    protected override void Awake()
+    public AluVisualiser Bind(Alu alu)
     {
-        base.Awake();
+        Unbind();
+        _alu = alu;
+        _alu.OperationChanged += OnOperationChanged;
+        return this;
+    }
 
-        if (uiController != null)
+    protected override void OnOperationButton(int index)
+    {
+        if (_alu != null) _alu.Operation = (AluOperation)index;
+    }
+
+    private void OnOperationChanged(AluOperation operation)
+    {
+        ShowOperation(operation switch
         {
-            uiController.Setup("ALU");
-        }
-
-        var buttons = uiController.OperationButtons;
-        for (var i = 0; i < buttons.Length; i++)
-        {
-            var operation = i;
-            buttons[i].onClick.AddListener(() => ChooseAluOperation(operation));
-        }
-
-        ResetVisualisation();
-    }
-    protected override void InitializePanel()
-    {
-        uiController = RequirePanel<AluControlPanel>();
-    }
-
-    public override void SetInteractable(bool value)
-    {
-        foreach (var button in uiController.OperationButtons) button.interactable = value;
-    }
-
-    public override void ResetVisualisation(){
-        if (operationBanner.activeSelf) {
-            operationBanner.SetActive(false);
-        }
-    }
-
-    public void ChooseAluOperation(int operation)
-    {
-        HideData();
-        var symbol = operation switch
-        {
-            0 => "+" // ADD
-            ,
-            1 => "-" // SUBTRACT
-            ,
-            2 => "&" // MULTIPLY (logic AND)
-            ,
-            3 => "|" // DIVIDE (logic OR)
-            ,
+            AluOperation.ADD => "+",
+            AluOperation.SUB => "-",
+            AluOperation.AND => "&",
+            AluOperation.OR => "|",
             _ => "?"
-        };
-
-        symbolForOperation.text = symbol;
-        Operation = operation;
-
-        if (!operationBanner.activeSelf) {
-            operationBanner.SetActive(true);
-        }
+        });
     }
+
+    private void Unbind()
+    {
+        if (_alu != null) _alu.OperationChanged -= OnOperationChanged;
+        _alu = null;
+    }
+
+    private void OnDestroy() => Unbind();
 }

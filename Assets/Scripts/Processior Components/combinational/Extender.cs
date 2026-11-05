@@ -1,3 +1,5 @@
+using System;
+
 /// <summary>
 /// Control signal of the extend unit (ImmSrc). The numeric values are the button indices
 /// in the extender panel and the values stored in level snapshots.
@@ -10,9 +12,30 @@ public enum ImmediateType
     J = 3,
 }
 
-/// <summary> Sign-extend unit: assembles the immediate of a RISC-V instruction (combinational). </summary>
-public static class Extender
+/// <summary>
+/// Sign-extend unit: assembles the immediate of a RISC-V instruction according to
+/// its control signal <see cref="Type"/>.
+/// </summary>
+public sealed class Extender
 {
+    private ImmediateType _type = ImmediateType.I;
+
+    /// <summary> Raised every time the control signal is assigned. </summary>
+    public event Action<ImmediateType> TypeChanged;
+
+    public ImmediateType Type
+    {
+        get => _type;
+        set
+        {
+            _type = value;
+            TypeChanged?.Invoke(value);
+        }
+    }
+
+    /// <summary> Immediate of <paramref name="instruction"/> for the current control signal. </summary>
+    public int Extend(int instruction) => Evaluate(_type, (uint)instruction);
+
     public static int Evaluate(ImmediateType type, uint instruction)
     {
         switch (type)

@@ -155,11 +155,11 @@ public struct OneTickProcessorLevelState
     public bool DataMemoryWrite;
     public bool RegisterFileWriteEnable;
 
-    public int AluOperation;
-    public int PCAluOperation;
-    public int BtaOperation;
+    public AluOperation AluOperation;
+    public AluOperation PCAluOperation;
+    public AluOperation BtaOperation;
 
-    public int ExtenderOperation;
+    public ImmediateType ExtenderOperation;
 
     public int MuXadrPath;
     public int MuXsrcBPath;
@@ -203,9 +203,19 @@ public class OneTickRegisseur
         buses.RegisterAll(busController);
     }
 
+    private readonly Alu _alu = new();
+    private readonly Alu _pcAlu = new();
+    private readonly Alu _btaAlu = new();
+    private readonly Extender _extender = new();
+
     protected override void OnLevelStart()
     {
         base.OnLevelStart();
+
+        aluVisualizer.Bind(_alu);
+        pcAluVisualizer.Bind(_pcAlu);
+        btaAluVisualizer.Bind(_btaAlu);
+        extenderVisualizer.Bind(_extender);
         
         _pc = new Register(Initial.pcRegisterInitialValue);
 
@@ -243,10 +253,10 @@ public class OneTickRegisseur
         // Compute all combinatorial values for this cycle (no side effects)
         var sig = ComputeSignals(
             _pc.Output, _registerFile.Registers,
-            aluVisualizer.CurrentAluOperation,
-            pcAluVisualizer.CurrentAluOperation,
-            btaAluVisualizer.CurrentAluOperation,
-            extenderVisualizer.CurrentAluOperation,
+            _alu.Operation,
+            _pcAlu.Operation,
+            _btaAlu.Operation,
+            _extender.Type,
             srcBmuxVisualizer.CurrentChosenMuxPath,
             resultMuxVisualizer.CurrentChosenMuxPath,
             adrMuxVisualizer.CurrentChosenMuxPath,
@@ -288,12 +298,12 @@ public class OneTickRegisseur
             DataMemoryWrite           = _dataMemory.WriteEnable,
             RegisterFileWriteEnable   = _registerFile.WriteEnable,
 
-            PCAluOperation = pcAluVisualizer.CurrentAluOperation,
-            BtaOperation   = btaAluVisualizer.CurrentAluOperation,
+            PCAluOperation = _pcAlu.Operation,
+            BtaOperation   = _btaAlu.Operation,
 
-            AluOperation = aluVisualizer.CurrentAluOperation,
+            AluOperation = _alu.Operation,
 
-            ExtenderOperation = extenderVisualizer.CurrentAluOperation,
+            ExtenderOperation = _extender.Type,
 
             MuXadrPath = adrMuxVisualizer.CurrentChosenMuxPath,
             MuXsrcBPath = srcBmuxVisualizer.CurrentChosenMuxPath,
@@ -326,10 +336,10 @@ public class OneTickRegisseur
         _registerFile.WriteEnable  = s.RegisterFileWriteEnable;
 
 
-        aluVisualizer.ChooseAluOperation(s.AluOperation);
-        pcAluVisualizer.ChooseAluOperation(s.PCAluOperation);
-        btaAluVisualizer.ChooseAluOperation(s.BtaOperation);
-        extenderVisualizer.ChooseAluOperation(s.ExtenderOperation);
+        _alu.Operation = s.AluOperation;
+        _pcAlu.Operation = s.PCAluOperation;
+        _btaAlu.Operation = s.BtaOperation;
+        _extender.Type = s.ExtenderOperation;
     }
 
     protected override void BlinkClockedComponents()
@@ -349,10 +359,10 @@ public class OneTickRegisseur
     {
         var sig = ComputeSignals(
             _pc.Output, _registerFile.Registers,
-            aluVisualizer.CurrentAluOperation,
-            pcAluVisualizer.CurrentAluOperation,
-            btaAluVisualizer.CurrentAluOperation,
-            extenderVisualizer.CurrentAluOperation,
+            _alu.Operation,
+            _pcAlu.Operation,
+            _btaAlu.Operation,
+            _extender.Type,
             srcBmuxVisualizer.CurrentChosenMuxPath,
             resultMuxVisualizer.CurrentChosenMuxPath,
             adrMuxVisualizer.CurrentChosenMuxPath,
@@ -447,7 +457,7 @@ public class OneTickRegisseur
 
     private CycleSignals ComputeSignals(
         int pc, int[] regValues,
-        int aluOp, int pcAluOp, int btaOp, int extOp,
+        AluOperation aluOp, AluOperation pcAluOp, AluOperation btaOp, ImmediateType extOp,
         int srcBPath, int resultPath, int adrPath,
         IReadableMemory dataMem)
     {
@@ -464,15 +474,15 @@ public class OneTickRegisseur
         var rd2 = rs2 > 0 && rs2 < regValues.Length ? regValues[rs2] : 0;
 
         // ID: sign-extend immediate
-        var immExt = Extender.Evaluate((ImmediateType)extOp, (uint)instr);
+        var immExt = Extender.Evaluate(extOp, (uint)instr);
 
         // EX: SrcB mux, main ALU, PC adders
         var srcB = Multiplexer.Select(srcBPath, rd2, immExt, 0);
 
-        var aluResult = Alu.Calculate(rd1, srcB, (AluOperation)aluOp);
+        var aluResult = Alu.Calculate(rd1, srcB, aluOp);
         var aluZero = aluResult == 0;
-        var pcPlus4 = Alu.Calculate(pc, 4, (AluOperation)pcAluOp);
-        var bta = Alu.Calculate(pc, immExt, (AluOperation)btaOp);
+        var pcPlus4 = Alu.Calculate(pc, 4, pcAluOp);
+        var bta = Alu.Calculate(pc, immExt, btaOp);
 
         // MEM: data memory read
         var readData = dataMem.Read(aluResult);

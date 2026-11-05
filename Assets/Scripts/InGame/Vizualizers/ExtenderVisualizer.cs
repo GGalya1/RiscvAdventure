@@ -1,59 +1,40 @@
-using UnityEngine;
-
-public class ExtenderVisualizer : AluVisualiser
+/// <summary> View of an <see cref="Extender"/>: the four buttons set the immediate type (I/S/B/J). </summary>
+public class ExtenderVisualizer : OperationSelectorVisualizer
 {
-    protected override void Awake()
+    private Extender _extender;
+
+    protected override string Title => "Extender";
+
+    public ExtenderVisualizer Bind(Extender extender)
     {
-        base.Awake();
-
-        if (uiController != null)
-        {
-            uiController.Setup("Extender");
-        }
-
-        var buttons = uiController.OperationButtons;
-        for (var i = 0; i < buttons.Length; i++)
-        {
-            var operationType = i;
-            buttons[i].onClick.AddListener(() => ChooseExtenderType(operationType));
-        }
-
-        ResetVisualisation();
-    }
-    protected override void InitializePanel()
-    {
-        uiController = RequirePanel<AluControlPanel>();
+        Unbind();
+        _extender = extender;
+        _extender.TypeChanged += OnTypeChanged;
+        return this;
     }
 
-    private void ChooseExtenderType(int operationType)
+    protected override void OnOperationButton(int index)
     {
-        string symbol;
-        switch (operationType)
-        {
-            case 0:
-                symbol = "I"; // I-Type (lw=> immediate)
-                break;
-            case 1:
-                symbol = "S"; // S-Type (store)
-                break;
-            case 2:
-                symbol = "B"; // B-Type (branch)
-                break;
-            case 3:
-                symbol = "J"; // J-Type (jump)
-                break;
-            default:
-                CustomLog.LogEditorWarning($"Extender operation is not valid and is equal {operationType}. Displaying '?'");
-                symbol = "?";
-                break;
-        }
-
-        symbolForOperation.text = symbol;
-        Operation = operationType;
-
-        if (!operationBanner.activeSelf)
-        {
-            operationBanner.SetActive(true);
-        }
+        if (_extender != null) _extender.Type = (ImmediateType)index;
     }
+
+    private void OnTypeChanged(ImmediateType type)
+    {
+        ShowOperation(type switch
+        {
+            ImmediateType.I => "I",     // I-type (lw, addi)
+            ImmediateType.S => "S",     // S-type (store)
+            ImmediateType.B => "B",     // B-type (branch)
+            ImmediateType.J => "J",     // J-type (jump)
+            _ => "?"
+        });
+    }
+
+    private void Unbind()
+    {
+        if (_extender != null) _extender.TypeChanged -= OnTypeChanged;
+        _extender = null;
+    }
+
+    private void OnDestroy() => Unbind();
 }

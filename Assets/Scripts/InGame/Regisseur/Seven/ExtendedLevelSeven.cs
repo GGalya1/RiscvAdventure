@@ -16,7 +16,7 @@ public struct ExtendedSevenLevelState
     public bool RegisterA3We;
     public bool RegisterWd3We;
 
-    public int AluOperation;
+    public AluOperation AluOperation;
 }
 
 [System.Serializable]
@@ -85,8 +85,12 @@ public class ExtendedLevelSeven : BaseLevelRegisseur<ExtendedSevenLevelState, Ex
 
     private int _currentBus; // [0, 10]
 
+    private readonly Alu _alu = new();
+
     protected override void OnLevelStart()
     {
+        aluVisualizer.Bind(_alu);
+
         _srcA = new Register(2);
         _srcB = new Register(8);
         _a3 = new Register();
@@ -123,7 +127,7 @@ public class ExtendedLevelSeven : BaseLevelRegisseur<ExtendedSevenLevelState, Ex
         _a3.WriteEnable = s.RegisterA3We;
         _wd3.WriteEnable = s.RegisterWd3We;
 
-        aluVisualizer.ChooseAluOperation(s.AluOperation);
+        _alu.Operation = s.AluOperation;
     }
 
     protected override void BlinkClockedComponents()
@@ -157,7 +161,7 @@ public class ExtendedLevelSeven : BaseLevelRegisseur<ExtendedSevenLevelState, Ex
             RegisterA3We = _a3.WriteEnable,
             RegisterWd3We = _wd3.WriteEnable,
 
-            AluOperation = aluVisualizer.CurrentAluOperation,
+            AluOperation = _alu.Operation,
         };
     }
 
@@ -184,7 +188,7 @@ public class ExtendedLevelSeven : BaseLevelRegisseur<ExtendedSevenLevelState, Ex
         var a = _registerFile.ReadData1;
         var b = _registerFile.ReadData2;
 
-        _wd3.Input = Alu.Calculate(a, b, (AluOperation)aluVisualizer.CurrentAluOperation);
+        _wd3.Input = _alu.Compute(a, b);
         if (TickCounter - 1 >= 0)
         {
             _registerFile.WriteAddress = StateAt(TickCounter - 1).RegisterA3Value;
@@ -223,7 +227,7 @@ public class ExtendedLevelSeven : BaseLevelRegisseur<ExtendedSevenLevelState, Ex
             yield return Bus.Wave(
                 (buses.srcAToRegFileA1, _srcA.Output), (buses.srcBToRegFileA2, _srcB.Output), (buses.a3ToRegFileA3, _a3.Output));
             yield return Bus.Wave((buses.rd1ToAlu, a), (buses.rd2ToAlu, b));
-            yield return Bus.Wave((buses.aluToWd3Reg, Alu.Calculate(a, b, (AluOperation)aluVisualizer.CurrentAluOperation)));
+            yield return Bus.Wave((buses.aluToWd3Reg, _alu.Compute(a, b)));
             yield return Bus.Wave((buses.wd3RegToRegFile, _wd3.Output));
 
             _currentBus++;

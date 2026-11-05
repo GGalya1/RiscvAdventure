@@ -11,7 +11,7 @@ public struct LevelFiveExtendedState
     public bool RegisterWe;
     public bool RegisterOutputWe;
 
-    public int ExtenderOperation;
+    public ImmediateType ExtenderOperation;
 }
 
 [Serializable]
@@ -53,8 +53,12 @@ public class LevelFiveExtended : BaseLevelRegisseur<LevelFiveExtendedState, Leve
 
     protected int CurrentBus = 0;
 
+    private readonly Extender _extender = new();
+
     protected override void OnLevelStart()
     {
+        extenderVisualizer.Bind(_extender);
+
         _srcA = new Register((int)inputRegisterValue);
         _output = new Register();
 
@@ -74,7 +78,7 @@ public class LevelFiveExtended : BaseLevelRegisseur<LevelFiveExtendedState, Leve
         _srcA.WriteEnable = s.RegisterWe;
         _output.WriteEnable = s.RegisterOutputWe;
 
-        extenderVisualizer.ChooseAluOperation(s.ExtenderOperation);
+        _extender.Type = s.ExtenderOperation;
     }
 
     protected override void BlinkClockedComponents()
@@ -98,7 +102,7 @@ public class LevelFiveExtended : BaseLevelRegisseur<LevelFiveExtendedState, Leve
             RegisterWe = _srcA.WriteEnable,
             RegisterOutputWe = _output.WriteEnable,
 
-            ExtenderOperation = extenderVisualizer.CurrentAluOperation
+            ExtenderOperation = _extender.Type
         };
     }
 
@@ -108,7 +112,7 @@ public class LevelFiveExtended : BaseLevelRegisseur<LevelFiveExtendedState, Leve
         _srcA.WriteEnable = registerSrcAVisualizer.isWriteEnabled;
         _output.WriteEnable = registerOutputVisualizer.isWriteEnabled;
 
-        _output.Input = Extender.Evaluate((ImmediateType)extenderVisualizer.CurrentAluOperation, (uint)_srcA.Output);
+        _output.Input = _extender.Extend(_srcA.Output);
 
         Clock.Tick();
     }

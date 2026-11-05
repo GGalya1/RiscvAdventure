@@ -19,9 +19,9 @@ public struct LevelFiveState
     public bool RegisterInstrWe;
     public bool RegisterOutputWe;
 
-    public int AluOperation;
+    public AluOperation AluOperation;
 
-    public int ExtenderOperation;
+    public ImmediateType ExtenderOperation;
 }
 
 [Serializable]
@@ -93,8 +93,14 @@ public class LevelFiveRegisseur : BaseLevelRegisseur<LevelFiveState, LevelFiveBu
 
     protected override int RightAnswerValue => 66;
 
+    private readonly Alu _alu = new();
+    private readonly Extender _extender = new();
+
     protected override void OnLevelStart()
     {
+        aluVisualizer.Bind(_alu);
+        extenderVisualizer.Bind(_extender);
+
         // Initialization of logical components
         _srcA = new Register();
         _srcB = new Register();
@@ -130,9 +136,9 @@ public class LevelFiveRegisseur : BaseLevelRegisseur<LevelFiveState, LevelFiveBu
             yield return Bus.Wave((buses.pcToMemAddr, pc), (buses.pcToBtaAdder, pc), (buses.constFourToAdder, 4));
             yield return Bus.Wave(
                 (buses.memDataToInstrReg, _dataInstructionMemory.Read(pc)),
-                (buses.adderToSrcB, Alu.Calculate(pc, 4, (AluOperation)aluVisualizer.CurrentAluOperation)));
+                (buses.adderToSrcB, _alu.Compute(pc, 4)));
             yield return Bus.Wave((buses.instrRegToExtend, _srcB.Output));
-            yield return Bus.Wave((buses.extendToMux, Extender.Evaluate((ImmediateType)extenderVisualizer.CurrentAluOperation, (uint)_srcB.Output)));
+            yield return Bus.Wave((buses.extendToMux, _extender.Extend(_srcB.Output)));
 
             _currentBus++;
         }
@@ -164,9 +170,9 @@ public class LevelFiveRegisseur : BaseLevelRegisseur<LevelFiveState, LevelFiveBu
         // implementation
         _srcB.Input = _dataInstructionMemory.Read(_srcA.Output);
 
-        _srcA.Input = Alu.Calculate(_srcA.Output, 4, (AluOperation)aluVisualizer.CurrentAluOperation);
+        _srcA.Input = _alu.Compute(_srcA.Output, 4);
 
-        _output.Input = Extender.Evaluate((ImmediateType)extenderVisualizer.CurrentAluOperation, (uint)_srcB.Output);
+        _output.Input = _extender.Extend(_srcB.Output);
 
         switch (_currentBus)
         {
@@ -205,9 +211,9 @@ public class LevelFiveRegisseur : BaseLevelRegisseur<LevelFiveState, LevelFiveBu
             RegisterOutputWe = _output.WriteEnable,
 
 
-            AluOperation = aluVisualizer.CurrentAluOperation,
+            AluOperation = _alu.Operation,
 
-            ExtenderOperation = extenderVisualizer.CurrentAluOperation
+            ExtenderOperation = _extender.Type
         };
     }
 
@@ -224,8 +230,8 @@ public class LevelFiveRegisseur : BaseLevelRegisseur<LevelFiveState, LevelFiveBu
         _output.WriteEnable = s.RegisterOutputWe;
 
 
-        aluVisualizer.ChooseAluOperation(s.AluOperation);
-        extenderVisualizer.ChooseAluOperation(s.ExtenderOperation);
+        _alu.Operation = s.AluOperation;
+        _extender.Type = s.ExtenderOperation;
     }
 
     protected override void BlinkClockedComponents()

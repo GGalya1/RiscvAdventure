@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using NUnit.Framework;
 
 public class ExtenderTests
@@ -114,5 +115,38 @@ public class ExtenderTests
     public void ButtonIndex_MapsToImmediateType(int buttonIndex, ImmediateType expected)
     {
         Assert.AreEqual(expected, (ImmediateType)buttonIndex);
+    }
+
+    // ---------------------------------------------------------------- Extender as a model (control signal + event)
+
+    [Test]
+    public void Model_DefaultType_IsI()
+    {
+        Assert.AreEqual(ImmediateType.I, new Extender().Type);
+    }
+
+    [Test]
+    public void Model_Extend_UsesCurrentType()
+    {
+        var extender = new Extender { Type = ImmediateType.S };
+        var word = (int)BuildSType(-20);
+
+        Assert.AreEqual(-20, extender.Extend(word));
+
+        extender.Type = ImmediateType.I;
+        Assert.AreEqual(Extender.Evaluate(ImmediateType.I, (uint)word), extender.Extend(word));
+    }
+
+    [Test]
+    public void Model_SettingType_RaisesEvent()
+    {
+        var extender = new Extender();
+        var received = new List<ImmediateType>();
+        extender.TypeChanged += received.Add;
+
+        extender.Type = ImmediateType.B;
+        extender.Type = ImmediateType.B;
+
+        CollectionAssert.AreEqual(new[] { ImmediateType.B, ImmediateType.B }, received);
     }
 }

@@ -21,7 +21,7 @@ public struct LevelThreeState
     public int
         CurrentChosenMuxPath; // since we can call ResetVisualization and, based on the selected path, call one of the Visualizer methods
 
-    public int AluOperation;
+    public AluOperation AluOperation;
 }
 
 [Serializable]
@@ -91,8 +91,12 @@ public class LevelThirdRegisseur : BaseLevelRegisseur<LevelThreeState, LevelThir
     private Register _srcA;
     private Register _srcB;
 
+    private readonly Alu _alu = new();
+
     protected override void OnLevelStart()
     {
+        aluVisualizer.Bind(_alu);
+
         // Initialization of logical components
         _srcA = new Register(srcAValue);
         _srcB = new Register(srcBValue);
@@ -152,7 +156,7 @@ public class LevelThirdRegisseur : BaseLevelRegisseur<LevelThreeState, LevelThir
             InstrDataMemoryWe = _dataInstructionMemory.WriteEnable,
 
             CurrentChosenMuxPath = multiplexerVisualizer.CurrentChosenMuxPath,
-            AluOperation = aluVisualizer.CurrentAluOperation
+            AluOperation = _alu.Operation
         };
     }
 
@@ -175,10 +179,10 @@ public class LevelThirdRegisseur : BaseLevelRegisseur<LevelThreeState, LevelThir
                 _srcA.Input = 0;
                 break;
             case 0:
-                _srcA.Input = Alu.Calculate(_srcA.Output, 4, (AluOperation)aluVisualizer.CurrentAluOperation);
+                _srcA.Input = _alu.Compute(_srcA.Output, 4);
                 break;
             case 1:
-                _srcA.Input = Alu.Calculate(_srcB.Output, 4, (AluOperation)aluVisualizer.CurrentAluOperation);
+                _srcA.Input = _alu.Compute(_srcB.Output, 4);
                 break;
             default:
                 CustomLog.LogEditorError($"MUX path is incorrect! Expected [-1, 1] but got {p}");
@@ -238,7 +242,7 @@ public class LevelThirdRegisseur : BaseLevelRegisseur<LevelThreeState, LevelThir
             }
 
             // from ALU to first register
-            yield return Bus.Wave((buses.adderToSrcA, Alu.Calculate(propagationVal, 4, (AluOperation)aluVisualizer.CurrentAluOperation)));
+            yield return Bus.Wave((buses.adderToSrcA, _alu.Compute(propagationVal, 4)));
 
             _currentBus++;
         }

@@ -28,9 +28,9 @@ public struct ProcessorLevelState
     public bool RegisterSrcBwe;
     public bool RegisterAluOutWe;
 
-    public int AluOperation;
+    public AluOperation AluOperation;
 
-    public int ExtenderOperation;
+    public ImmediateType ExtenderOperation;
 
     public int MuXadrPath;
     public int MuXsrcAPath;
@@ -211,9 +211,15 @@ public class FullProcessorRegisseur
         base.Start();
         buses.RegisterAll(busController);
     }
+    private readonly Alu _alu = new();
+    private readonly Extender _extender = new();
+
     protected override void OnLevelStart()
     {
         base.OnLevelStart();
+
+        aluVisualizer.Bind(_alu);
+        extenderVisualizer.Bind(_extender);
         
         _pc = new Register(Initial.pcRegisterInitialValue);
         _oldPC = new Register();
@@ -245,10 +251,10 @@ public class FullProcessorRegisseur
     
     private MehrtaktSignals ComputeMehrtaktSignals()
     {
-        var ext = Extender.Evaluate((ImmediateType)extenderVisualizer.CurrentAluOperation, (uint)_instructionReg.Output);
+        var ext = _extender.Extend(_instructionReg.Output);
         var srcA = Multiplexer.Select(srcAmuxVisualizer.CurrentChosenMuxPath, _pc.Output, _oldPC.Output, _srcA.Output);
         var srcB = Multiplexer.Select(srcBmuxVisualizer.CurrentChosenMuxPath, _srcB.Output, ext, 4);
-        var alu = Alu.Calculate(srcA, srcB, (AluOperation)aluVisualizer.CurrentAluOperation);
+        var alu = _alu.Compute(srcA, srcB);
         var result = Multiplexer.Select(resultMuxVisualizer.CurrentChosenMuxPath, _aluOutReg.Output, _dataReg.Output, alu);
         var adr = Multiplexer.Select(adrMuxVisualizer.CurrentChosenMuxPath, _pc.Output, result, 0);
 
@@ -287,8 +293,8 @@ public class FullProcessorRegisseur
         _srcB.WriteEnable = s.RegisterSrcBwe;
         _aluOutReg.WriteEnable = s.RegisterAluOutWe;
 
-        aluVisualizer.ChooseAluOperation(s.AluOperation);
-        extenderVisualizer.ChooseAluOperation(s.ExtenderOperation);
+        _alu.Operation = s.AluOperation;
+        _extender.Type = s.ExtenderOperation;
     }
 
     protected override void BlinkClockedComponents()
@@ -337,9 +343,9 @@ public class FullProcessorRegisseur
             RegisterSrcBwe = _srcB.WriteEnable,
             RegisterAluOutWe = _aluOutReg.WriteEnable,
 
-            AluOperation = aluVisualizer.CurrentAluOperation,
+            AluOperation = _alu.Operation,
 
-            ExtenderOperation = extenderVisualizer.CurrentAluOperation,
+            ExtenderOperation = _extender.Type,
 
             MuXadrPath = adrMuxVisualizer.CurrentChosenMuxPath,
             MuXsrcAPath = srcAmuxVisualizer.CurrentChosenMuxPath,
@@ -448,7 +454,7 @@ public class FullProcessorRegisseur
     }
 
     #region vizualization helpers
-    private int ImmExt => Extender.Evaluate((ImmediateType)extenderVisualizer.CurrentAluOperation, (uint)_instructionReg.Output);
+    private int ImmExt => _extender.Extend(_instructionReg.Output);
 
     private IEnumerator RunFetchVisualisation()
     {

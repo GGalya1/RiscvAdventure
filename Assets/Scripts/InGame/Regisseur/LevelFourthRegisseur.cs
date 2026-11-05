@@ -65,8 +65,12 @@ public class LevelFourthRegisseur : BaseLevelRegisseur<LevelThreeState, LevelFou
     private Register _srcA;
     private Register _srcB;
 
+    private readonly Alu _alu = new();
+
     protected override void OnLevelStart()
     {
+        aluVisualizer.Bind(_alu);
+
         // Initialization of logical components
         _srcA = new Register();
         _srcB = new Register(8);
@@ -108,11 +112,11 @@ public class LevelFourthRegisseur : BaseLevelRegisseur<LevelThreeState, LevelFou
         }
         else if (p == 0)
         {
-            _srcA.Input = Alu.Calculate(_srcA.Output, 4, (AluOperation)aluVisualizer.CurrentAluOperation);
+            _srcA.Input = _alu.Compute(_srcA.Output, 4);
         }
         else if (p == 1)
         {
-            _srcA.Input = Alu.Calculate(_srcB.Output, 4, (AluOperation)aluVisualizer.CurrentAluOperation);
+            _srcA.Input = _alu.Compute(_srcB.Output, 4);
         }
         else
         {
@@ -151,7 +155,7 @@ public class LevelFourthRegisseur : BaseLevelRegisseur<LevelThreeState, LevelFou
             }
 
             // from ALU to first register
-            yield return Bus.Wave((buses.adderToSrcA, Alu.Calculate(propagationVal, 4, (AluOperation)aluVisualizer.CurrentAluOperation)));
+            yield return Bus.Wave((buses.adderToSrcA, _alu.Compute(propagationVal, 4)));
 
             _currentBus++;
         }
@@ -196,7 +200,7 @@ public class LevelFourthRegisseur : BaseLevelRegisseur<LevelThreeState, LevelFou
             InstrDataMemoryWe = _dataInstructionMemory.WriteEnable,
 
             CurrentChosenMuxPath = multiplexerVisualizer.CurrentChosenMuxPath,
-            AluOperation = aluVisualizer.CurrentAluOperation
+            AluOperation = _alu.Operation
         };
     }
 

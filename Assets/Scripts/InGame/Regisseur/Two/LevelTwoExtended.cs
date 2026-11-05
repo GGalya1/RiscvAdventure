@@ -10,7 +10,7 @@ public struct LevelTwoExtendedState
     public bool RegisterBwe;
     public int OutputValue;
     public bool OutputWe;
-    public int AluOperation;
+    public AluOperation AluOperation;
 }
 
 [System.Serializable]
@@ -55,8 +55,12 @@ public class LevelTwoExtended : BaseLevelRegisseur<LevelTwoExtendedState, LevelT
 
     private int _currentBus; // [0, 1]
     
+    private readonly Alu _alu = new();
+
     protected override void OnLevelStart()
     {
+        aluVisualizer.Bind(_alu);
+
         _srcA = new Register(srcAValue);
         _srcB = new Register(srcBValue);
         _output = new Register();
@@ -82,7 +86,7 @@ public class LevelTwoExtended : BaseLevelRegisseur<LevelTwoExtendedState, LevelT
         _output.Reset(s.OutputValue);
         _output.WriteEnable = s.OutputWe;
 
-        aluVisualizer.ChooseAluOperation(s.AluOperation);
+        _alu.Operation = s.AluOperation;
     }
 
     protected override void BlinkClockedComponents()
@@ -107,7 +111,7 @@ public class LevelTwoExtended : BaseLevelRegisseur<LevelTwoExtendedState, LevelT
             RegisterBwe = _srcB.WriteEnable,
             OutputValue = _output.Output,
             OutputWe = _output.WriteEnable,
-            AluOperation = aluVisualizer.CurrentAluOperation,
+            AluOperation = _alu.Operation,
         };
     }
 
@@ -118,7 +122,7 @@ public class LevelTwoExtended : BaseLevelRegisseur<LevelTwoExtendedState, LevelT
         _srcB.WriteEnable = registerSrcBVisualizer.isWriteEnabled;
         _output.WriteEnable = registerOutputVisualizer.isWriteEnabled;
 
-        _output.Input = Alu.Calculate(_srcA.Output, _srcB.Output, (AluOperation)aluVisualizer.CurrentAluOperation);
+        _output.Input = _alu.Compute(_srcA.Output, _srcB.Output);
 
         Clock.Tick();
     }
@@ -139,7 +143,7 @@ public class LevelTwoExtended : BaseLevelRegisseur<LevelTwoExtendedState, LevelT
         if (_currentBus >= 0 && _currentBus < maxTickNumber)
         {
             yield return Bus.Wave((buses.srcAToAlu, _srcA.Output), (buses.srcBToAlu, _srcB.Output));
-            yield return Bus.Wave((buses.aluToOutput, Alu.Calculate(_srcA.Output, _srcB.Output, (AluOperation)aluVisualizer.CurrentAluOperation)));
+            yield return Bus.Wave((buses.aluToOutput, _alu.Compute(_srcA.Output, _srcB.Output)));
 
             _currentBus++;
         }

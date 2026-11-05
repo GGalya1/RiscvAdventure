@@ -6,7 +6,7 @@ public struct LevelTwoState
 {
     public int RegisterAValue;
     public bool RegisterAwe;
-    public int AluOperation;
+    public AluOperation AluOperation;
 }
 
 [System.Serializable]
@@ -45,8 +45,12 @@ public class LevelTwoRegisseur : BaseLevelRegisseur<LevelTwoState, LevelTwoBusSe
 
     private int _currentBus; // [0, 1]
 
+    private readonly Alu _alu = new();
+
     protected override void OnLevelStart()
     {
+        aluVisualizer.Bind(_alu);
+
         _srcA = new Register(1);
         // second argument must be 4
 
@@ -62,7 +66,7 @@ public class LevelTwoRegisseur : BaseLevelRegisseur<LevelTwoState, LevelTwoBusSe
         _srcA.Reset(s.RegisterAValue);
         _srcA.WriteEnable = s.RegisterAwe;
 
-        aluVisualizer.ChooseAluOperation(s.AluOperation);
+        _alu.Operation = s.AluOperation;
     }
 
     protected override void BlinkClockedComponents()
@@ -82,7 +86,7 @@ public class LevelTwoRegisseur : BaseLevelRegisseur<LevelTwoState, LevelTwoBusSe
         {
             RegisterAValue = _srcA.Output,
             RegisterAwe = _srcA.WriteEnable,
-            AluOperation = aluVisualizer.CurrentAluOperation,
+            AluOperation = _alu.Operation,
         };
     }
 
@@ -91,7 +95,7 @@ public class LevelTwoRegisseur : BaseLevelRegisseur<LevelTwoState, LevelTwoBusSe
         // synchronize visualizers and concrete objects
         _srcA.WriteEnable = registerSrcAVisualizer.isWriteEnabled;
 
-        _srcA.Input = Alu.Calculate(_srcA.Output, 4, (AluOperation)aluVisualizer.CurrentAluOperation);
+        _srcA.Input = _alu.Compute(_srcA.Output, 4);
         Clock.Tick();
     }
 
@@ -108,7 +112,7 @@ public class LevelTwoRegisseur : BaseLevelRegisseur<LevelTwoState, LevelTwoBusSe
         if (_currentBus is >= 0 and < 5)
         {
             yield return Bus.Wave((buses.pcToAdder, _srcA.Output), (buses.constFourToAdder, 4));
-            yield return Bus.Wave((buses.adderToPC, Alu.Calculate(_srcA.Output, 4, (AluOperation)aluVisualizer.CurrentAluOperation)));
+            yield return Bus.Wave((buses.adderToPC, _alu.Compute(_srcA.Output, 4)));
 
             _currentBus++;
         }

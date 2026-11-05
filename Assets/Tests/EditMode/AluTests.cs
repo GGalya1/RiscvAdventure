@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using NUnit.Framework;
 
 public class AluTests
@@ -47,5 +48,38 @@ public class AluTests
     public void UnknownOperation_ReturnsZero()
     {
         Assert.AreEqual(0, Alu.Calculate(2, 3, (AluOperation)99));
+    }
+
+    // ---------------------------------------------------------------- ALU as a model (control signal + event)
+
+    [Test]
+    public void Model_DefaultOperation_IsAdd()
+    {
+        Assert.AreEqual(AluOperation.ADD, new Alu().Operation);
+    }
+
+    [Test]
+    public void Model_Compute_UsesCurrentOperation()
+    {
+        var alu = new Alu { Operation = AluOperation.SUB };
+
+        Assert.AreEqual(2, alu.Compute(5, 3));
+
+        alu.Operation = AluOperation.OR;
+        Assert.AreEqual(0b111, alu.Compute(0b110, 0b011));
+    }
+
+    [Test]
+    public void Model_SettingOperation_RaisesEvent_EvenForTheSameValue()
+    {
+        // the view relies on this: restoring the same operation from history must still refresh the banner
+        var alu = new Alu();
+        var received = new List<AluOperation>();
+        alu.OperationChanged += received.Add;
+
+        alu.Operation = AluOperation.AND;
+        alu.Operation = AluOperation.AND;
+
+        CollectionAssert.AreEqual(new[] { AluOperation.AND, AluOperation.AND }, received);
     }
 }

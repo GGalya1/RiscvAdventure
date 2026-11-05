@@ -43,7 +43,7 @@ namespace RiscvAdventure.PlayModeTests
     /// Plays a level scene the way a player does: it presses the same UI buttons
     /// (MUX path, ALU / Extender operation, write-enable, next tick, check solution)
     /// and observes the game's own <see cref="LevelEvents"/>.
-    /// Level internals that are not public (buttons, tick counter) are read through reflection,
+    /// Level internals that are not public (info panels, bound models, tick counter) are read through reflection,
     /// so no production code has to change.
     /// </summary>
     public sealed class LevelDriver : IDisposable
@@ -150,19 +150,29 @@ namespace RiscvAdventure.PlayModeTests
             Assert.AreEqual(path, mux.CurrentChosenMuxPath, Ctx($"clicking MUX input #{path} of '{field}' had no effect"));
         }
         
-        public void ChooseAlu(string field, Op op) => ClickOperation(field, (int)op, op.ToString().ToUpperInvariant());
-        
-        public void ChooseImmediate(string field, Imm type) => ClickOperation(field, (int)type, type + "-type");
-
-        private void ClickOperation(string field, int index, string label)
+        public void ChooseAlu(string field, Op op)
         {
             var vis = Visual<AluVisualiser>(field);
-            var button = ButtonAt(vis.uiController.OperationButtons, index);
+            ClickOperation(vis, field, (int)op, op.ToString().ToUpperInvariant());
+            Assert.AreEqual((AluOperation)(int)op, ModelOf<Alu>(vis, field).Operation,
+                Ctx($"clicking button #{(int)op} of '{field}' had no effect"));
+        }
+
+        public void ChooseImmediate(string field, Imm type)
+        {
+            var vis = Visual<ExtenderVisualizer>(field);
+            ClickOperation(vis, field, (int)type, type + "-type");
+            Assert.AreEqual((ImmediateType)(int)type, ModelOf<Extender>(vis, field).Type,
+                Ctx($"clicking button #{(int)type} of '{field}' had no effect"));
+        }
+
+        private void ClickOperation(OperationSelectorVisualizer vis, string field, int index, string label)
+        {
+            var button = ButtonAt(PanelOf<AluControlPanel>(vis, field).OperationButtons, index);
             Assert.IsNotNull(button, Ctx($"'{field}' has no button #{index}"));
 
             button.onClick.Invoke();
             Note($"{field}: {label}");
-            Assert.AreEqual(index, vis.CurrentAluOperation, Ctx($"clicking button #{index} of '{field}' had no effect"));
         }
         
         public void SetWriteEnable(string field, bool enabled)
@@ -328,6 +338,41 @@ namespace RiscvAdventure.PlayModeTests
         /// <summary> Button with the given index of a panel button array, or null if there is none. </summary>
         private static Button ButtonAt(Button[] buttons, int index) =>
             buttons != null && index >= 0 && index < buttons.Length ? buttons[index] : null;
+
+        /// <summary> Component <typeparamref name="T"/> on the info panel of a visualizer (the panel the player clicks in). </summary>
+        private T PanelOf<T>(BaseVisualizer view, string field) where T : class
+        {
+            var panelField = FindField(view.GetType(), "panelInstance");
+            Assert.IsNotNull(panelField, Ctx($"{view.GetType().Name} has no field 'panelInstance'"));
+
+            var panel = panelField.GetValue(view) as GameObject;
+            Assert.IsNotNull(panel, Ctx($"'{field}' has no panel assigned in the scene"));
+
+            Assert.IsTrue(panel.TryGetComponent<T>(out var component), Ctx($"The panel of '{field}' has no {typeof(T).Name}"));
+            return component;
+        }
+
+        /// <summary>
+        /// The simulation model a visualizer was bound to in OnLevelStart (found by type, so renaming
+        /// the private field does not break the tests).
+        /// </summary>
+        private T ModelOf<T>(Component view, string field) where T : class
+        {
+            for (var t = view.GetType(); t != null; t = t.BaseType)
+            {
+                foreach (var f in t.GetFields(AnyInstance))
+                {
+                    if (f.FieldType != typeof(T)) continue;
+
+                    var model = (T)f.GetValue(view);
+                    Assert.IsNotNull(model, Ctx($"'{field}' is not bound to a {typeof(T).Name} (Bind was not called in OnLevelStart)"));
+                    return model;
+                }
+            }
+
+            Assert.Fail(Ctx($"{view.GetType().Name} has no {typeof(T).Name} field"));
+            return null;
+        }
 
         // ------------------------------------------------------------------ events
 
