@@ -1,12 +1,14 @@
+// Multiplexer with up to three inputs
 public static class Multiplexer
 {
-    public static int Select2To1(int a, int b, bool control) {
-        return control ? a : b;
-    }
+    public const int NoInput = -1;
 
-    public static int SelectNto1(int[] inputs, int control) {
-        // if(control < 0 || control >= inputs.Length) 
-        //    CustomLog.LogEditorError($"Multiplexer Error: {control} is not in range of inputs for MUL_N.");
-        return inputs[control];
-    }
+    // Output for the given control signal; no selection or an out-of-range selection outputs 0
+    public static int Select(int selectedInput, int input0, int input1, int input2 = 0) => selectedInput switch
+    {
+        0 => input0,
+        1 => input1,
+        2 => input2,
+        _ => 0
+    };
 }

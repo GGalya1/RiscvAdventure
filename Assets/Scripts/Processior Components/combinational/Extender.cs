@@ -1,58 +1,62 @@
+/// <summary>
+/// Control signal of the extend unit (ImmSrc). The numeric values are the button indices
+/// in the extender panel and the values stored in level snapshots.
+/// </summary>
+public enum ImmediateType
+{
+    I = 0,
+    S = 1,
+    B = 2,
+    J = 3,
+}
+
+/// <summary> Sign-extend unit: assembles the immediate of a RISC-V instruction (combinational). </summary>
 public static class Extender
 {
-    private const int IMM_SRC_TYPE_I = 0;
-    private const int IMM_SRC_TYPE_S = 1;
-    private const int IMM_SRC_TYPE_B = 2;
-    private const int IMM_SRC_TYPE_J = 3;
-
-
-    public static int Evaluate(int control, uint value)
+    public static int Evaluate(ImmediateType type, uint instruction)
     {
-        switch (control)
+        switch (type)
         {
-            case IMM_SRC_TYPE_I:
-                return (int)value >> 20;
+            case ImmediateType.I:
+                return (int)instruction >> 20;
 
-            case IMM_SRC_TYPE_S:
-                var immS = (int)(((value >> 25) << 5) | ((value >> 7) & 0x1F));
+            case ImmediateType.S:
+                var immS = (int)(((instruction >> 25) << 5) | ((instruction >> 7) & 0x1F));
                 return SignExtend(immS, 12);
 
-            case IMM_SRC_TYPE_B:
-                return SignExtend(ExtendB(value), 13);
+            case ImmediateType.B:
+                return SignExtend(AssembleB(instruction), 13);
 
-            case IMM_SRC_TYPE_J:
-                return SignExtend(ExtendJ(value), 21);
+            case ImmediateType.J:
+                return SignExtend(AssembleJ(instruction), 21);
 
             default:
                 return 0;
         }
     }
-   
-    
-    private static int ExtendB(uint val)
+
+    private static int AssembleB(uint val)
     {
-        var assembled = (((val >> 31) & 0x1) << 12) |           // bit 31 -> imm[12]
-                        (((val >> 7) & 0x1) << 11) |    // bit 7  -> imm[11]
+        var assembled = (((val >> 31) & 0x1) << 12) |   // bit 31     -> imm[12]
+                        (((val >> 7) & 0x1) << 11) |    // bit 7      -> imm[11]
                         (((val >> 25) & 0x3F) << 5) |   // bits 30:25 -> imm[10:5]
                         (((val >> 8) & 0xF) << 1);      // bits 11:8  -> imm[4:1]
-
-        return SignExtend((int)assembled, 13);
+        return (int)assembled;
     }
-    
-    private static int ExtendJ(uint val)
-    {
-        var assembled = ((val >> 31) << 20) |           // bit 31 -> imm[20]
-                        (((val >> 12) & 0xFF) << 12) |  // bits 19:12 -> imm[19:12]
-                        (((val >> 20) & 0x1) << 11) |   // bit 20 -> imm[11]
-                        (((val >> 21) & 0x3FF) << 1);   // bits 30:21 -> imm[10:1]
 
-        return SignExtend((int)assembled, 21);
+    private static int AssembleJ(uint val)
+    {
+        var assembled = ((val >> 31) << 20) |           // bit 31     -> imm[20]
+                        (((val >> 12) & 0xFF) << 12) |  // bits 19:12 -> imm[19:12]
+                        (((val >> 20) & 0x1) << 11) |   // bit 20     -> imm[11]
+                        (((val >> 21) & 0x3FF) << 1);   // bits 30:21 -> imm[10:1]
+        return (int)assembled;
     }
 
     private static int SignExtend(int value, int bitCount)
     {
-        var mask = 1 << (bitCount - 1);
-        if ((value & mask) != 0)
+        var signBit = 1 << (bitCount - 1);
+        if ((value & signBit) != 0)
         {
             return value | (unchecked((int)0xFFFFFFFF) << bitCount);
         }

@@ -118,7 +118,7 @@ public class LevelTwoExtended : BaseLevelRegisseur<LevelTwoExtendedState, LevelT
         _srcB.WriteEnable = registerSrcBVisualizer.isWriteEnabled;
         _output.WriteEnable = registerOutputVisualizer.isWriteEnabled;
 
-        _output.Input = Alu.Calculate(_srcA.Output, _srcB.Output, aluVisualizer.CurrentAluOperation);
+        _output.Input = Alu.Calculate(_srcA.Output, _srcB.Output, (AluOperation)aluVisualizer.CurrentAluOperation);
 
         Clock.Tick();
     }
@@ -139,7 +139,7 @@ public class LevelTwoExtended : BaseLevelRegisseur<LevelTwoExtendedState, LevelT
         if (_currentBus >= 0 && _currentBus < maxTickNumber)
         {
             yield return Bus.Wave((buses.srcAToAlu, _srcA.Output), (buses.srcBToAlu, _srcB.Output));
-            yield return Bus.Wave((buses.aluToOutput, Alu.Calculate(_srcA.Output, _srcB.Output, aluVisualizer.CurrentAluOperation)));
+            yield return Bus.Wave((buses.aluToOutput, Alu.Calculate(_srcA.Output, _srcB.Output, (AluOperation)aluVisualizer.CurrentAluOperation)));
 
             _currentBus++;
         }

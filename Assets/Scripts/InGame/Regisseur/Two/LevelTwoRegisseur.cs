@@ -91,7 +91,7 @@ public class LevelTwoRegisseur : BaseLevelRegisseur<LevelTwoState, LevelTwoBusSe
         // synchronize visualizers and concrete objects
         _srcA.WriteEnable = registerSrcAVisualizer.isWriteEnabled;
 
-        _srcA.Input = Alu.Calculate(_srcA.Output, 4, aluVisualizer.CurrentAluOperation);
+        _srcA.Input = Alu.Calculate(_srcA.Output, 4, (AluOperation)aluVisualizer.CurrentAluOperation);
         Clock.Tick();
     }
 
@@ -108,7 +108,7 @@ public class LevelTwoRegisseur : BaseLevelRegisseur<LevelTwoState, LevelTwoBusSe
         if (_currentBus is >= 0 and < 5)
         {
             yield return Bus.Wave((buses.pcToAdder, _srcA.Output), (buses.constFourToAdder, 4));
-            yield return Bus.Wave((buses.adderToPC, Alu.Calculate(_srcA.Output, 4, aluVisualizer.CurrentAluOperation)));
+            yield return Bus.Wave((buses.adderToPC, Alu.Calculate(_srcA.Output, 4, (AluOperation)aluVisualizer.CurrentAluOperation)));
 
             _currentBus++;
         }

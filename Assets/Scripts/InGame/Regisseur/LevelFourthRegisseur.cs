@@ -108,11 +108,11 @@ public class LevelFourthRegisseur : BaseLevelRegisseur<LevelThreeState, LevelFou
         }
         else if (p == 0)
         {
-            _srcA.Input = Alu.Calculate(_srcA.Output, 4, aluVisualizer.CurrentAluOperation);
+            _srcA.Input = Alu.Calculate(_srcA.Output, 4, (AluOperation)aluVisualizer.CurrentAluOperation);
         }
         else if (p == 1)
         {
-            _srcA.Input = Alu.Calculate(_srcB.Output, 4, aluVisualizer.CurrentAluOperation);
+            _srcA.Input = Alu.Calculate(_srcB.Output, 4, (AluOperation)aluVisualizer.CurrentAluOperation);
         }
         else
         {
@@ -151,7 +151,7 @@ public class LevelFourthRegisseur : BaseLevelRegisseur<LevelThreeState, LevelFou
             }
 
             // from ALU to first register
-            yield return Bus.Wave((buses.adderToSrcA, Alu.Calculate(propagationVal, 4, aluVisualizer.CurrentAluOperation)));
+            yield return Bus.Wave((buses.adderToSrcA, Alu.Calculate(propagationVal, 4, (AluOperation)aluVisualizer.CurrentAluOperation)));
 
             _currentBus++;
         }

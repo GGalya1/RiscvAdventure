@@ -175,10 +175,10 @@ public class LevelThirdRegisseur : BaseLevelRegisseur<LevelThreeState, LevelThir
                 _srcA.Input = 0;
                 break;
             case 0:
-                _srcA.Input = Alu.Calculate(_srcA.Output, 4, aluVisualizer.CurrentAluOperation);
+                _srcA.Input = Alu.Calculate(_srcA.Output, 4, (AluOperation)aluVisualizer.CurrentAluOperation);
                 break;
             case 1:
-                _srcA.Input = Alu.Calculate(_srcB.Output, 4, aluVisualizer.CurrentAluOperation);
+                _srcA.Input = Alu.Calculate(_srcB.Output, 4, (AluOperation)aluVisualizer.CurrentAluOperation);
                 break;
             default:
                 CustomLog.LogEditorError($"MUX path is incorrect! Expected [-1, 1] but got {p}");
@@ -238,7 +238,7 @@ public class LevelThirdRegisseur : BaseLevelRegisseur<LevelThreeState, LevelThir
             }
 
             // from ALU to first register
-            yield return Bus.Wave((buses.adderToSrcA, Alu.Calculate(propagationVal, 4, aluVisualizer.CurrentAluOperation)));
+            yield return Bus.Wave((buses.adderToSrcA, Alu.Calculate(propagationVal, 4, (AluOperation)aluVisualizer.CurrentAluOperation)));
 
             _currentBus++;
         }

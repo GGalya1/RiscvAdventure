@@ -108,7 +108,7 @@ public class LevelFiveExtended : BaseLevelRegisseur<LevelFiveExtendedState, Leve
         _srcA.WriteEnable = registerSrcAVisualizer.isWriteEnabled;
         _output.WriteEnable = registerOutputVisualizer.isWriteEnabled;
 
-        _output.Input = Extender.Evaluate(extenderVisualizer.CurrentAluOperation, (uint)_srcA.Output);
+        _output.Input = Extender.Evaluate((ImmediateType)extenderVisualizer.CurrentAluOperation, (uint)_srcA.Output);
 
         Clock.Tick();
     }

@@ -136,11 +136,11 @@ public class LevelOneExtended : BaseLevelRegisseur<ExtendedFirstLevelState, Leve
 
     protected override void HandleClockUpdate()
     {
-        var up = EvaluateMux(upperMuxVisualizer.CurrentChosenMuxPath, -4, 0, -1);
-        var left = EvaluateMux(middleMuxVisualizer.CurrentChosenMuxPath, 8, 12, -1);
-        var down = EvaluateMux(downMuxVisualizer.CurrentChosenMuxPath, left, -8, -12);
+        var up = Multiplexer.Select(upperMuxVisualizer.CurrentChosenMuxPath, -4, 0, -1);
+        var left = Multiplexer.Select(middleMuxVisualizer.CurrentChosenMuxPath, 8, 12, -1);
+        var down = Multiplexer.Select(downMuxVisualizer.CurrentChosenMuxPath, left, -8, -12);
 
-        _output.Input = EvaluateMux(outputMuxVisualizer.CurrentChosenMuxPath, up, 4, down);
+        _output.Input = Multiplexer.Select(outputMuxVisualizer.CurrentChosenMuxPath, up, 4, down);
         _output.WriteEnable = registerOutputVisualizer.isWriteEnabled;
 
         Clock.Tick();
@@ -152,7 +152,7 @@ public class LevelOneExtended : BaseLevelRegisseur<ExtendedFirstLevelState, Leve
         {
             var up = upperMuxVisualizer.CurrentChosenMuxPath == 0 ? -4 : 0;
             var left = middleMuxVisualizer.CurrentChosenMuxPath == 0 ? 8 : 12;
-            var down = EvaluateMux(downMuxVisualizer.CurrentChosenMuxPath, left, -8, -12);
+            var down = Multiplexer.Select(downMuxVisualizer.CurrentChosenMuxPath, left, -8, -12);
 
             yield return Bus.WaveBack((buses.outputMuxToRegister, _output.Input));
             yield return Bus.WaveBack((buses.upperMuxToOutputMux, up), (buses.downMuxToOutputMux, down), (buses.constGToOutputMux, 4));
@@ -169,10 +169,10 @@ public class LevelOneExtended : BaseLevelRegisseur<ExtendedFirstLevelState, Leve
     {
         if (_currentBus >= 0 && _currentBus < maxTickNumber)
         {
-            var up = EvaluateMux(upperMuxVisualizer.CurrentChosenMuxPath, -4, 0, -1);
-            var left = EvaluateMux(middleMuxVisualizer.CurrentChosenMuxPath, 8, 12, -1);
-            var down = EvaluateMux(downMuxVisualizer.CurrentChosenMuxPath, left, -8, -12);
-            var output = EvaluateMux(outputMuxVisualizer.CurrentChosenMuxPath, up, 4, down);
+            var up = Multiplexer.Select(upperMuxVisualizer.CurrentChosenMuxPath, -4, 0, -1);
+            var left = Multiplexer.Select(middleMuxVisualizer.CurrentChosenMuxPath, 8, 12, -1);
+            var down = Multiplexer.Select(downMuxVisualizer.CurrentChosenMuxPath, left, -8, -12);
+            var output = Multiplexer.Select(outputMuxVisualizer.CurrentChosenMuxPath, up, 4, down);
 
             yield return Bus.Wave((buses.constAToMiddleMux, 8), (buses.constBToMiddleMux, 12));
             yield return Bus.Wave(

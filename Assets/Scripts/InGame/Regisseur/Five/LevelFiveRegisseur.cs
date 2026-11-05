@@ -130,9 +130,9 @@ public class LevelFiveRegisseur : BaseLevelRegisseur<LevelFiveState, LevelFiveBu
             yield return Bus.Wave((buses.pcToMemAddr, pc), (buses.pcToBtaAdder, pc), (buses.constFourToAdder, 4));
             yield return Bus.Wave(
                 (buses.memDataToInstrReg, _dataInstructionMemory.Read(pc)),
-                (buses.adderToSrcB, Alu.Calculate(pc, 4, aluVisualizer.CurrentAluOperation)));
+                (buses.adderToSrcB, Alu.Calculate(pc, 4, (AluOperation)aluVisualizer.CurrentAluOperation)));
             yield return Bus.Wave((buses.instrRegToExtend, _srcB.Output));
-            yield return Bus.Wave((buses.extendToMux, Extender.Evaluate(extenderVisualizer.CurrentAluOperation, (uint)_srcB.Output)));
+            yield return Bus.Wave((buses.extendToMux, Extender.Evaluate((ImmediateType)extenderVisualizer.CurrentAluOperation, (uint)_srcB.Output)));
 
             _currentBus++;
         }
@@ -164,9 +164,9 @@ public class LevelFiveRegisseur : BaseLevelRegisseur<LevelFiveState, LevelFiveBu
         // implementation
         _srcB.Input = _dataInstructionMemory.Read(_srcA.Output);
 
-        _srcA.Input = Alu.Calculate(_srcA.Output, 4, aluVisualizer.CurrentAluOperation);
+        _srcA.Input = Alu.Calculate(_srcA.Output, 4, (AluOperation)aluVisualizer.CurrentAluOperation);
 
-        _output.Input = Extender.Evaluate(extenderVisualizer.CurrentAluOperation, (uint)_srcB.Output);
+        _output.Input = Extender.Evaluate((ImmediateType)extenderVisualizer.CurrentAluOperation, (uint)_srcB.Output);
 
         switch (_currentBus)
         {

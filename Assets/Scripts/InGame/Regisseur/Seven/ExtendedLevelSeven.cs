@@ -184,7 +184,7 @@ public class ExtendedLevelSeven : BaseLevelRegisseur<ExtendedSevenLevelState, Ex
         var a = _registerFile.ReadData1;
         var b = _registerFile.ReadData2;
 
-        _wd3.Input = Alu.Calculate(a, b, aluVisualizer.CurrentAluOperation);
+        _wd3.Input = Alu.Calculate(a, b, (AluOperation)aluVisualizer.CurrentAluOperation);
         if (TickCounter - 1 >= 0)
         {
             _registerFile.WriteAddress = StateAt(TickCounter - 1).RegisterA3Value;
@@ -223,7 +223,7 @@ public class ExtendedLevelSeven : BaseLevelRegisseur<ExtendedSevenLevelState, Ex
             yield return Bus.Wave(
                 (buses.srcAToRegFileA1, _srcA.Output), (buses.srcBToRegFileA2, _srcB.Output), (buses.a3ToRegFileA3, _a3.Output));
             yield return Bus.Wave((buses.rd1ToAlu, a), (buses.rd2ToAlu, b));
-            yield return Bus.Wave((buses.aluToWd3Reg, Alu.Calculate(a, b, aluVisualizer.CurrentAluOperation)));
+            yield return Bus.Wave((buses.aluToWd3Reg, Alu.Calculate(a, b, (AluOperation)aluVisualizer.CurrentAluOperation)));
             yield return Bus.Wave((buses.wd3RegToRegFile, _wd3.Output));
 
             _currentBus++;

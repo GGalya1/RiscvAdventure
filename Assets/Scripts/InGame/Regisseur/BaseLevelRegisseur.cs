@@ -237,10 +237,5 @@ public abstract class BaseLevelRegisseur<TState, TBus> : MonoBehaviour
         }
     }
     
-    protected static int EvaluateMux(int path, int v0, int v1, int v2) => path switch
-    {
-        0 => v0, 1 => v1, 2 => v2,
-        _ => 0
-    };
     # endregion
 }

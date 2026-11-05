@@ -470,21 +470,22 @@ public class OneTickRegisseur
         var rd2 = rs2 > 0 && rs2 < regValues.Length ? regValues[rs2] : 0;
 
         // ID: sign-extend immediate
-        var immExt = Extender.Evaluate(extOp, (uint)instr);
+        var immExt = Extender.Evaluate((ImmediateType)extOp, (uint)instr);
 
         // EX: SrcB mux, main ALU, PC adders
-        var srcB = EvaluateMux(srcBPath, rd2, immExt, 0);
+        var srcB = Multiplexer.Select(srcBPath, rd2, immExt, 0);
 
-        var (aluResult, aluZero) = Alu.Calculate(rd1, srcB, (AluOperation)aluOp);
-        var pcPlus4 = Alu.Calculate(pc, 4, pcAluOp);
-        var bta = Alu.Calculate(pc, immExt, btaOp);
+        var aluResult = Alu.Calculate(rd1, srcB, (AluOperation)aluOp);
+        var aluZero = aluResult == 0;
+        var pcPlus4 = Alu.Calculate(pc, 4, (AluOperation)pcAluOp);
+        var bta = Alu.Calculate(pc, immExt, (AluOperation)btaOp);
 
         // MEM: data memory read
         var readData = dataMem.Read(aluResult);
 
         // WB: result and next PC selection
-        var result = EvaluateMux(resultPath, aluResult, readData, pcPlus4);
-        var pcNext = EvaluateMux(adrPath, pcPlus4, bta, 0);
+        var result = Multiplexer.Select(resultPath, aluResult, readData, pcPlus4);
+        var pcNext = Multiplexer.Select(adrPath, pcPlus4, bta, 0);
 
         return new CycleSignals(
             instr, rs1, rs2, rd,

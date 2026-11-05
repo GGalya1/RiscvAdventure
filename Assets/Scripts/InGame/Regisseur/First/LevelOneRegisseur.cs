@@ -122,7 +122,6 @@ public class LevelOneRegisseur : BaseLevelRegisseur<LevelOneState, LevelOneBusSe
     protected override void HandleClockUpdate()
     {
         var path = multiplexerVisualizer.CurrentChosenMuxPath;
-        int[] inputs = { _srcA.Output, _srcB.Output };
         var res = 0;
 
         switch (path)
@@ -131,7 +130,7 @@ public class LevelOneRegisseur : BaseLevelRegisseur<LevelOneState, LevelOneBusSe
                 CustomLog.LogEditorError("Multiplexer path not selected (-1). Data will be lost.");
                 break;
             case >= 0 and <= 1:
-                res = Multiplexer.SelectNto1(inputs, path);
+                res = Multiplexer.Select(path, _srcA.Output, _srcB.Output);
                 break;
             default:
                 CustomLog.LogEditorError($"Multiplexer path {path} is an invalid value!");

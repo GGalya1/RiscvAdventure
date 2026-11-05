@@ -249,12 +249,12 @@ public class FullProcessorRegisseur
     
     private MehrtaktSignals ComputeMehrtaktSignals()
     {
-        var ext = Extender.Evaluate(extenderVisualizer.CurrentAluOperation, (uint)_instructionReg.Output);
-        var srcA = EvaluateMux(srcAmuxVisualizer.CurrentChosenMuxPath, _pc.Output, _oldPC.Output, _srcA.Output);
-        var srcB = EvaluateMux(srcBmuxVisualizer.CurrentChosenMuxPath, _srcB.Output, ext, 4);
-        var alu = Alu.Calculate(srcA, srcB, aluVisualizer.CurrentAluOperation);
-        var result = EvaluateMux(resultMuxVisualizer.CurrentChosenMuxPath, _aluOutReg.Output, _dataReg.Output, alu);
-        var adr = EvaluateMux(adrMuxVisualizer.CurrentChosenMuxPath, _pc.Output, result, 0);
+        var ext = Extender.Evaluate((ImmediateType)extenderVisualizer.CurrentAluOperation, (uint)_instructionReg.Output);
+        var srcA = Multiplexer.Select(srcAmuxVisualizer.CurrentChosenMuxPath, _pc.Output, _oldPC.Output, _srcA.Output);
+        var srcB = Multiplexer.Select(srcBmuxVisualizer.CurrentChosenMuxPath, _srcB.Output, ext, 4);
+        var alu = Alu.Calculate(srcA, srcB, (AluOperation)aluVisualizer.CurrentAluOperation);
+        var result = Multiplexer.Select(resultMuxVisualizer.CurrentChosenMuxPath, _aluOutReg.Output, _dataReg.Output, alu);
+        var adr = Multiplexer.Select(adrMuxVisualizer.CurrentChosenMuxPath, _pc.Output, result, 0);
 
         return new MehrtaktSignals(
             adr, srcA,
@@ -452,7 +452,7 @@ public class FullProcessorRegisseur
     }
 
     #region vizualization helpers
-    private int ImmExt => Extender.Evaluate(extenderVisualizer.CurrentAluOperation, (uint)_instructionReg.Output);
+    private int ImmExt => Extender.Evaluate((ImmediateType)extenderVisualizer.CurrentAluOperation, (uint)_instructionReg.Output);
 
     private IEnumerator RunFetchVisualisation()
     {

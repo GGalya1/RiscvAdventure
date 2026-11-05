@@ -158,7 +158,7 @@ public class LevelSevenRegisseur : BaseLevelRegisseur<LevelSevenState, LevelSeve
         _registerFile.ReadAddress1 = _srcA.Output;
         _registerFile.ReadAddress2 = _srcB.Output;
         _output.Input = Alu.Calculate(_registerFile.ReadData1, _registerFile.ReadData2,
-            aluVisualizer.CurrentAluOperation);
+            (AluOperation)aluVisualizer.CurrentAluOperation);
 
         Clock.Tick();
     }
@@ -188,7 +188,7 @@ public class LevelSevenRegisseur : BaseLevelRegisseur<LevelSevenState, LevelSeve
 
             yield return Bus.Wave((buses.srcAToRegFileA1, _srcA.Output), (buses.srcBToRegFileA2, _srcB.Output));
             yield return Bus.Wave((buses.rd1ToAlu, rd1), (buses.rd2ToAlu, rd2));
-            yield return Bus.Wave((buses.aluToOutput, Alu.Calculate(rd1, rd2, aluVisualizer.CurrentAluOperation)));
+            yield return Bus.Wave((buses.aluToOutput, Alu.Calculate(rd1, rd2, (AluOperation)aluVisualizer.CurrentAluOperation)));
 
             _currentBus++;
         }

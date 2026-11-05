@@ -198,10 +198,10 @@ public class SubExtendedRegisseur : BaseLevelRegisseur<SubExtendedSevenLevelStat
         var a = 0;
         if (_srcA.Output is > 0 and < 16)
             a = _registerFile.Registers[_srcA.Output];
-        var ext = Extender.Evaluate(extenderVisualizer.CurrentAluOperation, (uint)_immValue.Output);
-        var muxVal = EvaluateMux(muxVisualizer.CurrentChosenMuxPath, 0, ext, -1);
+        var ext = Extender.Evaluate((ImmediateType)extenderVisualizer.CurrentAluOperation, (uint)_immValue.Output);
+        var muxVal = Multiplexer.Select(muxVisualizer.CurrentChosenMuxPath, 0, ext, -1);
 
-        _wd3.Input = Alu.Calculate(a, muxVal, aluVisualizer.CurrentAluOperation);
+        _wd3.Input = Alu.Calculate(a, muxVal, (AluOperation)aluVisualizer.CurrentAluOperation);
 
         if (TickCounter - 1 >= 0)
         {
@@ -217,8 +217,8 @@ public class SubExtendedRegisseur : BaseLevelRegisseur<SubExtendedSevenLevelStat
     {
         if (_currentBus >= 1 && _currentBus <= maxTickNumber)
         {
-            var ext = Extender.Evaluate(extenderVisualizer.CurrentAluOperation, (uint)_immValue.Output);
-            var mux = EvaluateMux(0, ext, -1, muxVisualizer.CurrentChosenMuxPath);
+            var ext = Extender.Evaluate((ImmediateType)extenderVisualizer.CurrentAluOperation, (uint)_immValue.Output);
+            var mux = Multiplexer.Select(0, ext, -1, muxVisualizer.CurrentChosenMuxPath);
 
             yield return Bus.WaveBack((buses.wd3RegToRegFile, _wd3.Input));
             yield return Bus.WaveBack((buses.aluToWd3Reg, _wd3.Input));
@@ -240,14 +240,14 @@ public class SubExtendedRegisseur : BaseLevelRegisseur<SubExtendedSevenLevelStat
         if (_currentBus >= 0 && _currentBus < maxTickNumber)
         {
             var a = DisplayedRegister(_srcA.Output);
-            var ext = Extender.Evaluate(extenderVisualizer.CurrentAluOperation, (uint)_immValue.Output);
-            var mux = EvaluateMux(0, ext, -1, muxVisualizer.CurrentChosenMuxPath);
+            var ext = Extender.Evaluate((ImmediateType)extenderVisualizer.CurrentAluOperation, (uint)_immValue.Output);
+            var mux = Multiplexer.Select(0, ext, -1, muxVisualizer.CurrentChosenMuxPath);
 
             yield return Bus.Wave(
                 (buses.srcAToRegFileA1, _srcA.Output), (buses.a3ToRegFileA3, _a3.Output), (buses.immToExtend, _immValue.Output));
             yield return Bus.Wave((buses.zeroToSrcBMux, 0), (buses.extToSrcBMux, ext));
             yield return Bus.Wave((buses.rd1ToAlu, a), (buses.srcBMuxToAlu, mux));
-            yield return Bus.Wave((buses.aluToWd3Reg, Alu.Calculate(a, mux, aluVisualizer.CurrentAluOperation)));
+            yield return Bus.Wave((buses.aluToWd3Reg, Alu.Calculate(a, mux, (AluOperation)aluVisualizer.CurrentAluOperation)));
             yield return Bus.Wave((buses.wd3RegToRegFile, _wd3.Output));
 
             _currentBus++;

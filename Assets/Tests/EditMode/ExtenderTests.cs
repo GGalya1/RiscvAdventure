@@ -2,11 +2,6 @@ using NUnit.Framework;
 
 public class ExtenderTests
 {
-    private const int IMM_SRC_TYPE_I = 0;
-    private const int IMM_SRC_TYPE_S = 1;
-    private const int IMM_SRC_TYPE_B = 2;
-    private const int IMM_SRC_TYPE_J = 3;
-
     // I-type: imm[11:0] -> instruction bits [31:20]
     private static uint BuildIType(int imm)
     {
@@ -54,7 +49,7 @@ public class ExtenderTests
     {
         var word = BuildIType(imm);
 
-        var result = Extender.Evaluate(IMM_SRC_TYPE_I, word);
+        var result = Extender.Evaluate(ImmediateType.I, word);
 
         Assert.AreEqual(imm, result);
     }
@@ -69,7 +64,7 @@ public class ExtenderTests
     {
         var word = BuildSType(imm);
 
-        var result = Extender.Evaluate(IMM_SRC_TYPE_S, word);
+        var result = Extender.Evaluate(ImmediateType.S, word);
 
         Assert.AreEqual(imm, result);
     }
@@ -83,7 +78,7 @@ public class ExtenderTests
     {
         var word = BuildBType(imm);
 
-        var result = Extender.Evaluate(IMM_SRC_TYPE_B, word);
+        var result = Extender.Evaluate(ImmediateType.B, word);
 
         Assert.AreEqual(imm, result);
     }
@@ -97,17 +92,27 @@ public class ExtenderTests
     {
         var word = BuildJType(imm);
 
-        var result = Extender.Evaluate(IMM_SRC_TYPE_J, word);
+        var result = Extender.Evaluate(ImmediateType.J, word);
 
         Assert.AreEqual(imm, result);
     }
 
     [Test]
-    public void Evaluate_UnknownControlCode_ReturnsZero()
+    public void Evaluate_UnknownType_ReturnsZero()
     {
-        // Any control code outside 0-3 has no defined immediate format.
-        var result = Extender.Evaluate(99, 0xFFFFFFFF);
+        // Any control value outside I/S/B/J has no defined immediate format.
+        var result = Extender.Evaluate((ImmediateType)99, 0xFFFFFFFF);
 
         Assert.AreEqual(0, result);
+    }
+
+    // The numeric value of ImmediateType is the button index in the extender panel.
+    [TestCase(0, ImmediateType.I)]
+    [TestCase(1, ImmediateType.S)]
+    [TestCase(2, ImmediateType.B)]
+    [TestCase(3, ImmediateType.J)]
+    public void ButtonIndex_MapsToImmediateType(int buttonIndex, ImmediateType expected)
+    {
+        Assert.AreEqual(expected, (ImmediateType)buttonIndex);
     }
 }
