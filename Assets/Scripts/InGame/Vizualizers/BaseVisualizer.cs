@@ -1,7 +1,10 @@
 using UnityEngine;
 using UnityEngine.Serialization;
 
-// An abstract base class for all component rendering
+/// <summary>
+/// Base class of every clickable processor component in the scene.
+/// Handles "click to open the info panel": panel animation and highlighting the 3D model.
+/// </summary>
 public abstract class BaseVisualizer : MonoBehaviour, IVisualizer
 {
     [FormerlySerializedAs("_panelInstance")] [SerializeField] protected GameObject panelInstance;
@@ -16,7 +19,7 @@ public abstract class BaseVisualizer : MonoBehaviour, IVisualizer
     [SerializeField] private float animDuration = 0.25f;
     [FormerlySerializedAs("_moveDistance")] [SerializeField] private float moveDistance = 0.2f;
 
-    // Cached renderer, if you need to change the model's color (for a simple color change)
+    // Renderer that is tinted with selectionColor while the panel is open (optional)
     [FormerlySerializedAs("_bigModelRenderer")] [SerializeField] protected Renderer bigModelRenderer;
 
     private PanelAnimator _panelAnimator;
@@ -58,9 +61,8 @@ public abstract class BaseVisualizer : MonoBehaviour, IVisualizer
     }
     #endregion
 
-    public abstract void ResetVisualisation();
-
-    public abstract void SetInteractable(bool value);
+    /// <summary> Enables/disables the panel buttons (the level locks them while a tick is animated). </summary>
+    public virtual void SetInteractable(bool value) { }
 
     // Puts the panel into the hidden state without animation
     protected void HidePanelImmediately()

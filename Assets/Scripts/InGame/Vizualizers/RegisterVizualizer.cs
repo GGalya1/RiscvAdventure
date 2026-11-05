@@ -17,6 +17,4 @@ public class RegisterVisualizer : SequentialVisualizer
         base.Awake();
         if (UIRegisterPanel != null) UIRegisterPanel.Display("N/A", 0);
     }
-
-    public override void ResetVisualisation() { }
 }

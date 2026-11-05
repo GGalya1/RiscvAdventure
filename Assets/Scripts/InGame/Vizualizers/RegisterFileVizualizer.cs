@@ -13,9 +13,4 @@ public class RegisterFileVisualizer : SequentialVisualizer
         base.Awake();
         if (UIRegisterPanel != null) UIRegisterPanel.Display(new int[16]);
     }
-
-    public override void ResetVisualisation()
-    {
-        throw new System.NotImplementedException();
-    }
 }

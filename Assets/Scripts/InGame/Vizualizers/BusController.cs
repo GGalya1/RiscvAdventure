@@ -205,7 +205,7 @@ public class BusController : MonoBehaviour
     private void ReturnSignal(BusSignal signal)
     {
         _activeSignals.Remove(signal);
-        signal.ResetVisualisation();
+        signal.ResetSignal();
         signal.gameObject.SetActive(false);
         _pool.Push(signal);
     }

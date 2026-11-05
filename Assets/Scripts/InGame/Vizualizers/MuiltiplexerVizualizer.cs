@@ -55,7 +55,7 @@ public class MultiplexerVisualizer: BaseVisualizer
         UIController = RequirePanel<MultiplexerControlPanel>();
     }
 
-    public override void ResetVisualisation() {
+    public void ResetVisualisation() {
         CurrentChosenMuxPath = -1;
         UpdateVisuals(-1);
     }

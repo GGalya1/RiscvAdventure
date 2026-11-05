@@ -7,6 +7,4 @@ public class InstructionDataMemoryVisualizer : SequentialVisualizer
     {
         UIRegisterPanel = RequirePanel<InstrMemoryControlPanel>();
     }
-
-    public override void ResetVisualisation() { }
 }

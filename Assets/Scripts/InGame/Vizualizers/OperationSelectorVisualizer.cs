@@ -57,11 +57,6 @@ public abstract class OperationSelectorVisualizer : BaseVisualizer
         if (!operationBanner.activeSelf) operationBanner.SetActive(true);
     }
 
-    public override void ResetVisualisation()
-    {
-        if (operationBanner.activeSelf) operationBanner.SetActive(false);
-    }
-
     public override void SetInteractable(bool value)
     {
         if (uiController == null) return;
