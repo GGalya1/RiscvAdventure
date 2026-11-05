@@ -214,9 +214,19 @@ public class FullProcessorRegisseur
     private readonly Alu _alu = new();
     private readonly Extender _extender = new();
 
+    private readonly Multiplexer _adrMux = new();
+    private readonly Multiplexer _srcAMux = new();
+    private readonly Multiplexer _srcBMux = new();
+    private readonly Multiplexer _resultMux = new();
+
     protected override void OnLevelStart()
     {
         base.OnLevelStart();
+
+        adrMuxVisualizer.Bind(_adrMux);
+        srcAmuxVisualizer.Bind(_srcAMux);
+        srcBmuxVisualizer.Bind(_srcBMux);
+        resultMuxVisualizer.Bind(_resultMux);
 
         aluVisualizer.Bind(_alu);
         extenderVisualizer.Bind(_extender);
@@ -252,11 +262,11 @@ public class FullProcessorRegisseur
     private MehrtaktSignals ComputeMehrtaktSignals()
     {
         var ext = _extender.Extend(_instructionReg.Output);
-        var srcA = Multiplexer.Select(srcAmuxVisualizer.CurrentChosenMuxPath, _pc.Output, _oldPC.Output, _srcA.Output);
-        var srcB = Multiplexer.Select(srcBmuxVisualizer.CurrentChosenMuxPath, _srcB.Output, ext, 4);
+        var srcA = _srcAMux.Route(_pc.Output, _oldPC.Output, _srcA.Output);
+        var srcB = _srcBMux.Route(_srcB.Output, ext, 4);
         var alu = _alu.Compute(srcA, srcB);
-        var result = Multiplexer.Select(resultMuxVisualizer.CurrentChosenMuxPath, _aluOutReg.Output, _dataReg.Output, alu);
-        var adr = Multiplexer.Select(adrMuxVisualizer.CurrentChosenMuxPath, _pc.Output, result, 0);
+        var result = _resultMux.Route(_aluOutReg.Output, _dataReg.Output, alu);
+        var adr = _adrMux.Route(_pc.Output, result, 0);
 
         return new MehrtaktSignals(
             adr, srcA,
@@ -274,10 +284,10 @@ public class FullProcessorRegisseur
         _srcB.Reset(s.RegisterSrcBValue);
         _aluOutReg.Reset(s.RegisterAluOutValue);
         
-        ApplyMuxState(s.MuXadrPath, adrMuxVisualizer);
-        ApplyMuxState(s.MuXsrcAPath, srcAmuxVisualizer);
-        ApplyMuxState(s.MuXsrcBPath, srcBmuxVisualizer);
-        ApplyMuxState(s.MuXresultPath, resultMuxVisualizer);
+        _adrMux.SelectedInput = s.MuXadrPath;
+        _srcAMux.SelectedInput = s.MuXsrcAPath;
+        _srcBMux.SelectedInput = s.MuXsrcBPath;
+        _resultMux.SelectedInput = s.MuXresultPath;
         
         // WE for dataInstrMem ???
         _dataInstructionMemory.LoadWords(s.FirstMemoryValue, s.SecondMemoryValue, s.ThirdMemoryValue, s.FourthMemoryValue);
@@ -347,10 +357,10 @@ public class FullProcessorRegisseur
 
             ExtenderOperation = _extender.Type,
 
-            MuXadrPath = adrMuxVisualizer.CurrentChosenMuxPath,
-            MuXsrcAPath = srcAmuxVisualizer.CurrentChosenMuxPath,
-            MuXsrcBPath = srcBmuxVisualizer.CurrentChosenMuxPath,
-            MuXresultPath = resultMuxVisualizer.CurrentChosenMuxPath,
+            MuXadrPath = _adrMux.SelectedInput,
+            MuXsrcAPath = _srcAMux.SelectedInput,
+            MuXsrcBPath = _srcBMux.SelectedInput,
+            MuXresultPath = _resultMux.SelectedInput,
         };
     }
 

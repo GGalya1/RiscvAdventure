@@ -208,9 +208,17 @@ public class OneTickRegisseur
     private readonly Alu _btaAlu = new();
     private readonly Extender _extender = new();
 
+    private readonly Multiplexer _adrMux = new();
+    private readonly Multiplexer _srcBMux = new();
+    private readonly Multiplexer _resultMux = new();
+
     protected override void OnLevelStart()
     {
         base.OnLevelStart();
+
+        adrMuxVisualizer.Bind(_adrMux);
+        srcBmuxVisualizer.Bind(_srcBMux);
+        resultMuxVisualizer.Bind(_resultMux);
 
         aluVisualizer.Bind(_alu);
         pcAluVisualizer.Bind(_pcAlu);
@@ -257,9 +265,9 @@ public class OneTickRegisseur
             _pcAlu.Operation,
             _btaAlu.Operation,
             _extender.Type,
-            srcBmuxVisualizer.CurrentChosenMuxPath,
-            resultMuxVisualizer.CurrentChosenMuxPath,
-            adrMuxVisualizer.CurrentChosenMuxPath,
+            _srcBMux.SelectedInput,
+            _resultMux.SelectedInput,
+            _adrMux.SelectedInput,
             _dataMemory);
 
         // Prepare sequential element inputs
@@ -305,9 +313,9 @@ public class OneTickRegisseur
 
             ExtenderOperation = _extender.Type,
 
-            MuXadrPath = adrMuxVisualizer.CurrentChosenMuxPath,
-            MuXsrcBPath = srcBmuxVisualizer.CurrentChosenMuxPath,
-            MuXresultPath = resultMuxVisualizer.CurrentChosenMuxPath
+            MuXadrPath = _adrMux.SelectedInput,
+            MuXsrcBPath = _srcBMux.SelectedInput,
+            MuXresultPath = _resultMux.SelectedInput
         };
     }
 
@@ -315,9 +323,9 @@ public class OneTickRegisseur
     {
         _pc.Reset(s.RegisterPCValue);
 
-        ApplyMuxState(s.MuXadrPath, adrMuxVisualizer);
-        ApplyMuxState(s.MuXsrcBPath, srcBmuxVisualizer);
-        ApplyMuxState(s.MuXresultPath, resultMuxVisualizer);
+        _adrMux.SelectedInput = s.MuXadrPath;
+        _srcBMux.SelectedInput = s.MuXsrcBPath;
+        _resultMux.SelectedInput = s.MuXresultPath;
 
         // restore in place: the memories are registered in the clock domain
         _instructionMemory.Clear();
@@ -363,9 +371,9 @@ public class OneTickRegisseur
             _pcAlu.Operation,
             _btaAlu.Operation,
             _extender.Type,
-            srcBmuxVisualizer.CurrentChosenMuxPath,
-            resultMuxVisualizer.CurrentChosenMuxPath,
-            adrMuxVisualizer.CurrentChosenMuxPath,
+            _srcBMux.SelectedInput,
+            _resultMux.SelectedInput,
+            _adrMux.SelectedInput,
             _dataMemory);
 
         yield return Bus.Play(BuildWaves(_pc.Output, sig));

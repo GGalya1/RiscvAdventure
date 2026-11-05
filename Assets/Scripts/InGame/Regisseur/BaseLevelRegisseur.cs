@@ -216,26 +216,9 @@ public abstract class BaseLevelRegisseur<TState, TBus> : MonoBehaviour
     }
 
     #region HISTORY METHODS
-    // Saved state of the given tick (0 = before the first tick)
+    /// <summary> Saved state of the given tick (0 = before the first tick). </summary>
     protected TState StateAt(int tick) => _history[tick];
 
     protected abstract void UpdateVisualizers();
     #endregion
-    
-    # region STATIC HELPER METHODS
-    
-    protected static void ApplyMuxState(int path, MultiplexerVisualizer mux)
-    {
-        switch (path)
-        {
-            case -1:
-                mux.ResetVisualisation();
-                break;
-            case >= 0 and <= 2:
-                mux.SelectPath(path);
-                break;
-        }
-    }
-    
-    # endregion
 }

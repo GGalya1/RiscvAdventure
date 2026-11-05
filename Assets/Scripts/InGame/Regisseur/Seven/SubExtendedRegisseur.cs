@@ -98,8 +98,11 @@ public class SubExtendedRegisseur : BaseLevelRegisseur<SubExtendedSevenLevelStat
     private readonly Alu _alu = new();
     private readonly Extender _extender = new();
 
+    private readonly Multiplexer _mux = new();
+
     protected override void OnLevelStart()
     {
+        muxVisualizer.Bind(_mux);
         aluVisualizer.Bind(_alu);
         extenderVisualizer.Bind(_extender);
 
@@ -143,7 +146,7 @@ public class SubExtendedRegisseur : BaseLevelRegisseur<SubExtendedSevenLevelStat
         _alu.Operation = s.AluOperation;
         _extender.Type = s.ExtenderOperation;
 
-        ApplyMuxState(s.MuxPath, muxVisualizer);
+        _mux.SelectedInput = s.MuxPath;
     }
 
     protected override void BlinkClockedComponents()
@@ -181,7 +184,7 @@ public class SubExtendedRegisseur : BaseLevelRegisseur<SubExtendedSevenLevelStat
 
             ExtenderOperation = _extender.Type,
 
-            MuxPath = muxVisualizer.CurrentChosenMuxPath,
+            MuxPath = _mux.SelectedInput,
         };
     }
 
@@ -205,7 +208,7 @@ public class SubExtendedRegisseur : BaseLevelRegisseur<SubExtendedSevenLevelStat
         if (_srcA.Output is > 0 and < 16)
             a = _registerFile.Registers[_srcA.Output];
         var ext = _extender.Extend(_immValue.Output);
-        var muxVal = Multiplexer.Select(muxVisualizer.CurrentChosenMuxPath, 0, ext, -1);
+        var muxVal = _mux.Route(0, ext, -1);
 
         _wd3.Input = _alu.Compute(a, muxVal);
 
@@ -224,7 +227,7 @@ public class SubExtendedRegisseur : BaseLevelRegisseur<SubExtendedSevenLevelStat
         if (_currentBus >= 1 && _currentBus <= maxTickNumber)
         {
             var ext = _extender.Extend(_immValue.Output);
-            var mux = Multiplexer.Select(0, ext, -1, muxVisualizer.CurrentChosenMuxPath);
+            var mux = Multiplexer.Select(0, ext, -1, _mux.SelectedInput);
 
             yield return Bus.WaveBack((buses.wd3RegToRegFile, _wd3.Input));
             yield return Bus.WaveBack((buses.aluToWd3Reg, _wd3.Input));
@@ -247,7 +250,7 @@ public class SubExtendedRegisseur : BaseLevelRegisseur<SubExtendedSevenLevelStat
         {
             var a = DisplayedRegister(_srcA.Output);
             var ext = _extender.Extend(_immValue.Output);
-            var mux = Multiplexer.Select(0, ext, -1, muxVisualizer.CurrentChosenMuxPath);
+            var mux = Multiplexer.Select(0, ext, -1, _mux.SelectedInput);
 
             yield return Bus.Wave(
                 (buses.srcAToRegFileA1, _srcA.Output), (buses.a3ToRegFileA3, _a3.Output), (buses.immToExtend, _immValue.Output));

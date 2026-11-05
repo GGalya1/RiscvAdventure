@@ -142,12 +142,13 @@ namespace RiscvAdventure.PlayModeTests
         public void SelectMux(string field, int path)
         {
             var mux = Visual<MultiplexerVisualizer>(field);
-            var button = ButtonAt(mux.UIController.WayButtons, path);
+            var button = ButtonAt(PanelOf<MultiplexerControlPanel>(mux, field).WayButtons, path);
             Assert.IsNotNull(button, Ctx($"'{field}' has no MUX input #{path}"));
 
             button.onClick.Invoke();
             Note($"{field}: MUX path {path}");
-            Assert.AreEqual(path, mux.CurrentChosenMuxPath, Ctx($"clicking MUX input #{path} of '{field}' had no effect"));
+            Assert.AreEqual(path, ModelOf<Multiplexer>(mux, field).SelectedInput,
+                Ctx($"clicking MUX input #{path} of '{field}' had no effect"));
         }
         
         public void ChooseAlu(string field, Op op)

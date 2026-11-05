@@ -59,8 +59,12 @@ public class LevelOneRegisseur : BaseLevelRegisseur<LevelOneState, LevelOneBusSe
     private Register _srcA;
     private Register _srcB;
 
+    private readonly Multiplexer _mux = new();
+
     protected override void OnLevelStart()
     {
+        multiplexerVisualizer.Bind(_mux);
+
         // Initialization of logical components
         _srcA = new Register(4);
         _srcB = new Register(2);
@@ -89,7 +93,7 @@ public class LevelOneRegisseur : BaseLevelRegisseur<LevelOneState, LevelOneBusSe
             RegisterAValue = _srcA.Output,
             RegisterBValue = _srcB.Output,
             OutputRegisterValue = _output.Output,
-            CurrentChosenMuxPath = multiplexerVisualizer.CurrentChosenMuxPath,
+            CurrentChosenMuxPath = _mux.SelectedInput,
             RegisterAwe = _srcA.WriteEnable,
             RegisterBwe = _srcB.WriteEnable,
             OutputRegisterWe = _output.WriteEnable
@@ -105,7 +109,7 @@ public class LevelOneRegisseur : BaseLevelRegisseur<LevelOneState, LevelOneBusSe
         _srcB.WriteEnable = s.RegisterBwe;
         _output.WriteEnable = s.OutputRegisterWe;
 
-        ApplyMuxState(s.CurrentChosenMuxPath, multiplexerVisualizer);
+        _mux.SelectedInput = s.CurrentChosenMuxPath;
     }
 
     protected override void UpdateVisualizers()
@@ -121,7 +125,7 @@ public class LevelOneRegisseur : BaseLevelRegisseur<LevelOneState, LevelOneBusSe
 
     protected override void HandleClockUpdate()
     {
-        var path = multiplexerVisualizer.CurrentChosenMuxPath;
+        var path = _mux.SelectedInput;
         var res = 0;
 
         switch (path)
@@ -157,9 +161,9 @@ public class LevelOneRegisseur : BaseLevelRegisseur<LevelOneState, LevelOneBusSe
         {
             yield return Bus.Wave((buses.srcAToMux, _srcA.Output), (buses.srcBToMux, _srcB.Output));
 
-            if (multiplexerVisualizer.CurrentChosenMuxPath != -1)
+            if (_mux.HasSelection)
             {
-                var propagationVal = multiplexerVisualizer.CurrentChosenMuxPath switch
+                var propagationVal = _mux.SelectedInput switch
                 {
                     0 => _srcA.Output,
                     1 => _srcB.Output,
@@ -177,7 +181,7 @@ public class LevelOneRegisseur : BaseLevelRegisseur<LevelOneState, LevelOneBusSe
     {
         if (_currentBus == 1)
         {
-            if (multiplexerVisualizer.CurrentChosenMuxPath == -1)
+            if (!_mux.HasSelection)
                 yield return Bus.WaveBack((buses.srcAToMux, 4), (buses.srcBToMux, 2));
             else
                 yield return Bus.WaveBack((buses.muxToOutput, _output.Input), (buses.srcAToMux, 4), (buses.srcBToMux, 2));

@@ -67,8 +67,11 @@ public class LevelFourthRegisseur : BaseLevelRegisseur<LevelThreeState, LevelFou
 
     private readonly Alu _alu = new();
 
+    private readonly Multiplexer _mux = new();
+
     protected override void OnLevelStart()
     {
+        multiplexerVisualizer.Bind(_mux);
         aluVisualizer.Bind(_alu);
 
         // Initialization of logical components
@@ -104,7 +107,7 @@ public class LevelFourthRegisseur : BaseLevelRegisseur<LevelThreeState, LevelFou
         _dataInstructionMemory.Address = _srcA.Output;
         _dataInstructionMemory.WriteData = _srcB.Output;
 
-        var p = multiplexerVisualizer.CurrentChosenMuxPath;
+        var p = _mux.SelectedInput;
         if (p == -1)
         {
             CustomLog.LogEditorError("MUX path is -1. No value will be propagated");
@@ -138,18 +141,18 @@ public class LevelFourthRegisseur : BaseLevelRegisseur<LevelThreeState, LevelFou
             yield return Bus.Wave((buses.srcBToExt, _srcB.Output), (buses.srcBToDataMemWd, _srcB.Output));
 
             var propagationVal = 0;
-            if (multiplexerVisualizer.CurrentChosenMuxPath == -1)
+            if (!_mux.HasSelection)
             {
                 yield return Bus.Wave((buses.constFourToAdder, 0));
             }
             else
             {
-                if (multiplexerVisualizer.CurrentChosenMuxPath == 0)
+                if (_mux.SelectedInput == 0)
                     propagationVal = _srcA.Output;
-                else if (multiplexerVisualizer.CurrentChosenMuxPath == 1)
+                else if (_mux.SelectedInput == 1)
                     propagationVal = _srcB.Output;
                 else
-                    CustomLog.LogEditorError($"Unexpected MUX path {multiplexerVisualizer.CurrentChosenMuxPath}");
+                    CustomLog.LogEditorError($"Unexpected MUX path {_mux.SelectedInput}");
 
                 yield return Bus.Wave((buses.muxToAdder, propagationVal), (buses.constFourToAdder, 4));
             }
@@ -167,9 +170,9 @@ public class LevelFourthRegisseur : BaseLevelRegisseur<LevelThreeState, LevelFou
         {
             var before = StateAt(TickCounter);
             var upperBusSignal = 0;
-            if (multiplexerVisualizer.CurrentChosenMuxPath == 0)
+            if (_mux.SelectedInput == 0)
                 upperBusSignal = before.RegisterPCValue;
-            else if (multiplexerVisualizer.CurrentChosenMuxPath == 1)
+            else if (_mux.SelectedInput == 1)
                 upperBusSignal = before.RegisterInstrValue;
 
             yield return Bus.WaveBack((buses.adderToSrcA, _srcA.Input));
@@ -199,7 +202,7 @@ public class LevelFourthRegisseur : BaseLevelRegisseur<LevelThreeState, LevelFou
             RegisterInstrWe = _srcB.WriteEnable,
             InstrDataMemoryWe = _dataInstructionMemory.WriteEnable,
 
-            CurrentChosenMuxPath = multiplexerVisualizer.CurrentChosenMuxPath,
+            CurrentChosenMuxPath = _mux.SelectedInput,
             AluOperation = _alu.Operation
         };
     }
@@ -215,7 +218,7 @@ public class LevelFourthRegisseur : BaseLevelRegisseur<LevelThreeState, LevelFou
         _srcB.WriteEnable = s.RegisterInstrWe;
         _dataInstructionMemory.WriteEnable = s.InstrDataMemoryWe;
 
-        ApplyMuxState(s.CurrentChosenMuxPath, multiplexerVisualizer);
+        _mux.SelectedInput = s.CurrentChosenMuxPath;
     }
 
     protected override void BlinkClockedComponents()
