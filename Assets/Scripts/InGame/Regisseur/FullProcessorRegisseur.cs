@@ -231,10 +231,7 @@ public class FullProcessorRegisseur
 
         _dataInstructionMemory = new DataInstMemory();
 
-        _dataInstructionMemory.LoadWord(0, Initial.firstMemoWord);
-        _dataInstructionMemory.LoadWord(4, Initial.secondMemoWord);
-        _dataInstructionMemory.LoadWord(8, Initial.thirdMemoWord);
-        _dataInstructionMemory.LoadWord(12, Initial.fourthMemoWord);
+        _dataInstructionMemory.LoadWords(Initial.firstMemoWord, Initial.secondMemoWord, Initial.thirdMemoWord, Initial.fourthMemoWord);
 
         // Caching of UI panels for visualizers
         _infoPCRegister = registerPCVisualizer.UIRegisterPanel;
@@ -279,10 +276,7 @@ public class FullProcessorRegisseur
         ApplyMuxState(s.MuXresultPath, resultMuxVisualizer);
         
         // WE for dataInstrMem ???
-        _dataInstructionMemory.LoadWord(0, s.FirstMemoryValue);
-        _dataInstructionMemory.LoadWord(4, s.SecondMemoryValue);
-        _dataInstructionMemory.LoadWord(8, s.ThirdMemoryValue);
-        _dataInstructionMemory.LoadWord(12, s.FourthMemoryValue);
+        _dataInstructionMemory.LoadWords(s.FirstMemoryValue, s.SecondMemoryValue, s.ThirdMemoryValue, s.FourthMemoryValue);
 
         // noch Register File einfuegen
         _registerFile.Load(s.RegisterFieldValue);
@@ -316,7 +310,7 @@ public class FullProcessorRegisseur
     }
 
     protected override bool CheckWinCondition() =>
-        ExerciseCheck.IsSolved(Initial, _registerFile.Registers, address => _dataInstructionMemory.Memory[address], _pc.Output);
+        ExerciseCheck.IsSolved(Initial, _registerFile.Registers, _dataInstructionMemory, _pc.Output);
 
     protected override ProcessorLevelState GetCurrentState()
     {
@@ -332,10 +326,10 @@ public class FullProcessorRegisseur
 
             RegisterFieldValue = (int[])_registerFile.Registers.Clone(),
 
-            FirstMemoryValue = _dataInstructionMemory.Memory[0],
-            SecondMemoryValue = _dataInstructionMemory.Memory[4],
-            ThirdMemoryValue = _dataInstructionMemory.Memory[8],
-            FourthMemoryValue = _dataInstructionMemory.Memory[12],
+            FirstMemoryValue = _dataInstructionMemory.Read(0),
+            SecondMemoryValue = _dataInstructionMemory.Read(4),
+            ThirdMemoryValue = _dataInstructionMemory.Read(8),
+            FourthMemoryValue = _dataInstructionMemory.Read(12),
 
             RegisterPCwe = _pc.WriteEnable,
             RegisterOldPCwe = _oldPC.WriteEnable,
@@ -375,16 +369,8 @@ public class FullProcessorRegisseur
 
         #region first step (memory)
         var tmpAddress = sig.AdrMuxOut;
-        if (_dataInstructionMemory.Memory.ContainsKey(tmpAddress))
-        {
-            _instructionReg.Input = _dataInstructionMemory.Memory[tmpAddress];
-            _dataReg.Input = _dataInstructionMemory.Memory[tmpAddress];
-        }
-        else
-        {
-            _instructionReg.Input = 0;
-            _dataReg.Input = 0;
-        }
+        _instructionReg.Input = _dataInstructionMemory.Read(tmpAddress);
+        _dataReg.Input = _dataInstructionMemory.Read(tmpAddress);
 
         _oldPC.Input = _pc.Output;
 
@@ -416,8 +402,8 @@ public class FullProcessorRegisseur
         #region fourth step (WB)
         
         /*if (TickCounter - 2 >= 0) {
-            _registerFile.WriteAdress = ((TickStateValues[TickCounter - 2].RegisterInstrValue >> 7) & 0x1F);
-            // _registerFile.WriteData = TickStateValues[TickCounter - 2].RegisterInstrValue;
+            _registerFile.WriteAddress = ((StateAt(TickCounter - 2).RegisterInstrValue >> 7) & 0x1F);
+            // _registerFile.WriteData = StateAt(TickCounter - 2).RegisterInstrValue;
         }*/
         
         _registerFile.WriteAddress = (_instructionReg.Output >> 7) & 0x1F;
@@ -491,7 +477,7 @@ public class FullProcessorRegisseur
 
         yield return Bus.Wave((buses.pcToAdrMux, pc), (buses.pcToOldPcReg, pc), (buses.pcToPcAdder, pc));
         yield return Bus.Wave((buses.adrMuxToMem, sig.AdrMuxOut));
-        yield return Bus.Wave((buses.memToInstrReg, _dataInstructionMemory.Memory.GetValueOrDefault(sig.AdrMuxOut, 0)));
+        yield return Bus.Wave((buses.memToInstrReg, _dataInstructionMemory.Read(sig.AdrMuxOut)));
         yield return Bus.Wave((buses.constFourToPcAdder, 4));
         yield return Bus.Wave((buses.srcAMuxToSrcAReg, sig.SrcAMuxOut), (buses.srcBMuxToSrcBReg, sig.SrcBMuxOut));
         yield return Bus.Wave((buses.aluToAluOutReg, sig.AluResult));
@@ -580,10 +566,10 @@ public class FullProcessorRegisseur
         _infoAluOutRegister.Display("ALU Out Register", _aluOutReg.Output);
 
         memoryVisualizer.UIRegisterPanel.Display(
-            RiscVDecoder.CommandBuilder((uint)_dataInstructionMemory.Memory[0]),
-            RiscVDecoder.CommandBuilder((uint)_dataInstructionMemory.Memory[4]),
-            RiscVDecoder.CommandBuilder((uint)_dataInstructionMemory.Memory[8]),
-            RiscVDecoder.CommandBuilder((uint)_dataInstructionMemory.Memory[12])
+            RiscVDecoder.CommandBuilder((uint)_dataInstructionMemory.Read(0)),
+            RiscVDecoder.CommandBuilder((uint)_dataInstructionMemory.Read(4)),
+            RiscVDecoder.CommandBuilder((uint)_dataInstructionMemory.Read(8)),
+            RiscVDecoder.CommandBuilder((uint)_dataInstructionMemory.Read(12))
         );
         registerFileVisualizer.UIRegisterPanel.Display(_registerFile.Registers);
 
@@ -605,8 +591,8 @@ public class FullProcessorRegisseur
     /*private void UpdateSidePanel() {
         var containsKey = _pc.Output % 4 == 0 
                           && _pc.Output is <= 12 and >= 0
-                          && _dataInstructionMemory.Memory.ContainsKey(_pc.Output)
-                          && _dataInstructionMemory.Memory[_pc.Output] > GameConstants.MinValidInstruction;
+                          && _dataInstructionMemory.Contains(_pc.Output)
+                          && _dataInstructionMemory.Read(_pc.Output) > GameConstants.MinValidInstruction;
         if (containsKey)
         {
             sidePanelInformer.SetStateInfo(StateName.FETCH);
@@ -616,7 +602,7 @@ public class FullProcessorRegisseur
             sidePanelInformer.SetStateInfo(StateName.DECODE);
         }
         else if (TickCounter - 2 >= 0) {
-            var s = TickStateValues[TickCounter - 1];
+            var s = StateAt(TickCounter - 1);
 
             if (s.RegisterInstrValue < GameConstants.MinValidInstruction) return;
             var opcode = s.RegisterInstrValue & 0x7F;
@@ -644,7 +630,7 @@ public class FullProcessorRegisseur
         }
         else if (TickCounter - 3 >= 0)
         {
-            var s = TickStateValues[TickCounter - 2];
+            var s = StateAt(TickCounter - 2);
 
             if (s.RegisterInstrValue < GameConstants.MinValidInstruction) return;
             var opcode = s.RegisterInstrValue & 0x7F;
@@ -669,8 +655,8 @@ public class FullProcessorRegisseur
         }
         else if (TickCounter - 4 >= 0)
         {
-            if (TickStateValues[TickCounter - 3].RegisterInstrValue < GameConstants.MinValidInstruction) return;
-            var opcode = TickStateValues[TickCounter - 3].RegisterInstrValue & 0x7F;
+            if (StateAt(TickCounter - 3).RegisterInstrValue < GameConstants.MinValidInstruction) return;
+            var opcode = StateAt(TickCounter - 3).RegisterInstrValue & 0x7F;
 
             if (opcode == 0x03)
             {
@@ -692,8 +678,8 @@ public class FullProcessorRegisseur
         {
             var hasFetch = _pc.Output % 4 == 0
                            && _pc.Output is >= 0 and <= 12
-                           && _dataInstructionMemory.Memory.ContainsKey(_pc.Output)
-                           && _dataInstructionMemory.Memory[_pc.Output] > GameConstants.MinValidInstruction;
+                           && _dataInstructionMemory.Contains(_pc.Output)
+                           && _dataInstructionMemory.Read(_pc.Output) > GameConstants.MinValidInstruction;
             sidePanelInformer.SetStateInfo(hasFetch ? StateName.FETCH : StateName.UNKNOWN);
             return;
         }

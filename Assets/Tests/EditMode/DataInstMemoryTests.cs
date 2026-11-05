@@ -51,7 +51,7 @@ public class DataInstMemoryTests
 
         memory.Clock();
 
-        Assert.AreEqual(42, memory.Memory[8]);
+        Assert.AreEqual(42, memory.Read(8));
     }
 
     [Test]
@@ -61,7 +61,7 @@ public class DataInstMemoryTests
 
         memory.Clock();
 
-        Assert.IsFalse(memory.Memory.ContainsKey(8));
+        Assert.IsFalse(memory.Contains(8));
     }
 
     [Test]
@@ -108,5 +108,42 @@ public class DataInstMemoryTests
         memory.PreClockUpdate();
 
         Assert.AreEqual(0, memory.ReadData);
+    }
+
+    [Test]
+    public void Read_UnwrittenAddress_ReturnsZero()
+    {
+        var memory = new DataInstMemory();
+
+        Assert.AreEqual(0, memory.Read(12));
+        Assert.IsFalse(memory.Contains(12));
+    }
+
+    [Test]
+    public void LoadWords_PlacesWordsAtConsecutiveWordAddresses()
+    {
+        var memory = new DataInstMemory();
+
+        memory.LoadWords(1, 2, 3);
+
+        Assert.AreEqual(1, memory.Read(0));
+        Assert.AreEqual(2, memory.Read(4));
+        Assert.AreEqual(3, memory.Read(8));
+        Assert.IsFalse(memory.Contains(12));
+    }
+
+    [Test]
+    public void Read_IsCombinational_AndDoesNotChangeReadData()
+    {
+        var memory = new DataInstMemory();
+        memory.LoadWord(0, 5);
+        memory.LoadWord(4, 6);
+        memory.Address = 0;
+        memory.PreClockUpdate();
+
+        var other = memory.Read(4);
+
+        Assert.AreEqual(6, other);
+        Assert.AreEqual(5, memory.ReadData);
     }
 }

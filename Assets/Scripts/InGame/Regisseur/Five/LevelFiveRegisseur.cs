@@ -102,19 +102,20 @@ public class LevelFiveRegisseur : BaseLevelRegisseur<LevelFiveState, LevelFiveBu
 
         _dataInstructionMemory = new DataInstMemory();
 
-        _dataInstructionMemory.LoadWord(0, 1048576239); // J-Typ (1000)
-        _dataInstructionMemory.LoadWord(4, 4314211); // B-Typ (16)
-        _dataInstructionMemory.LoadWord(8, 7603235); // S-Typ (8)
-        _dataInstructionMemory.LoadWord(12, 4301059); // I-Typ (4)
+        _dataInstructionMemory.LoadWords(
+            1048576239,  // J-type (1000)
+            4314211,     // B-type (16)
+            7603235,     // S-type (8)
+            4301059);    // I-type (4)
 
         // Caching of UI panels for visualizers
         _infoSrcARegister = registerSrcAVisualizer.UIRegisterPanel;
         _infoSrcBRegister = registerSrcBVisualizer.UIRegisterPanel;
         _infoOutputRegister = registerOutputVisualizer.UIRegisterPanel;
 
-        memoryVisualizer.UIRegisterPanel.Display(_dataInstructionMemory.Memory[0],
-            _dataInstructionMemory.Memory[4], _dataInstructionMemory.Memory[8],
-            _dataInstructionMemory.Memory[12]);
+        memoryVisualizer.UIRegisterPanel.Display(_dataInstructionMemory.Read(0),
+            _dataInstructionMemory.Read(4), _dataInstructionMemory.Read(8),
+            _dataInstructionMemory.Read(12));
         UpdateVisualizers();
     }
 
@@ -126,7 +127,7 @@ public class LevelFiveRegisseur : BaseLevelRegisseur<LevelFiveState, LevelFiveBu
 
             yield return Bus.Wave((buses.pcToMemAddr, pc), (buses.pcToBtaAdder, pc), (buses.constFourToAdder, 4));
             yield return Bus.Wave(
-                (buses.memDataToInstrReg, _dataInstructionMemory.Memory.GetValueOrDefault(pc, 0)),
+                (buses.memDataToInstrReg, _dataInstructionMemory.Read(pc)),
                 (buses.adderToSrcB, Alu.Calculate(pc, 4, aluVisualizer.CurrentAluOperation)));
             yield return Bus.Wave((buses.instrRegToExtend, _srcB.Output));
             yield return Bus.Wave((buses.extendToMux, Extender.Evaluate(extenderVisualizer.CurrentAluOperation, (uint)_srcB.Output)));
@@ -159,7 +160,7 @@ public class LevelFiveRegisseur : BaseLevelRegisseur<LevelFiveState, LevelFiveBu
         _dataInstructionMemory.WriteEnable = registerOutputVisualizer.isWriteEnabled;
 
         // implementation
-        _srcB.Input = _dataInstructionMemory.Memory.GetValueOrDefault(_srcA.Output, 0);
+        _srcB.Input = _dataInstructionMemory.Read(_srcA.Output);
 
         _srcA.Input = Alu.Calculate(_srcA.Output, 4, aluVisualizer.CurrentAluOperation);
 
@@ -202,10 +203,10 @@ public class LevelFiveRegisseur : BaseLevelRegisseur<LevelFiveState, LevelFiveBu
             RegisterInstrValue = _srcB.Output,
             RegisterOutputValue = _output.Output,
 
-            FirstMemoryValue = _dataInstructionMemory.Memory[0],
-            SecondMemoryValue = _dataInstructionMemory.Memory[4],
-            ThirdMemoryValue = _dataInstructionMemory.Memory[8],
-            FourthMemoryValue = _dataInstructionMemory.Memory[12],
+            FirstMemoryValue = _dataInstructionMemory.Read(0),
+            SecondMemoryValue = _dataInstructionMemory.Read(4),
+            ThirdMemoryValue = _dataInstructionMemory.Read(8),
+            FourthMemoryValue = _dataInstructionMemory.Read(12),
 
             RegisterPCwe = _srcA.WriteEnable,
             RegisterInstrWe = _srcB.WriteEnable,
@@ -224,10 +225,7 @@ public class LevelFiveRegisseur : BaseLevelRegisseur<LevelFiveState, LevelFiveBu
         _srcB.Reset(s.RegisterInstrValue);
         _output.Reset(s.RegisterOutputValue);
 
-        _dataInstructionMemory.LoadWord(0, s.FirstMemoryValue);
-        _dataInstructionMemory.LoadWord(4, s.SecondMemoryValue);
-        _dataInstructionMemory.LoadWord(8, s.ThirdMemoryValue);
-        _dataInstructionMemory.LoadWord(12, s.FourthMemoryValue);
+        _dataInstructionMemory.LoadWords(s.FirstMemoryValue, s.SecondMemoryValue, s.ThirdMemoryValue, s.FourthMemoryValue);
 
         _srcA.WriteEnable = s.RegisterPCwe;
         _srcB.WriteEnable = s.RegisterInstrWe;
@@ -271,10 +269,10 @@ public class LevelFiveRegisseur : BaseLevelRegisseur<LevelFiveState, LevelFiveBu
 
 
         memoryVisualizer.UIRegisterPanel.Display(
-            RiscVDecoder.CommandBuilder((uint)_dataInstructionMemory.Memory[0]),
-            RiscVDecoder.CommandBuilder((uint)_dataInstructionMemory.Memory[4]),
-            RiscVDecoder.CommandBuilder((uint)_dataInstructionMemory.Memory[8]),
-            RiscVDecoder.CommandBuilder((uint)_dataInstructionMemory.Memory[12])
+            RiscVDecoder.CommandBuilder((uint)_dataInstructionMemory.Read(0)),
+            RiscVDecoder.CommandBuilder((uint)_dataInstructionMemory.Read(4)),
+            RiscVDecoder.CommandBuilder((uint)_dataInstructionMemory.Read(8)),
+            RiscVDecoder.CommandBuilder((uint)_dataInstructionMemory.Read(12))
         );
         memoryVisualizer.ForceUpdateWriteEnableVisualization(_dataInstructionMemory.WriteEnable);
     }

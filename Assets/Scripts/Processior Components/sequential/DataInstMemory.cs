@@ -1,7 +1,20 @@
 using System.Collections.Generic;
 
-public class DataInstMemory : ISequentialLogic
+// Anything a word can be read from: the live memory or a saved snapshot of it
+public interface IReadableMemory
 {
+    // Word at address, or 0 if nothing is stored there
+    int Read(int address);
+}
+
+/// <summary>
+/// Word-addressed instruction/data memory (A, WD, WE inputs; RD output).
+/// <br/>Reading is combinational (<see cref="Read"/>), writing happens on the clock edge.
+/// </summary>
+public class DataInstMemory : ISequentialLogic, IReadableMemory
+{
+    public const int WordSize = 4;
+
     #region INPUTS
     // WE
     public bool WriteEnable { get; set; }
@@ -18,27 +31,41 @@ public class DataInstMemory : ISequentialLogic
     public int ReadData { get; private set; }
     #endregion
 
-    // all information is stored as a pair (adress - object). For Objects stays instructions and data
-    public readonly Dictionary<int, int> Memory = new();
+    // address -> word (instructions and data)
+    private readonly Dictionary<int, int> _words = new();
 
     public DataInstMemory(bool writeEnable = true)
     {
         WriteEnable = writeEnable;
     }
 
-    public void LoadWord(int address, int data) { 
-        Memory[address] = data;
+    public void LoadWord(int address, int data)
+    {
+        _words[address] = data;
     }
+
+    // Loads consecutive words starting at address 0 (0, 4, 8, 12)
+    public void LoadWords(params int[] words)
+    {
+        for (var i = 0; i < words.Length; i++)
+            LoadWord(i * WordSize, words[i]);
+    }
+
+    public int Read(int address) => _words.TryGetValue(address, out var word) ? word : 0;
+
+    public bool Contains(int address) => _words.ContainsKey(address);
 
     #region Sequential logic
     public void PreClockUpdate()
     {
-        ReadData = Memory.GetValueOrDefault(Address, 0);
+        ReadData = Read(Address);
     }
 
-    public void Clock() {
-        if (WriteEnable) {
-            Memory[Address] = WriteData;
+    public void Clock()
+    {
+        if (WriteEnable)
+        {
+            _words[Address] = WriteData;
         }
     }
     #endregion

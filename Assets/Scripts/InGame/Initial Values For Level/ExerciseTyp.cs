@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 
 /// <summary> What the player has to achieve in a processor sub-level. Serialized as int in the level assets. </summary>
@@ -13,10 +12,10 @@ public enum ExerciseTyp
 public static class ExerciseCheck
 {
     /// <summary> Checks the processor state against the answer stored in <paramref name="level"/>. </summary>
-    public static bool IsSolved(BaseProcessorInitialState level, IReadOnlyList<int> registers, Func<int, int> readMemory, int pc)
+    public static bool IsSolved(BaseProcessorInitialState level, IReadOnlyList<int> registers, IReadableMemory memory, int pc)
     {
         bool RegisterCorrect() => registers[level.registerFieldAddressAnswer] == level.registerFieldValueAnswer;
-        bool MemoryCorrect() => readMemory(level.memoryAddressAnswer) == level.memoryValueAnswer;
+        bool MemoryCorrect() => memory.Read(level.memoryAddressAnswer) == level.memoryValueAnswer;
         bool PcCorrect() => pc == level.pcValueAnswer;
 
         return level.aufgabeTyp switch

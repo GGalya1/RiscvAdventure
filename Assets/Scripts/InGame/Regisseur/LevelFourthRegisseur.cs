@@ -71,10 +71,7 @@ public class LevelFourthRegisseur : BaseLevelRegisseur<LevelThreeState, LevelFou
         _srcA = new Register();
         _srcB = new Register(8);
         _dataInstructionMemory = new DataInstMemory();
-        _dataInstructionMemory.LoadWord(0, 0);
-        _dataInstructionMemory.LoadWord(4, 3);
-        _dataInstructionMemory.LoadWord(8, -256);
-        _dataInstructionMemory.LoadWord(12, -1024);
+        _dataInstructionMemory.LoadWords(0, 3, -256, -1024);
 
         // Caching of UI panels for visualizers
         _infoSrcA = registerSrcAVisualizer.UIRegisterPanel;
@@ -85,7 +82,7 @@ public class LevelFourthRegisseur : BaseLevelRegisseur<LevelThreeState, LevelFou
 
     protected override bool CheckWinCondition()
     {
-        return _dataInstructionMemory.Memory[0] < _dataInstructionMemory.Memory[correctAnswer];
+        return _dataInstructionMemory.Read(0) < _dataInstructionMemory.Read(correctAnswer);
     }
 
     protected override void HandleClockUpdate()
@@ -96,7 +93,7 @@ public class LevelFourthRegisseur : BaseLevelRegisseur<LevelThreeState, LevelFou
         _dataInstructionMemory.WriteEnable = registerOutputVisualizer.isWriteEnabled;
 
         // implementation
-        _srcB.Input = _dataInstructionMemory.Memory.GetValueOrDefault(_srcA.Output, 0);
+        _srcB.Input = _dataInstructionMemory.Read(_srcA.Output);
 
         _dataInstructionMemory.Address = _srcA.Output;
         _dataInstructionMemory.WriteData = _srcB.Output;
@@ -140,7 +137,7 @@ public class LevelFourthRegisseur : BaseLevelRegisseur<LevelThreeState, LevelFou
             var pc = _srcA.Output;
 
             yield return Bus.Wave((buses.pcToMemAddr, pc), (buses.pcToAdrMux, pc));
-            yield return Bus.Wave((buses.memDataToSrcB, _dataInstructionMemory.Memory.GetValueOrDefault(pc, 0)));
+            yield return Bus.Wave((buses.memDataToSrcB, _dataInstructionMemory.Read(pc)));
             yield return Bus.Wave((buses.srcBToExt, _srcB.Output), (buses.srcBToDataMemWd, _srcB.Output));
 
             var propagationVal = 0;
@@ -196,10 +193,10 @@ public class LevelFourthRegisseur : BaseLevelRegisseur<LevelThreeState, LevelFou
             RegisterPCValue = _srcA.Output,
             RegisterInstrValue = _srcB.Output,
 
-            FirstMemoryValue = _dataInstructionMemory.Memory[0],
-            SecondMemoryValue = _dataInstructionMemory.Memory[4],
-            ThirdMemoryValue = _dataInstructionMemory.Memory[8],
-            FourthMemoryValue = _dataInstructionMemory.Memory[12],
+            FirstMemoryValue = _dataInstructionMemory.Read(0),
+            SecondMemoryValue = _dataInstructionMemory.Read(4),
+            ThirdMemoryValue = _dataInstructionMemory.Read(8),
+            FourthMemoryValue = _dataInstructionMemory.Read(12),
 
             RegisterPcwe = _srcA.WriteEnable,
             RegisterInstrWe = _srcB.WriteEnable,
@@ -215,10 +212,7 @@ public class LevelFourthRegisseur : BaseLevelRegisseur<LevelThreeState, LevelFou
         _srcA.Reset(s.RegisterPCValue);
         _srcB.Reset(s.RegisterInstrValue);
 
-        _dataInstructionMemory.LoadWord(0, s.FirstMemoryValue);
-        _dataInstructionMemory.LoadWord(4, s.SecondMemoryValue);
-        _dataInstructionMemory.LoadWord(8, s.ThirdMemoryValue);
-        _dataInstructionMemory.LoadWord(12, s.FourthMemoryValue);
+        _dataInstructionMemory.LoadWords(s.FirstMemoryValue, s.SecondMemoryValue, s.ThirdMemoryValue, s.FourthMemoryValue);
 
         _srcA.WriteEnable = s.RegisterPcwe;
         _srcB.WriteEnable = s.RegisterInstrWe;
@@ -240,10 +234,10 @@ public class LevelFourthRegisseur : BaseLevelRegisseur<LevelThreeState, LevelFou
         _infoSrcA.Display("Register 1", _srcA.Output);
         _infoSrcB.Display("Register 2", _srcB.Output);
         registerOutputVisualizer.UIRegisterPanel.Display(
-            _dataInstructionMemory.Memory[0],
-            _dataInstructionMemory.Memory[4],
-            _dataInstructionMemory.Memory[8],
-            _dataInstructionMemory.Memory[12]
+            _dataInstructionMemory.Read(0),
+            _dataInstructionMemory.Read(4),
+            _dataInstructionMemory.Read(8),
+            _dataInstructionMemory.Read(12)
         );
 
         registerSrcAVisualizer.ForceUpdateWriteEnableVisualization(_srcA.WriteEnable);

@@ -97,10 +97,7 @@ public class LevelThirdRegisseur : BaseLevelRegisseur<LevelThreeState, LevelThir
         _srcA = new Register(srcAValue);
         _srcB = new Register(srcBValue);
         _dataInstructionMemory = new DataInstMemory();
-        _dataInstructionMemory.LoadWord(0, 256);
-        _dataInstructionMemory.LoadWord(4, 128);
-        _dataInstructionMemory.LoadWord(8, -89);
-        _dataInstructionMemory.LoadWord(12, 66);
+        _dataInstructionMemory.LoadWords(256, 128, -89, 66);
 
         // Caching of UI panels for visualizers
         _infoSrcARegister = registerSrcAVisualizer.UIRegisterPanel;
@@ -115,10 +112,7 @@ public class LevelThirdRegisseur : BaseLevelRegisseur<LevelThreeState, LevelThir
         _srcB.Reset(s.RegisterInstrValue);
         
         _dataInstructionMemory.WriteEnable = s.InstrDataMemoryWe;
-        _dataInstructionMemory.LoadWord(0, s.FirstMemoryValue);
-        _dataInstructionMemory.LoadWord(4, s.SecondMemoryValue);
-        _dataInstructionMemory.LoadWord(8, s.ThirdMemoryValue);
-        _dataInstructionMemory.LoadWord(12, s.FourthMemoryValue);
+        _dataInstructionMemory.LoadWords(s.FirstMemoryValue, s.SecondMemoryValue, s.ThirdMemoryValue, s.FourthMemoryValue);
 
         _srcA.WriteEnable = s.RegisterPcwe;
         _srcB.WriteEnable = s.RegisterInstrWe;
@@ -146,10 +140,10 @@ public class LevelThirdRegisseur : BaseLevelRegisseur<LevelThreeState, LevelThir
             RegisterPCValue = _srcA.Output,
             RegisterInstrValue = _srcB.Output,
 
-            FirstMemoryValue = _dataInstructionMemory.Memory[0],
-            SecondMemoryValue = _dataInstructionMemory.Memory[4],
-            ThirdMemoryValue = _dataInstructionMemory.Memory[8],
-            FourthMemoryValue = _dataInstructionMemory.Memory[12],
+            FirstMemoryValue = _dataInstructionMemory.Read(0),
+            SecondMemoryValue = _dataInstructionMemory.Read(4),
+            ThirdMemoryValue = _dataInstructionMemory.Read(8),
+            FourthMemoryValue = _dataInstructionMemory.Read(12),
 
             RegisterPcwe = _srcA.WriteEnable,
             RegisterInstrWe = _srcB.WriteEnable,
@@ -168,7 +162,7 @@ public class LevelThirdRegisseur : BaseLevelRegisseur<LevelThreeState, LevelThir
         _dataInstructionMemory.WriteEnable = registerOutputVisualizer.isWriteEnabled;
 
         // implementation
-        _srcB.Input = _dataInstructionMemory.Memory.GetValueOrDefault(_srcA.Output, 0);
+        _srcB.Input = _dataInstructionMemory.Read(_srcA.Output);
 
 
         var p = multiplexerVisualizer.CurrentChosenMuxPath;
@@ -230,7 +224,7 @@ public class LevelThirdRegisseur : BaseLevelRegisseur<LevelThreeState, LevelThir
             var pc = _srcA.Output;
 
             yield return Bus.Wave((buses.pcToMemAddr, pc), (buses.pcToAdrMux, pc));
-            yield return Bus.Wave((buses.memDataToSrcB, _dataInstructionMemory.Memory.GetValueOrDefault(pc, 0)));
+            yield return Bus.Wave((buses.memDataToSrcB, _dataInstructionMemory.Read(pc)));
             yield return Bus.Wave((buses.srcBToExt, _srcB.Output));
 
             var propagationVal = 0;
@@ -261,9 +255,9 @@ public class LevelThirdRegisseur : BaseLevelRegisseur<LevelThreeState, LevelThir
     {
         _infoSrcARegister.Display("Register 1", _srcA.Output);
         _infoSrcBRegister.Display("Register 2", _srcB.Output);
-        registerOutputVisualizer.UIRegisterPanel.Display(_dataInstructionMemory.Memory[0],
-            _dataInstructionMemory.Memory[4], _dataInstructionMemory.Memory[8],
-            _dataInstructionMemory.Memory[12]);
+        registerOutputVisualizer.UIRegisterPanel.Display(_dataInstructionMemory.Read(0),
+            _dataInstructionMemory.Read(4), _dataInstructionMemory.Read(8),
+            _dataInstructionMemory.Read(12));
 
         registerSrcAVisualizer.ForceUpdateWriteEnableVisualization(_srcA.WriteEnable);
         registerSrcBVisualizer.ForceUpdateWriteEnableVisualization(_srcB.WriteEnable);

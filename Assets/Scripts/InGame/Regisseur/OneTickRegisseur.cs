@@ -210,16 +210,10 @@ public class OneTickRegisseur
         _pc = new Register(Initial.pcRegisterInitialValue);
 
         _instructionMemory = new DataInstMemory(writeEnable: false);
-        _instructionMemory.LoadWord(0, Initial.firstInstructionWord);
-        _instructionMemory.LoadWord(4, Initial.secondInstructionWord);
-        _instructionMemory.LoadWord(8, Initial.thirdInstructionWord);
-        _instructionMemory.LoadWord(12, Initial.fourthInstructionWord);
+        _instructionMemory.LoadWords(Initial.firstInstructionWord, Initial.secondInstructionWord, Initial.thirdInstructionWord, Initial.fourthInstructionWord);
 
         _dataMemory = new DataInstMemory(writeEnable: false);
-        _dataMemory.LoadWord(0, Initial.firstDataWord);
-        _dataMemory.LoadWord(4, Initial.secondDataWord);
-        _dataMemory.LoadWord(8, Initial.thirdDataWord);
-        _dataMemory.LoadWord(12, Initial.fourthDataWord);
+        _dataMemory.LoadWords(Initial.firstDataWord, Initial.secondDataWord, Initial.thirdDataWord, Initial.fourthDataWord);
 
         _registerFile = new RegisterFile(new[]
         {
@@ -243,7 +237,7 @@ public class OneTickRegisseur
         // synchronize visualizers and concrete objects
         _pc.WriteEnable = registerPCVisualizer.isWriteEnabled;
         // instruction memory is not tickted
-        // _instructionMemory.MemoryWrite = instructionMemoryVisualizer.isWriteEnabled;
+        // _instructionMemory.WriteEnable = instructionMemoryVisualizer.isWriteEnabled;
         _dataMemory.WriteEnable = dataMemoryVisualizer.isWriteEnabled;
         _registerFile.WriteEnable = registerFileVisualizer.isWriteEnabled;
 
@@ -260,7 +254,7 @@ public class OneTickRegisseur
             srcBmuxVisualizer.CurrentChosenMuxPath,
             resultMuxVisualizer.CurrentChosenMuxPath,
             adrMuxVisualizer.CurrentChosenMuxPath,
-            _dataMemory.Memory);
+            _dataMemory);
 
         // Prepare sequential element inputs
         _registerFile.ReadAddress1 = sig.Rs1;
@@ -291,15 +285,15 @@ public class OneTickRegisseur
 
             RegisterFieldValue = (int[])_registerFile.Registers.Clone(),
 
-            FirstInstructionMemory = _instructionMemory.Memory[0],
-            SecondInstructionMemory = _instructionMemory.Memory[4],
-            ThirdInstructionMemory = _instructionMemory.Memory[8],
-            FourthInstructionMemory = _instructionMemory.Memory[12],
+            FirstInstructionMemory = _instructionMemory.Read(0),
+            SecondInstructionMemory = _instructionMemory.Read(4),
+            ThirdInstructionMemory = _instructionMemory.Read(8),
+            FourthInstructionMemory = _instructionMemory.Read(12),
 
-            FirstDataMemory = _dataMemory.Memory[0],
-            SecondDataMemory = _dataMemory.Memory[4],
-            ThirdDataMemory = _dataMemory.Memory[8],
-            FourthDataMemory = _dataMemory.Memory[12],
+            FirstDataMemory = _dataMemory.Read(0),
+            SecondDataMemory = _dataMemory.Read(4),
+            ThirdDataMemory = _dataMemory.Read(8),
+            FourthDataMemory = _dataMemory.Read(12),
 
             RegisterPCwe = _pc.WriteEnable,
             DataMemoryWrite           = _dataMemory.WriteEnable,
@@ -326,27 +320,12 @@ public class OneTickRegisseur
         ApplyMuxState(s.MuXsrcBPath, srcBmuxVisualizer);
         ApplyMuxState(s.MuXresultPath, resultMuxVisualizer);
 
-        _instructionMemory = new DataInstMemory(writeEnable: false)
-        {
-            Memory =
-            {
-                [0] = s.FirstInstructionMemory,
-                [4] = s.SecondInstructionMemory,
-                [8] = s.ThirdInstructionMemory,
-                [12] = s.FourthInstructionMemory
-            }
-        };
-        _dataMemory = new DataInstMemory
-        {
-            WriteEnable = s.DataMemoryWrite,
-            Memory =
-            {
-                [0] = s.FirstDataMemory,
-                [4] = s.SecondDataMemory,
-                [8] = s.ThirdDataMemory,
-                [12] = s.FourthDataMemory
-            }
-        };
+        _instructionMemory = new DataInstMemory(writeEnable: false);
+        _instructionMemory.LoadWords(
+            s.FirstInstructionMemory, s.SecondInstructionMemory, s.ThirdInstructionMemory, s.FourthInstructionMemory);
+
+        _dataMemory = new DataInstMemory(s.DataMemoryWrite);
+        _dataMemory.LoadWords(s.FirstDataMemory, s.SecondDataMemory, s.ThirdDataMemory, s.FourthDataMemory);
 
         // noch Register File einfuegen
         _registerFile.Load(s.RegisterFieldValue);
@@ -385,7 +364,7 @@ public class OneTickRegisseur
             srcBmuxVisualizer.CurrentChosenMuxPath,
             resultMuxVisualizer.CurrentChosenMuxPath,
             adrMuxVisualizer.CurrentChosenMuxPath,
-            _dataMemory.Memory);
+            _dataMemory);
 
         yield return Bus.Play(BuildWaves(_pc.Output, sig));
     }
@@ -395,14 +374,9 @@ public class OneTickRegisseur
         // Reconstruct the bus values that were flowing during the tick we're undoing
         var s = StateAt(TickCounter); // pre-tick state (TickCounter already --)
 
-        // Rebuild data memory dictionary from saved state to get the correct ReadData
-        var savedDataMem = new Dictionary<int, int>
-        {
-            [0] = s.FirstDataMemory,
-            [4] = s.SecondDataMemory,
-            [8] = s.ThirdDataMemory,
-            [12] = s.FourthDataMemory
-        };
+        // Rebuild data memory from saved state to get the correct ReadData
+        var savedDataMem = new DataInstMemory();
+        savedDataMem.LoadWords(s.FirstDataMemory, s.SecondDataMemory, s.ThirdDataMemory, s.FourthDataMemory);
 
         var sig = ComputeSignals(
             s.RegisterPCValue, s.RegisterFieldValue,
@@ -454,7 +428,7 @@ public class OneTickRegisseur
     }
 
     protected override bool CheckWinCondition() =>
-        ExerciseCheck.IsSolved(Initial, _registerFile.Registers, address => _dataMemory.Memory.GetValueOrDefault(address, 0), _pc.Output);
+        ExerciseCheck.IsSolved(Initial, _registerFile.Registers, _dataMemory, _pc.Output);
 
     protected override void UpdateVisualizers()
     {
@@ -462,16 +436,16 @@ public class OneTickRegisseur
         registerPCVisualizer.ForceUpdateWriteEnableVisualization(_pc.WriteEnable);
 
         instructionMemoryVisualizer.UIRegisterPanel.Display(
-            RiscVDecoder.CommandBuilder((uint)_instructionMemory.Memory[0]),
-            RiscVDecoder.CommandBuilder((uint)_instructionMemory.Memory[4]),
-            RiscVDecoder.CommandBuilder((uint)_instructionMemory.Memory[8]),
-            RiscVDecoder.CommandBuilder((uint)_instructionMemory.Memory[12])
+            RiscVDecoder.CommandBuilder((uint)_instructionMemory.Read(0)),
+            RiscVDecoder.CommandBuilder((uint)_instructionMemory.Read(4)),
+            RiscVDecoder.CommandBuilder((uint)_instructionMemory.Read(8)),
+            RiscVDecoder.CommandBuilder((uint)_instructionMemory.Read(12))
         );
         dataMemoryVisualizer.UIRegisterPanel.Display(
-            RiscVDecoder.CommandBuilder((uint)_dataMemory.Memory[0]),
-            RiscVDecoder.CommandBuilder((uint)_dataMemory.Memory[4]),
-            RiscVDecoder.CommandBuilder((uint)_dataMemory.Memory[8]),
-            RiscVDecoder.CommandBuilder((uint)_dataMemory.Memory[12])
+            RiscVDecoder.CommandBuilder((uint)_dataMemory.Read(0)),
+            RiscVDecoder.CommandBuilder((uint)_dataMemory.Read(4)),
+            RiscVDecoder.CommandBuilder((uint)_dataMemory.Read(8)),
+            RiscVDecoder.CommandBuilder((uint)_dataMemory.Read(12))
         );
         registerFileVisualizer.UIRegisterPanel.Display(_registerFile.Registers);
         registerFileVisualizer.ForceUpdateWriteEnableVisualization(_registerFile.WriteEnable);
@@ -483,10 +457,10 @@ public class OneTickRegisseur
         int pc, int[] regValues,
         int aluOp, int pcAluOp, int btaOp, int extOp,
         int srcBPath, int resultPath, int adrPath,
-        Dictionary<int, int> dataMem)
+        IReadableMemory dataMem)
     {
         // IF: read instruction
-        var instr = _instructionMemory.Memory.GetValueOrDefault(pc, 0);
+        var instr = _instructionMemory.Read(pc);
 
         // ID: decode register addresses
         var rs1 = (instr >> 15) & 0x1F;
@@ -508,7 +482,7 @@ public class OneTickRegisseur
         var bta = Alu.Calculate(pc, immExt, btaOp);
 
         // MEM: data memory read
-        var readData = dataMem.GetValueOrDefault(aluResult, 0);
+        var readData = dataMem.Read(aluResult);
 
         // WB: result and next PC selection
         var result = EvaluateMux(resultPath, aluResult, readData, pcPlus4);
