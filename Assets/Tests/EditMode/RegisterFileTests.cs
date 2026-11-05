@@ -24,12 +24,12 @@ public class RegisterFileTests
         // x0 is hardwired to zero in RISC-V: even if something is written to it,
         // reading it back must always yield 0.
         var registerFile = new RegisterFile();
-        registerFile.WriteAdress = 0;
+        registerFile.WriteAddress = 0;
         registerFile.WriteData = 123;
         registerFile.WriteEnable = true;
         registerFile.Clock();
 
-        registerFile.ReadAdress1 = 0;
+        registerFile.ReadAddress1 = 0;
         registerFile.ReadRegisters();
 
         Assert.AreEqual(0, registerFile.ReadData1);
@@ -40,10 +40,9 @@ public class RegisterFileTests
     {
         var values = new int[32];
         values[5] = 77;
-        var registerFile = new RegisterFile();
-        registerFile.InitializeRegisters(values);
+        var registerFile = new RegisterFile(values);
 
-        registerFile.ReadAdress1 = 5;
+        registerFile.ReadAddress1 = 5;
         registerFile.ReadRegisters();
 
         Assert.AreEqual(77, registerFile.ReadData1);
@@ -54,7 +53,7 @@ public class RegisterFileTests
     {
         var registerFile = new RegisterFile();
 
-        registerFile.ReadAdress1 = -1;
+        registerFile.ReadAddress1 = -1;
         registerFile.ReadRegisters();
 
         Assert.AreEqual(0, registerFile.ReadData1);
@@ -65,7 +64,7 @@ public class RegisterFileTests
     {
         var registerFile = new RegisterFile();
 
-        registerFile.ReadAdress1 = 32;
+        registerFile.ReadAddress1 = 32;
         registerFile.ReadRegisters();
 
         Assert.AreEqual(0, registerFile.ReadData1);
@@ -77,11 +76,10 @@ public class RegisterFileTests
         var values = new int[32];
         values[1] = 10;
         values[2] = 20;
-        var registerFile = new RegisterFile();
-        registerFile.InitializeRegisters(values);
+        var registerFile = new RegisterFile(values);
 
-        registerFile.ReadAdress1 = 1;
-        registerFile.ReadAdress2 = 2;
+        registerFile.ReadAddress1 = 1;
+        registerFile.ReadAddress2 = 2;
         registerFile.ReadRegisters();
 
         Assert.AreEqual(10, registerFile.ReadData1);
@@ -92,7 +90,7 @@ public class RegisterFileTests
     public void Clock_WriteEnabled_StoresDataAtWriteAddress()
     {
         var registerFile = new RegisterFile();
-        registerFile.WriteAdress = 3;
+        registerFile.WriteAddress = 3;
         registerFile.WriteData = 55;
         registerFile.WriteEnable = true;
 
@@ -105,7 +103,7 @@ public class RegisterFileTests
     public void Clock_WriteDisabled_DoesNotModifyRegisters()
     {
         var registerFile = new RegisterFile();
-        registerFile.WriteAdress = 3;
+        registerFile.WriteAddress = 3;
         registerFile.WriteData = 55;
         registerFile.WriteEnable = false;
 
@@ -119,7 +117,7 @@ public class RegisterFileTests
     public void Clock_WriteAddressOutOfRange_IsIgnoredSafely(int address)
     {
         var registerFile = new RegisterFile();
-        registerFile.WriteAdress = address;
+        registerFile.WriteAddress = address;
         registerFile.WriteData = 999;
         registerFile.WriteEnable = true;
 
@@ -132,28 +130,55 @@ public class RegisterFileTests
         var registerFile = new RegisterFile();
 
         // Cycle 1: write 42 into x7
-        registerFile.WriteAdress = 7;
+        registerFile.WriteAddress = 7;
         registerFile.WriteData = 42;
         registerFile.WriteEnable = true;
         registerFile.Clock();
 
         // Cycle 2: read x7 back
-        registerFile.ReadAdress1 = 7;
+        registerFile.ReadAddress1 = 7;
         registerFile.PreClockUpdate();
 
         Assert.AreEqual(42, registerFile.ReadData1);
     }
 
     [Test]
-    public void InitializeRegisters_CopiesValues_AndDoesNotAliasSourceArray()
+    public void Constructor_CopiesInitialValues_AndDoesNotAliasSourceArray()
+    {
+        var source = new int[32];
+        source[10] = 5;
+
+        var registerFile = new RegisterFile(source);
+        source[10] = 999; // mutate the original array after construction
+
+        Assert.AreEqual(5, registerFile.Registers[10]);
+    }
+
+    [Test]
+    public void Load_CopiesValues_AndDoesNotAliasSourceArray()
     {
         var source = new int[32];
         source[10] = 5;
         var registerFile = new RegisterFile();
 
-        registerFile.InitializeRegisters(source);
-        source[10] = 999; // mutate the original array after initialization
+        registerFile.Load(source);
+        source[10] = 999; // mutate the original array after loading
 
         Assert.AreEqual(5, registerFile.Registers[10]);
+    }
+
+    [TestCase(0, 0)]    // x0 is hardwired to zero
+    [TestCase(1, 11)]
+    [TestCase(31, 41)]
+    [TestCase(-1, 0)]   // out of range
+    [TestCase(32, 0)]   // out of range
+    public void ReadPort_FollowsReadPortRules(int address, int expected)
+    {
+        var registers = new int[32];
+        registers[0] = 10; // even a non-zero x0 must read as 0
+        registers[1] = 11;
+        registers[31] = 41;
+
+        Assert.AreEqual(expected, RegisterFile.ReadPort(registers, address));
     }
 }

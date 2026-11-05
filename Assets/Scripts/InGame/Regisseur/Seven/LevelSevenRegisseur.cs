@@ -80,8 +80,7 @@ public class LevelSevenRegisseur : BaseLevelRegisseur<LevelSevenState, LevelSeve
         _srcB = new Register(7);
         _output = new Register();
 
-        _registerFile = new RegisterFile();
-        _registerFile.InitializeRegisters(new[]
+        _registerFile = new RegisterFile(new[]
         {
             0, 1, 39, 43, 5, 6, 2,
             40, 1, 39, 13, 56, 64, 20,
@@ -154,8 +153,8 @@ public class LevelSevenRegisseur : BaseLevelRegisseur<LevelSevenState, LevelSeve
         _registerFile.WriteEnable = registerFileVisualizer.isWriteEnabled;
 
         // implementation
-        _registerFile.ReadAdress1 = _srcA.Output;
-        _registerFile.ReadAdress2 = _srcB.Output;
+        _registerFile.ReadAddress1 = _srcA.Output;
+        _registerFile.ReadAddress2 = _srcB.Output;
         _output.Input = Alu.Calculate(_registerFile.ReadData1, _registerFile.ReadData2,
             aluVisualizer.CurrentAluOperation);
 

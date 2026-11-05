@@ -223,8 +223,7 @@ public class FullProcessorRegisseur
         _srcB = new Register();
         _aluOutReg = new Register();
 
-        _registerFile = new RegisterFile();
-        _registerFile.InitializeRegisters(new [] { 0, 1, 39, 43, 5, 6, 8,
+        _registerFile = new RegisterFile(new [] { 0, 1, 39, 43, 5, 6, 8,
                                                      40, 3, 39, 13, 56, 63, 20,
                                                      50, 51, 0, 12, 53, 65, 29,
                                                      60, 61, 0, 25, 54, 0, 28,
@@ -286,7 +285,7 @@ public class FullProcessorRegisseur
         _dataInstructionMemory.LoadWord(12, s.FourthMemoryValue);
 
         // noch Register File einfuegen
-        _registerFile.InitializeRegisters(s.RegisterFieldValue);
+        _registerFile.Load(s.RegisterFieldValue);
 
         _pc.WriteEnable = s.RegisterPCwe;
         _oldPC.WriteEnable = s.RegisterOldPCwe;
@@ -395,10 +394,10 @@ public class FullProcessorRegisseur
         #region second step (register file)
 
         // A1: [19:15] (Register Source 1)
-        _registerFile.ReadAdress1 = (_instructionReg.Output >> 15) & 0x1F;
+        _registerFile.ReadAddress1 = (_instructionReg.Output >> 15) & 0x1F;
 
         // A2: [24:20] (Register Source 2)
-        _registerFile.ReadAdress2 = (_instructionReg.Output >> 20) & 0x1F;
+        _registerFile.ReadAddress2 = (_instructionReg.Output >> 20) & 0x1F;
 
         _registerFile.ReadRegisters();
         
@@ -421,7 +420,7 @@ public class FullProcessorRegisseur
             // _registerFile.WriteData = TickStateValues[TickCounter - 2].RegisterInstrValue;
         }*/
         
-        _registerFile.WriteAdress = (_instructionReg.Output >> 7) & 0x1F;
+        _registerFile.WriteAddress = (_instructionReg.Output >> 7) & 0x1F;
 
 
         var tmpResult = sig.ResultMuxOut;

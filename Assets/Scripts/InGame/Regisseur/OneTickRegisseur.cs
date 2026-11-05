@@ -221,14 +221,13 @@ public class OneTickRegisseur
         _dataMemory.LoadWord(8, Initial.thirdDataWord);
         _dataMemory.LoadWord(12, Initial.fourthDataWord);
 
-        _registerFile = new RegisterFile(writeEnable: false);
-        _registerFile.InitializeRegisters(new[]
+        _registerFile = new RegisterFile(new[]
         {
             0, 1, 39, 43, 5, 6, 8, 40,
             3, 39, 13, 56, 63, 20, 50, 51,
             0, 12, 53, 65, 29, 60, 61, 0,
             25, 54, 0, 28, 70, 30, 31, 0
-        });
+        }, writeEnable: false);
         
         // Caching of UI panels for visualizers
         _infoPCRegister = registerPCVisualizer.UIRegisterPanel;
@@ -264,9 +263,9 @@ public class OneTickRegisseur
             _dataMemory.Memory);
 
         // Prepare sequential element inputs
-        _registerFile.ReadAdress1 = sig.Rs1;
-        _registerFile.ReadAdress2 = sig.Rs2;
-        _registerFile.WriteAdress = sig.Rd;
+        _registerFile.ReadAddress1 = sig.Rs1;
+        _registerFile.ReadAddress2 = sig.Rs2;
+        _registerFile.WriteAddress = sig.Rd;
         _registerFile.WriteData = sig.Result;
 
         _dataMemory.Address = sig.AluResult;
@@ -350,7 +349,7 @@ public class OneTickRegisseur
         };
 
         // noch Register File einfuegen
-        _registerFile.InitializeRegisters(s.RegisterFieldValue);
+        _registerFile.Load(s.RegisterFieldValue);
 
         _pc.WriteEnable = s.RegisterPCwe;
         _registerFile.WriteEnable  = s.RegisterFileWriteEnable;

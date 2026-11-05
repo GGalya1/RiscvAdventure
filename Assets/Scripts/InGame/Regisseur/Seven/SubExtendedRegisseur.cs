@@ -103,8 +103,7 @@ public class SubExtendedRegisseur : BaseLevelRegisseur<SubExtendedSevenLevelStat
         _a3 = new Register();
         _wd3 = new Register();
 
-        _registerFile = new RegisterFile();
-        _registerFile.InitializeRegisters(new [] { -98, 1, 39, 43, 0, 6, 8,
+        _registerFile = new RegisterFile(new [] { -98, 1, 39, 43, 0, 6, 8,
                                                      40, 3, 39, 13, 56, 64, 20,
                                                      50, 51, 0, 12, 53, 65, 29,
                                                      60, 61, 0, 25, 54, 0, 28,
@@ -126,7 +125,7 @@ public class SubExtendedRegisseur : BaseLevelRegisseur<SubExtendedSevenLevelStat
         _a3.Reset(s.RegisterA3Value);
         _wd3.Reset(s.RegisterWd3Value);
 
-        _registerFile.InitializeRegisters(s.RegisterFieldValue);
+        _registerFile.Load(s.RegisterFieldValue);
 
         _srcA.WriteEnable = s.RegisterSrcAwe;
         _immValue.WriteEnable = s.RegisterImmWe;
@@ -189,8 +188,8 @@ public class SubExtendedRegisseur : BaseLevelRegisseur<SubExtendedSevenLevelStat
         _registerFile.WriteEnable = registerFileVisualizer.isWriteEnabled;
 
         // implementation
-        _registerFile.ReadAdress1 = _srcA.Output;
-        _registerFile.ReadAdress2 = 0;
+        _registerFile.ReadAddress1 = _srcA.Output;
+        _registerFile.ReadAddress2 = 0;
 
         _registerFile.ReadRegisters();
 
@@ -204,7 +203,7 @@ public class SubExtendedRegisseur : BaseLevelRegisseur<SubExtendedSevenLevelStat
 
         if (TickCounter - 1 >= 0)
         {
-            _registerFile.WriteAdress = StateAt(TickCounter - 1).RegisterA3Value;
+            _registerFile.WriteAddress = StateAt(TickCounter - 1).RegisterA3Value;
         }
 
         _registerFile.WriteData = _wd3.Output;

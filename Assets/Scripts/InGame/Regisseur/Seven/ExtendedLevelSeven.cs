@@ -92,8 +92,7 @@ public class ExtendedLevelSeven : BaseLevelRegisseur<ExtendedSevenLevelState, Ex
         _a3 = new Register();
         _wd3 = new Register();
 
-        _registerFile = new RegisterFile();
-        _registerFile.InitializeRegisters(new [] { 0, 1, 39, 43, 5, 6, 8,
+        _registerFile = new RegisterFile(new [] { 0, 1, 39, 43, 5, 6, 8,
                                                      40, 3, 39, 13, 56, 64, 20,
                                                      50, 51, 0, 12, 53, 65, 29,
                                                      60, 61, 0, 25, 54, 0, 28,
@@ -115,7 +114,7 @@ public class ExtendedLevelSeven : BaseLevelRegisseur<ExtendedSevenLevelState, Ex
         _a3.Reset(s.RegisterA3Value);
         _wd3.Reset(s.RegisterWd3Value);
 
-        _registerFile.InitializeRegisters(s.RegisterFieldValue);
+        _registerFile.Load(s.RegisterFieldValue);
 
         _srcA.WriteEnable = s.RegisterSrcAwe;
         _srcB.WriteEnable = s.RegisterSrcBwe;
@@ -171,10 +170,10 @@ public class ExtendedLevelSeven : BaseLevelRegisseur<ExtendedSevenLevelState, Ex
 
         // implementation
         // A1: [19:15] (Register Source 1)
-        _registerFile.ReadAdress1 = _srcA.Output;
+        _registerFile.ReadAddress1 = _srcA.Output;
 
         // A2: [24:20] (Register Source 2)
-        _registerFile.ReadAdress2 = _srcB.Output;
+        _registerFile.ReadAddress2 = _srcB.Output;
 
         _registerFile.ReadRegisters();
 
@@ -186,7 +185,7 @@ public class ExtendedLevelSeven : BaseLevelRegisseur<ExtendedSevenLevelState, Ex
         _wd3.Input = Alu.Calculate(a, b, aluVisualizer.CurrentAluOperation);
         if (TickCounter - 1 >= 0)
         {
-            _registerFile.WriteAdress = StateAt(TickCounter - 1).RegisterA3Value;
+            _registerFile.WriteAddress = StateAt(TickCounter - 1).RegisterA3Value;
         }
         _registerFile.WriteData = _wd3.Output;
 
