@@ -5,13 +5,9 @@ using UnityEngine.Serialization;
 
 public struct LevelZeroState
 {
-    public int RegisterAValue;
-    public int RegisterBValue;
-    public int OutputRegisterValue;
-
-    public bool RegisterAwe;
-    public bool RegisterBwe;
-    public bool OutputRegisterWe;
+    public RegisterState SrcA;
+    public RegisterState SrcB;
+    public RegisterState Output;
 }
 
 [Serializable]
@@ -70,12 +66,9 @@ public class LevelZeroRegisseur : BaseLevelRegisseur<LevelZeroState, LevelZeroBu
 
     protected override void ApplyState(LevelZeroState s)
     {
-        _srcA.Reset(s.RegisterAValue);
-        _srcB.Reset(s.RegisterBValue);
-        _output.Reset(s.OutputRegisterValue);
-        _srcA.WriteEnable = s.RegisterAwe;
-        _srcB.WriteEnable = s.RegisterBwe;
-        _output.WriteEnable = s.OutputRegisterWe;
+        _srcA.Restore(s.SrcA);
+        _srcB.Restore(s.SrcB);
+        _output.Restore(s.Output);
     }
 
     protected override bool CheckWinCondition()
@@ -83,18 +76,12 @@ public class LevelZeroRegisseur : BaseLevelRegisseur<LevelZeroState, LevelZeroBu
         return _output.Output == RightAnswerValue;
     }
 
-    protected override LevelZeroState GetCurrentState()
+    protected override LevelZeroState GetCurrentState() => new()
     {
-        return new LevelZeroState
-        {
-            RegisterAValue = _srcA.Output,
-            RegisterBValue = _srcB.Output,
-            OutputRegisterValue = _output.Output,
-            RegisterAwe = _srcA.WriteEnable,
-            RegisterBwe = _srcB.WriteEnable,
-            OutputRegisterWe = _output.WriteEnable
-        };
-    }
+        SrcA = _srcA.Save(),
+        SrcB = _srcB.Save(),
+        Output = _output.Save()
+    };
 
     protected override void HandleClockUpdate()
     {

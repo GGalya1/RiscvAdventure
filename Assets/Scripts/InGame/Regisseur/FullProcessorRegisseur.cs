@@ -5,31 +5,11 @@ using UnityEngine.Serialization;
 
 public struct ProcessorLevelState
 {
-    public int RegisterPCValue;
-    public int RegisterOldPCValue;
-    public int RegisterInstrValue;
-    public int RegisterDataValue;
-    public int RegisterScrAValue;
-    public int RegisterSrcBValue;
-    public int RegisterAluOutValue;
-
-    public int FirstMemoryValue;
-    public int SecondMemoryValue;
-    public int ThirdMemoryValue;
-    public int FourthMemoryValue;
-
-    public int[] RegisterFieldValue;
-
-    public bool RegisterPCwe;
-    public bool RegisterOldPCwe;
-    public bool RegisterInstrWe;
-    public bool RegisterDataWe;
-    public bool RegisterScrAwe;
-    public bool RegisterSrcBwe;
-    public bool RegisterAluOutWe;
+    public RegisterState Pc, OldPc, Instruction, Data, SrcA, SrcB, AluOut;
+    public MemoryState Memory;
+    public RegisterFileState RegisterFile;
 
     public AluOperation AluOperation;
-
     public ImmediateType ExtenderOperation;
 
     public int MuXadrPath;
@@ -263,35 +243,23 @@ public class FullProcessorRegisseur
 
     protected override void ApplyState(ProcessorLevelState s)
     {
-        _pc.Reset(s.RegisterPCValue);
-        _oldPC.Reset(s.RegisterOldPCValue);
-        _instructionReg.Reset(s.RegisterInstrValue);
-        _dataReg.Reset(s.RegisterDataValue);
-        _srcA.Reset(s.RegisterScrAValue);
-        _srcB.Reset(s.RegisterSrcBValue);
-        _aluOutReg.Reset(s.RegisterAluOutValue);
+        _pc.Restore(s.Pc);
+        _oldPC.Restore(s.OldPc);
+        _instructionReg.Restore(s.Instruction);
+        _dataReg.Restore(s.Data);
+        _srcA.Restore(s.SrcA);
+        _srcB.Restore(s.SrcB);
+        _aluOutReg.Restore(s.AluOut);
+        _dataInstructionMemory.Restore(s.Memory);
+        _registerFile.Restore(s.RegisterFile);
+
+        _alu.Operation = s.AluOperation;
+        _extender.Type = s.ExtenderOperation;
 
         _adrMux.SelectedInput = s.MuXadrPath;
         _srcAMux.SelectedInput = s.MuXsrcAPath;
         _srcBMux.SelectedInput = s.MuXsrcBPath;
         _resultMux.SelectedInput = s.MuXresultPath;
-
-        // WE for dataInstrMem ???
-        _dataInstructionMemory.LoadWords(s.FirstMemoryValue, s.SecondMemoryValue, s.ThirdMemoryValue, s.FourthMemoryValue);
-
-        // noch Register File einfuegen
-        _registerFile.Load(s.RegisterFieldValue);
-
-        _pc.WriteEnable = s.RegisterPCwe;
-        _oldPC.WriteEnable = s.RegisterOldPCwe;
-        _instructionReg.WriteEnable = s.RegisterInstrWe;
-        _dataReg.WriteEnable = s.RegisterDataWe;
-        _srcA.WriteEnable = s.RegisterScrAwe;
-        _srcB.WriteEnable = s.RegisterSrcBwe;
-        _aluOutReg.WriteEnable = s.RegisterAluOutWe;
-
-        _alu.Operation = s.AluOperation;
-        _extender.Type = s.ExtenderOperation;
     }
 
     protected override void BlinkClockedComponents()
@@ -303,43 +271,26 @@ public class FullProcessorRegisseur
     protected override bool CheckWinCondition() =>
         ExerciseCheck.IsSolved(Initial, _registerFile.Registers, _dataInstructionMemory, _pc.Output);
 
-    protected override ProcessorLevelState GetCurrentState()
+    protected override ProcessorLevelState GetCurrentState() => new()
     {
-        return new ProcessorLevelState
-        {
-            RegisterPCValue = _pc.Output,
-            RegisterOldPCValue = _oldPC.Output,
-            RegisterInstrValue = _instructionReg.Output,
-            RegisterDataValue = _dataReg.Output,
-            RegisterScrAValue = _srcA.Output,
-            RegisterSrcBValue = _srcB.Output,
-            RegisterAluOutValue = _aluOutReg.Output,
+        Pc = _pc.Save(),
+        OldPc = _oldPC.Save(),
+        Instruction = _instructionReg.Save(),
+        Data = _dataReg.Save(),
+        SrcA = _srcA.Save(),
+        SrcB = _srcB.Save(),
+        AluOut = _aluOutReg.Save(),
+        Memory = _dataInstructionMemory.Save(),
+        RegisterFile = _registerFile.Save(),
 
-            RegisterFieldValue = (int[])_registerFile.Registers.Clone(),
+        AluOperation = _alu.Operation,
+        ExtenderOperation = _extender.Type,
 
-            FirstMemoryValue = _dataInstructionMemory.Read(0),
-            SecondMemoryValue = _dataInstructionMemory.Read(4),
-            ThirdMemoryValue = _dataInstructionMemory.Read(8),
-            FourthMemoryValue = _dataInstructionMemory.Read(12),
-
-            RegisterPCwe = _pc.WriteEnable,
-            RegisterOldPCwe = _oldPC.WriteEnable,
-            RegisterInstrWe = _instructionReg.WriteEnable,
-            RegisterDataWe = _dataReg.WriteEnable,
-            RegisterScrAwe = _srcA.WriteEnable,
-            RegisterSrcBwe = _srcB.WriteEnable,
-            RegisterAluOutWe = _aluOutReg.WriteEnable,
-
-            AluOperation = _alu.Operation,
-
-            ExtenderOperation = _extender.Type,
-
-            MuXadrPath = _adrMux.SelectedInput,
-            MuXsrcAPath = _srcAMux.SelectedInput,
-            MuXsrcBPath = _srcBMux.SelectedInput,
-            MuXresultPath = _resultMux.SelectedInput,
-        };
-    }
+        MuXadrPath = _adrMux.SelectedInput,
+        MuXsrcAPath = _srcAMux.SelectedInput,
+        MuXsrcBPath = _srcBMux.SelectedInput,
+        MuXresultPath = _resultMux.SelectedInput
+    };
 
     protected override void HandleClockUpdate()
     {

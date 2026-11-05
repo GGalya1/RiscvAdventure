@@ -5,12 +5,11 @@ using UnityEngine.Serialization;
 
 public struct ExtendedFirstLevelState
 {
-    public int RegisterOutputValue;
-
-    public int MuXup;
-    public int MuXmiddle;
-    public int MuXdown;
-    public int MuXoutput;
+    public RegisterState Output;
+    public int UpperMux;
+    public int MiddleMux;
+    public int DownMux;
+    public int OutputMux;
 }
 
 [Serializable]
@@ -109,14 +108,13 @@ public class LevelOneExtended : BaseLevelRegisseur<ExtendedFirstLevelState, Leve
         Show(registerOutputVisualizer.Bind(_output, "Register 1"));
     }
 
-    protected override void ApplyState(ExtendedFirstLevelState s) // "s" for state
+    protected override void ApplyState(ExtendedFirstLevelState s)
     {
-        _output.Reset(s.RegisterOutputValue);
-
-        _upperMux.SelectedInput = s.MuXup;
-        _middleMux.SelectedInput = s.MuXmiddle;
-        _downMux.SelectedInput = s.MuXdown;
-        _outputMux.SelectedInput = s.MuXoutput;
+        _output.Restore(s.Output);
+        _upperMux.SelectedInput = s.UpperMux;
+        _middleMux.SelectedInput = s.MiddleMux;
+        _downMux.SelectedInput = s.DownMux;
+        _outputMux.SelectedInput = s.OutputMux;
     }
 
     protected override void BlinkClockedComponents()
@@ -129,18 +127,14 @@ public class LevelOneExtended : BaseLevelRegisseur<ExtendedFirstLevelState, Leve
         return _output.Output == RightAnswerValue;
     }
 
-    protected override ExtendedFirstLevelState GetCurrentState()
+    protected override ExtendedFirstLevelState GetCurrentState() => new()
     {
-        return new ExtendedFirstLevelState
-        {
-            RegisterOutputValue = _output.Output,
-
-            MuXup = _upperMux.SelectedInput,
-            MuXmiddle = _middleMux.SelectedInput,
-            MuXdown = _downMux.SelectedInput,
-            MuXoutput = _outputMux.SelectedInput
-        };
-    }
+        Output = _output.Save(),
+        UpperMux = _upperMux.SelectedInput,
+        MiddleMux = _middleMux.SelectedInput,
+        DownMux = _downMux.SelectedInput,
+        OutputMux = _outputMux.SelectedInput
+    };
 
     protected override void HandleClockUpdate()
     {

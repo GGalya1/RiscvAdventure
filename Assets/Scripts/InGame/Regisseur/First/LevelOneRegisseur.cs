@@ -5,15 +5,10 @@ using UnityEngine.Serialization;
 
 public struct LevelOneState
 {
-    public int RegisterAValue;
-    public int RegisterBValue;
-    public int OutputRegisterValue;
-
-    public bool RegisterAwe;
-    public bool RegisterBwe;
-    public bool OutputRegisterWe;
-
-    public int CurrentChosenMuxPath;
+    public RegisterState SrcA;
+    public RegisterState SrcB;
+    public RegisterState Output;
+    public int MuxInput;
 }
 
 [Serializable]
@@ -78,30 +73,20 @@ public class LevelOneRegisseur : BaseLevelRegisseur<LevelOneState, LevelOneBusSe
             registerOutputVisualizer.Bind(_output, "Register 3"));
     }
 
-    protected override LevelOneState GetCurrentState()
+    protected override LevelOneState GetCurrentState() => new()
     {
-        return new LevelOneState
-        {
-            RegisterAValue = _srcA.Output,
-            RegisterBValue = _srcB.Output,
-            OutputRegisterValue = _output.Output,
-            CurrentChosenMuxPath = _mux.SelectedInput,
-            RegisterAwe = _srcA.WriteEnable,
-            RegisterBwe = _srcB.WriteEnable,
-            OutputRegisterWe = _output.WriteEnable
-        };
-    }
+        SrcA = _srcA.Save(),
+        SrcB = _srcB.Save(),
+        Output = _output.Save(),
+        MuxInput = _mux.SelectedInput
+    };
 
     protected override void ApplyState(LevelOneState s)
     {
-        _srcA.Reset(s.RegisterAValue);
-        _srcB.Reset(s.RegisterBValue);
-        _output.Reset(s.OutputRegisterValue);
-        _srcA.WriteEnable = s.RegisterAwe;
-        _srcB.WriteEnable = s.RegisterBwe;
-        _output.WriteEnable = s.OutputRegisterWe;
-
-        _mux.SelectedInput = s.CurrentChosenMuxPath;
+        _srcA.Restore(s.SrcA);
+        _srcB.Restore(s.SrcB);
+        _output.Restore(s.Output);
+        _mux.SelectedInput = s.MuxInput;
     }
 
     protected override void HandleClockUpdate()

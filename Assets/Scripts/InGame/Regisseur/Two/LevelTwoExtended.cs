@@ -4,12 +4,9 @@ using UnityEngine.Serialization;
 
 public struct LevelTwoExtendedState
 {
-    public int RegisterAValue;
-    public bool RegisterAwe;
-    public int RegisterBValue;
-    public bool RegisterBwe;
-    public int OutputValue;
-    public bool OutputWe;
+    public RegisterState SrcA;
+    public RegisterState SrcB;
+    public RegisterState Output;
     public AluOperation AluOperation;
 }
 
@@ -69,15 +66,9 @@ public class LevelTwoExtended : BaseLevelRegisseur<LevelTwoExtendedState, LevelT
 
     protected override void ApplyState(LevelTwoExtendedState s)
     {
-        _srcA.Reset(s.RegisterAValue);
-        _srcA.WriteEnable = s.RegisterAwe;
-
-        _srcB.Reset(s.RegisterBValue);
-        _srcB.WriteEnable = s.RegisterBwe;
-
-        _output.Reset(s.OutputValue);
-        _output.WriteEnable = s.OutputWe;
-
+        _srcA.Restore(s.SrcA);
+        _srcB.Restore(s.SrcB);
+        _output.Restore(s.Output);
         _alu.Operation = s.AluOperation;
     }
 
@@ -86,19 +77,13 @@ public class LevelTwoExtended : BaseLevelRegisseur<LevelTwoExtendedState, LevelT
         return (_output.Output == RightAnswerValue);
     }
 
-    protected override LevelTwoExtendedState GetCurrentState()
+    protected override LevelTwoExtendedState GetCurrentState() => new()
     {
-        return new LevelTwoExtendedState
-        {
-            RegisterAValue = _srcA.Output,
-            RegisterAwe = _srcA.WriteEnable,
-            RegisterBValue = _srcB.Output,
-            RegisterBwe = _srcB.WriteEnable,
-            OutputValue = _output.Output,
-            OutputWe = _output.WriteEnable,
-            AluOperation = _alu.Operation,
-        };
-    }
+        SrcA = _srcA.Save(),
+        SrcB = _srcB.Save(),
+        Output = _output.Save(),
+        AluOperation = _alu.Operation
+    };
 
     protected override void HandleClockUpdate()
     {

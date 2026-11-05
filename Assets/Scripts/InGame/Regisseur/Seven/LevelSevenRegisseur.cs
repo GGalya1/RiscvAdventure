@@ -5,15 +5,10 @@ using UnityEngine.Serialization;
 
 public struct LevelSevenState
 {
-    public int RegisterAValue;
-    public int RegisterBValue;
-    public int RegisterOutputValue;
-
-    public bool RegisterAwe;
-    public bool RegisterBwe;
-    public bool RegisterOutputWe;
-    public bool RegisterFileWe;
-
+    public RegisterState SrcA;
+    public RegisterState SrcB;
+    public RegisterState Output;
+    public RegisterFileState RegisterFile;
     public AluOperation AluOperation;
 }
 
@@ -103,15 +98,10 @@ public class LevelSevenRegisseur : BaseLevelRegisseur<LevelSevenState, LevelSeve
 
     protected override void ApplyState(LevelSevenState s)
     {
-        _srcA.Reset(s.RegisterAValue);
-        _srcB.Reset(s.RegisterBValue);
-        _output.Reset(s.RegisterOutputValue);
-
-        _srcA.WriteEnable = s.RegisterAwe;
-        _srcB.WriteEnable = s.RegisterBwe;
-        _output.WriteEnable = s.RegisterOutputWe;
-        _registerFile.WriteEnable = s.RegisterFileWe;
-
+        _srcA.Restore(s.SrcA);
+        _srcB.Restore(s.SrcB);
+        _output.Restore(s.Output);
+        _registerFile.Restore(s.RegisterFile);
         _alu.Operation = s.AluOperation;
     }
 
@@ -120,22 +110,14 @@ public class LevelSevenRegisseur : BaseLevelRegisseur<LevelSevenState, LevelSeve
         return _output.Output == RightAnswerValue;
     }
 
-    protected override LevelSevenState GetCurrentState()
+    protected override LevelSevenState GetCurrentState() => new()
     {
-        return new LevelSevenState
-        {
-            RegisterAValue = _srcA.Output,
-            RegisterBValue = _srcB.Output,
-            RegisterOutputValue = _output.Output,
-
-            RegisterAwe = _srcA.WriteEnable,
-            RegisterBwe = _srcB.WriteEnable,
-            RegisterOutputWe = _output.WriteEnable,
-            RegisterFileWe = _registerFile.WriteEnable,
-
-            AluOperation = _alu.Operation
-        };
-    }
+        SrcA = _srcA.Save(),
+        SrcB = _srcB.Save(),
+        Output = _output.Save(),
+        RegisterFile = _registerFile.Save(),
+        AluOperation = _alu.Operation
+    };
 
     protected override void HandleClockUpdate()
     {
@@ -155,9 +137,9 @@ public class LevelSevenRegisseur : BaseLevelRegisseur<LevelSevenState, LevelSeve
 
             yield return Bus.WaveBack((buses.aluToOutput, _output.Input));
             yield return Bus.WaveBack(
-                (buses.rd1ToAlu, _registerFile.Registers[before.RegisterAValue]),
-                (buses.rd2ToAlu, _registerFile.Registers[before.RegisterBValue]));
-            yield return Bus.WaveBack((buses.srcAToRegFileA1, before.RegisterAValue), (buses.srcBToRegFileA2, before.RegisterBValue));
+                (buses.rd1ToAlu, _registerFile.Registers[before.SrcA.Value]),
+                (buses.rd2ToAlu, _registerFile.Registers[before.SrcB.Value]));
+            yield return Bus.WaveBack((buses.srcAToRegFileA1, before.SrcA.Value), (buses.srcBToRegFileA2, before.SrcB.Value));
 
             _currentBus--;
         }

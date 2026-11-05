@@ -4,8 +4,7 @@ using UnityEngine.Serialization;
 
 public struct LevelTwoState
 {
-    public int RegisterAValue;
-    public bool RegisterAwe;
+    public RegisterState SrcA;
     public AluOperation AluOperation;
 }
 
@@ -57,9 +56,7 @@ public class LevelTwoRegisseur : BaseLevelRegisseur<LevelTwoState, LevelTwoBusSe
 
     protected override void ApplyState(LevelTwoState s)
     {
-        _srcA.Reset(s.RegisterAValue);
-        _srcA.WriteEnable = s.RegisterAwe;
-
+        _srcA.Restore(s.SrcA);
         _alu.Operation = s.AluOperation;
     }
 
@@ -74,15 +71,11 @@ public class LevelTwoRegisseur : BaseLevelRegisseur<LevelTwoState, LevelTwoBusSe
         return (_srcA.Output == RightAnswerValue);
     }
 
-    protected override LevelTwoState GetCurrentState()
+    protected override LevelTwoState GetCurrentState() => new()
     {
-        return new LevelTwoState
-        {
-            RegisterAValue = _srcA.Output,
-            RegisterAwe = _srcA.WriteEnable,
-            AluOperation = _alu.Operation,
-        };
-    }
+        SrcA = _srcA.Save(),
+        AluOperation = _alu.Operation
+    };
 
     protected override void HandleClockUpdate()
     {
@@ -107,7 +100,7 @@ public class LevelTwoRegisseur : BaseLevelRegisseur<LevelTwoState, LevelTwoBusSe
         if (_currentBus is >= 1 and <= 5)
         {
             yield return Bus.WaveBack((buses.adderToPC, _srcA.Input));
-            yield return Bus.WaveBack((buses.pcToAdder, StateAt(TickCounter).RegisterAValue), (buses.constFourToAdder, 4));
+            yield return Bus.WaveBack((buses.pcToAdder, StateAt(TickCounter).SrcA.Value), (buses.constFourToAdder, 4));
 
             _currentBus--;
         }

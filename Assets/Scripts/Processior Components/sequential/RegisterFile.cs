@@ -1,11 +1,12 @@
+using System.Collections.Generic;
+
 /// <summary>
 /// RISC-V register file: two read ports (A1/RD1, A2/RD2) and one write port (A3/WD3/WE3).
 /// <br/>Reads happen in <see cref="PreClockUpdate"/> (or explicitly via <see cref="ReadRegisters"/>),
 /// the write happens on the clock edge.
 /// </summary>
-public class RegisterFile : ISequentialLogic
+public sealed class RegisterFile : ISequentialLogic
 {
-    // data for 32 registers (0-31)
     public const int RegisterCount = 32;
 
     #region INPUTS
@@ -15,10 +16,10 @@ public class RegisterFile : ISequentialLogic
     // WD3
     public int WriteData { get; set; }
 
-    // A3 (aka Rd)
+    // A3 (rd)
     public int WriteAddress { get; set; }
 
-    // A1, A2 (aka Rs1, Rs2)
+    // A1, A2 (rs1, rs2)
     public int ReadAddress1 { get; set; }
     public int ReadAddress2 { get; set; }
     #endregion
@@ -29,17 +30,19 @@ public class RegisterFile : ISequentialLogic
     public int ReadData2 { get; private set; }
     #endregion
 
-    public int[] Registers { get; private set; }
+    private int[] _registers;
+
+    public IReadOnlyList<int> Registers => _registers;
 
     public RegisterFile(int[] initialValues = null, bool writeEnable = true)
     {
-        Registers = initialValues != null ? (int[])initialValues.Clone() : new int[RegisterCount];
+        _registers = initialValues != null ? (int[])initialValues.Clone() : new int[RegisterCount];
         WriteEnable = writeEnable;
     }
 
     public void Load(int[] values)
     {
-        Registers = (int[])values.Clone();
+        _registers = (int[])values.Clone();
     }
 
     #region Sequential logic
@@ -50,23 +53,44 @@ public class RegisterFile : ISequentialLogic
 
     public void Clock()
     {
-        if (WriteEnable && WriteAddress >= 0 && WriteAddress < Registers.Length)
+        if (WriteEnable && WriteAddress >= 0 && WriteAddress < _registers.Length)
         {
-            Registers[WriteAddress] = WriteData;
+            _registers[WriteAddress] = WriteData;
         }
     }
     #endregion
 
-    // Updates RD1/RD2 from A1/A2 immediately (combinational read)
+    /// <summary> Updates RD1/RD2 from A1/A2 immediately (combinational read). </summary>
     public void ReadRegisters()
     {
-        ReadData1 = ReadPort(Registers, ReadAddress1);
-        ReadData2 = ReadPort(Registers, ReadAddress2);
+        ReadData1 = ReadPort(_registers, ReadAddress1);
+        ReadData2 = ReadPort(_registers, ReadAddress2);
     }
 
-    // Read port semantics: x0 and out-of-range addresses read as 0
-    public static int ReadPort(int[] registers, int address)
+    /// <summary> Read port semantics: x0 and out-of-range addresses read as 0. </summary>
+    public static int ReadPort(IReadOnlyList<int> registers, int address)
     {
-        return address <= 0 || address >= registers.Length ? 0 : registers[address];
+        return address <= 0 || address >= registers.Count ? 0 : registers[address];
+    }
+
+    public RegisterFileState Save() => new((int[])_registers.Clone(), WriteEnable);
+
+    public void Restore(RegisterFileState state)
+    {
+        Load(state.Values);
+        WriteEnable = state.WriteEnable;
+    }
+}
+
+/// <summary> Snapshot of a <see cref="RegisterFile"/> for the tick history. </summary>
+public readonly struct RegisterFileState
+{
+    public readonly int[] Values;
+    public readonly bool WriteEnable;
+
+    public RegisterFileState(int[] values, bool writeEnable)
+    {
+        Values = values;
+        WriteEnable = writeEnable;
     }
 }

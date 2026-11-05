@@ -146,4 +146,48 @@ public class DataInstMemoryTests
         Assert.AreEqual(6, other);
         Assert.AreEqual(5, memory.ReadData);
     }
+
+    // ---------------------------------------------------------------- snapshots for the tick history
+
+    [Test]
+    public void SaveRestore_RoundTripsWordsAndWriteEnable()
+    {
+        var memory = new DataInstMemory(writeEnable: false);
+        memory.LoadWords(1, 2);
+        var saved = memory.Save();
+
+        memory.WriteEnable = true;
+        memory.Address = 0;
+        memory.WriteData = 100;
+        memory.Clock();             // overwrites word 0
+        memory.LoadWord(40, 7);     // adds a new word
+        memory.Restore(saved);
+
+        Assert.AreEqual(1, memory.Read(0));
+        Assert.AreEqual(2, memory.Read(4));
+        Assert.IsFalse(memory.Contains(40), "words written after the snapshot must disappear");
+        Assert.IsFalse(memory.WriteEnable);
+    }
+
+    [Test]
+    public void Save_IsACopy_NotAffectedByLaterWrites()
+    {
+        var memory = new DataInstMemory();
+        memory.LoadWord(0, 1);
+        var saved = memory.Save();
+
+        memory.LoadWord(0, 2);
+
+        Assert.AreEqual(1, saved.Read(0));
+    }
+
+    [Test]
+    public void MemoryState_Read_UnwrittenAddressOrEmptyState_ReturnsZero()
+    {
+        var memory = new DataInstMemory();
+        memory.LoadWord(0, 1);
+
+        Assert.AreEqual(0, memory.Save().Read(4));
+        Assert.AreEqual(0, default(MemoryState).Read(0));
+    }
 }

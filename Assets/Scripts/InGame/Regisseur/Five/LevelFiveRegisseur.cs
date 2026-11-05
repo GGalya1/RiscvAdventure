@@ -6,22 +6,12 @@ using UnityEngine.Serialization;
 
 public struct LevelFiveState
 {
-    public int RegisterPCValue;
-    public int RegisterInstrValue;
-    public int RegisterOutputValue;
-
-    public int FirstMemoryValue;
-    public int SecondMemoryValue;
-    public int ThirdMemoryValue;
-    public int FourthMemoryValue;
-
-    public bool RegisterPCwe;
-    public bool RegisterInstrWe;
-    public bool RegisterOutputWe;
-
+    public RegisterState Pc;
+    public RegisterState Instruction;
+    public RegisterState Output;
+    public MemoryState Memory;
     public AluOperation AluOperation;
-
-    public ImmediateType ExtenderOperation;
+    public ImmediateType ImmediateType;
 }
 
 [Serializable]
@@ -146,7 +136,7 @@ public class LevelFiveRegisseur : BaseLevelRegisseur<LevelFiveState, LevelFiveBu
             var before = StateAt(TickCounter);
 
             yield return Bus.WaveBack((buses.extendToMux, _output.Input));
-            yield return Bus.WaveBack((buses.instrRegToExtend, before.RegisterInstrValue));
+            yield return Bus.WaveBack((buses.instrRegToExtend, before.Instruction.Value));
             yield return Bus.WaveBack((buses.memDataToInstrReg, _srcB.Input), (buses.adderToSrcB, _srcA.Input));
             yield return Bus.WaveBack((buses.pcToMemAddr, _srcA.Output), (buses.pcToBtaAdder, _srcA.Output), (buses.constFourToAdder, 4));
 
@@ -185,43 +175,24 @@ public class LevelFiveRegisseur : BaseLevelRegisseur<LevelFiveState, LevelFiveBu
         Clock.Tick();
     }
 
-    protected override LevelFiveState GetCurrentState()
+    protected override LevelFiveState GetCurrentState() => new()
     {
-        return new LevelFiveState
-        {
-            RegisterPCValue = _srcA.Output,
-            RegisterInstrValue = _srcB.Output,
-            RegisterOutputValue = _output.Output,
-
-            FirstMemoryValue = _dataInstructionMemory.Read(0),
-            SecondMemoryValue = _dataInstructionMemory.Read(4),
-            ThirdMemoryValue = _dataInstructionMemory.Read(8),
-            FourthMemoryValue = _dataInstructionMemory.Read(12),
-
-            RegisterPCwe = _srcA.WriteEnable,
-            RegisterInstrWe = _srcB.WriteEnable,
-            RegisterOutputWe = _output.WriteEnable,
-
-            AluOperation = _alu.Operation,
-
-            ExtenderOperation = _extender.Type
-        };
-    }
+        Pc = _srcA.Save(),
+        Instruction = _srcB.Save(),
+        Output = _output.Save(),
+        Memory = _dataInstructionMemory.Save(),
+        AluOperation = _alu.Operation,
+        ImmediateType = _extender.Type
+    };
 
     protected override void ApplyState(LevelFiveState s)
     {
-        _srcA.Reset(s.RegisterPCValue);
-        _srcB.Reset(s.RegisterInstrValue);
-        _output.Reset(s.RegisterOutputValue);
-
-        _dataInstructionMemory.LoadWords(s.FirstMemoryValue, s.SecondMemoryValue, s.ThirdMemoryValue, s.FourthMemoryValue);
-
-        _srcA.WriteEnable = s.RegisterPCwe;
-        _srcB.WriteEnable = s.RegisterInstrWe;
-        _output.WriteEnable = s.RegisterOutputWe;
-
+        _srcA.Restore(s.Pc);
+        _srcB.Restore(s.Instruction);
+        _output.Restore(s.Output);
+        _dataInstructionMemory.Restore(s.Memory);
         _alu.Operation = s.AluOperation;
-        _extender.Type = s.ExtenderOperation;
+        _extender.Type = s.ImmediateType;
     }
 
     protected override void BlinkClockedComponents()
@@ -232,9 +203,9 @@ public class LevelFiveRegisseur : BaseLevelRegisseur<LevelFiveState, LevelFiveBu
 
     protected override bool CheckWinCondition()
     {
-        var val1 = (uint)StateAt(2).RegisterOutputValue;
-        var val2 = (uint)StateAt(3).RegisterOutputValue;
-        var val3 = (uint)StateAt(4).RegisterOutputValue;
+        var val1 = (uint)StateAt(2).Output.Value;
+        var val2 = (uint)StateAt(3).Output.Value;
+        var val3 = (uint)StateAt(4).Output.Value;
         var val4 = (uint)_output.Output;
 
         return val1 == 1000 &&

@@ -4,23 +4,14 @@ using UnityEngine.Serialization;
 
 public struct SubExtendedSevenLevelState
 {
-    public int RegisterSrcAValue;
-    public int RegisterImmValue;
-    public int RegisterA3Value;
-    public int RegisterWd3Value;
-
-    public int[] RegisterFieldValue;
-
-    public bool RegisterSrcAwe;
-    public bool RegisterImmWe;
-    public bool RegisterA3We;
-    public bool RegisterWd3We;
-
+    public RegisterState SrcA;
+    public RegisterState Immediate;
+    public RegisterState A3;
+    public RegisterState Wd3;
+    public RegisterFileState RegisterFile;
     public AluOperation AluOperation;
-
-    public ImmediateType ExtenderOperation;
-
-    public int MuxPath;
+    public ImmediateType ImmediateType;
+    public int MuxInput;
 }
 
 [System.Serializable]
@@ -122,22 +113,14 @@ public class SubExtendedRegisseur : BaseLevelRegisseur<SubExtendedSevenLevelStat
 
     protected override void ApplyState(SubExtendedSevenLevelState s)
     {
-        _srcA.Reset(s.RegisterSrcAValue);
-        _immValue.Reset(s.RegisterImmValue);
-        _a3.Reset(s.RegisterA3Value);
-        _wd3.Reset(s.RegisterWd3Value);
-
-        _registerFile.Load(s.RegisterFieldValue);
-
-        _srcA.WriteEnable = s.RegisterSrcAwe;
-        _immValue.WriteEnable = s.RegisterImmWe;
-        _a3.WriteEnable = s.RegisterA3We;
-        _wd3.WriteEnable = s.RegisterWd3We;
-
+        _srcA.Restore(s.SrcA);
+        _immValue.Restore(s.Immediate);
+        _a3.Restore(s.A3);
+        _wd3.Restore(s.Wd3);
+        _registerFile.Restore(s.RegisterFile);
         _alu.Operation = s.AluOperation;
-        _extender.Type = s.ExtenderOperation;
-
-        _mux.SelectedInput = s.MuxPath;
+        _extender.Type = s.ImmediateType;
+        _mux.SelectedInput = s.MuxInput;
     }
 
     protected override bool CheckWinCondition()
@@ -145,29 +128,17 @@ public class SubExtendedRegisseur : BaseLevelRegisseur<SubExtendedSevenLevelStat
         return _registerFile.Registers[0] == 256;
     }
 
-    protected override SubExtendedSevenLevelState GetCurrentState()
+    protected override SubExtendedSevenLevelState GetCurrentState() => new()
     {
-        return new SubExtendedSevenLevelState
-        {
-            RegisterSrcAValue = _srcA.Output,
-            RegisterImmValue = _immValue.Output,
-            RegisterA3Value = _a3.Output,
-            RegisterWd3Value = _wd3.Output,
-
-            RegisterFieldValue = (int[])_registerFile.Registers.Clone(),
-
-            RegisterSrcAwe = _srcA.WriteEnable,
-            RegisterImmWe = _immValue.WriteEnable,
-            RegisterA3We = _a3.WriteEnable,
-            RegisterWd3We = _wd3.WriteEnable,
-
-            AluOperation = _alu.Operation,
-
-            ExtenderOperation = _extender.Type,
-
-            MuxPath = _mux.SelectedInput,
-        };
-    }
+        SrcA = _srcA.Save(),
+        Immediate = _immValue.Save(),
+        A3 = _a3.Save(),
+        Wd3 = _wd3.Save(),
+        RegisterFile = _registerFile.Save(),
+        AluOperation = _alu.Operation,
+        ImmediateType = _extender.Type,
+        MuxInput = _mux.SelectedInput
+    };
 
     protected override void HandleClockUpdate()
     {
@@ -187,7 +158,7 @@ public class SubExtendedRegisseur : BaseLevelRegisseur<SubExtendedSevenLevelStat
 
         if (TickCounter - 1 >= 0)
         {
-            _registerFile.WriteAddress = StateAt(TickCounter - 1).RegisterA3Value;
+            _registerFile.WriteAddress = StateAt(TickCounter - 1).A3.Value;
         }
 
         _registerFile.WriteData = _wd3.Output;

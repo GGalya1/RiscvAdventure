@@ -5,13 +5,9 @@ using UnityEngine.Serialization;
 
 public struct LevelFiveExtendedState
 {
-    public int RegisterValue;
-    public int RegisterOutputValue;
-
-    public bool RegisterWe;
-    public bool RegisterOutputWe;
-
-    public ImmediateType ExtenderOperation;
+    public RegisterState Input;
+    public RegisterState Output;
+    public ImmediateType ImmediateType;
 }
 
 [Serializable]
@@ -70,13 +66,9 @@ public class LevelFiveExtended : BaseLevelRegisseur<LevelFiveExtendedState, Leve
 
     protected override void ApplyState(LevelFiveExtendedState s)
     {
-        _srcA.Reset(s.RegisterValue);
-        _output.Reset(s.RegisterOutputValue);
-
-        _srcA.WriteEnable = s.RegisterWe;
-        _output.WriteEnable = s.RegisterOutputWe;
-
-        _extender.Type = s.ExtenderOperation;
+        _srcA.Restore(s.Input);
+        _output.Restore(s.Output);
+        _extender.Type = s.ImmediateType;
     }
 
     protected override bool CheckWinCondition()
@@ -84,19 +76,12 @@ public class LevelFiveExtended : BaseLevelRegisseur<LevelFiveExtendedState, Leve
         return _output.Output == RightAnswerValue;
     }
 
-    protected override LevelFiveExtendedState GetCurrentState()
+    protected override LevelFiveExtendedState GetCurrentState() => new()
     {
-        return new LevelFiveExtendedState
-        {
-            RegisterValue = _srcA.Output,
-            RegisterOutputValue = _output.Output,
-
-            RegisterWe = _srcA.WriteEnable,
-            RegisterOutputWe = _output.WriteEnable,
-
-            ExtenderOperation = _extender.Type
-        };
-    }
+        Input = _srcA.Save(),
+        Output = _output.Save(),
+        ImmediateType = _extender.Type
+    };
 
     protected override void HandleClockUpdate()
     {

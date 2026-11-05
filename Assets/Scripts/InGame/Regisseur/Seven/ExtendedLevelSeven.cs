@@ -4,18 +4,11 @@ using UnityEngine.Serialization;
 
 public struct ExtendedSevenLevelState
 {
-    public int RegisterSrcAValue;
-    public int RegisterSrcBValue;
-    public int RegisterA3Value;
-    public int RegisterWd3Value;
-
-    public int[] RegisterFieldValue;
-
-    public bool RegisterSrcAwe;
-    public bool RegisterSrcBwe;
-    public bool RegisterA3We;
-    public bool RegisterWd3We;
-
+    public RegisterState SrcA;
+    public RegisterState SrcB;
+    public RegisterState A3;
+    public RegisterState Wd3;
+    public RegisterFileState RegisterFile;
     public AluOperation AluOperation;
 }
 
@@ -106,18 +99,11 @@ public class ExtendedLevelSeven : BaseLevelRegisseur<ExtendedSevenLevelState, Ex
 
     protected override void ApplyState(ExtendedSevenLevelState s)
     {
-        _srcA.Reset(s.RegisterSrcAValue);
-        _srcB.Reset(s.RegisterSrcBValue);
-        _a3.Reset(s.RegisterA3Value);
-        _wd3.Reset(s.RegisterWd3Value);
-
-        _registerFile.Load(s.RegisterFieldValue);
-
-        _srcA.WriteEnable = s.RegisterSrcAwe;
-        _srcB.WriteEnable = s.RegisterSrcBwe;
-        _a3.WriteEnable = s.RegisterA3We;
-        _wd3.WriteEnable = s.RegisterWd3We;
-
+        _srcA.Restore(s.SrcA);
+        _srcB.Restore(s.SrcB);
+        _a3.Restore(s.A3);
+        _wd3.Restore(s.Wd3);
+        _registerFile.Restore(s.RegisterFile);
         _alu.Operation = s.AluOperation;
     }
 
@@ -126,24 +112,15 @@ public class ExtendedLevelSeven : BaseLevelRegisseur<ExtendedSevenLevelState, Ex
         return _registerFile.Registers[0] == 42;
     }
 
-    protected override ExtendedSevenLevelState GetCurrentState()
+    protected override ExtendedSevenLevelState GetCurrentState() => new()
     {
-        return new ExtendedSevenLevelState {
-            RegisterSrcAValue = _srcA.Output,
-            RegisterSrcBValue = _srcB.Output,
-            RegisterA3Value = _a3.Output,
-            RegisterWd3Value = _wd3.Output,
-
-            RegisterFieldValue = (int[])_registerFile.Registers.Clone(),
-
-            RegisterSrcAwe = _srcA.WriteEnable,
-            RegisterSrcBwe = _srcB.WriteEnable,
-            RegisterA3We = _a3.WriteEnable,
-            RegisterWd3We = _wd3.WriteEnable,
-
-            AluOperation = _alu.Operation,
-        };
-    }
+        SrcA = _srcA.Save(),
+        SrcB = _srcB.Save(),
+        A3 = _a3.Save(),
+        Wd3 = _wd3.Save(),
+        RegisterFile = _registerFile.Save(),
+        AluOperation = _alu.Operation
+    };
 
     protected override void HandleClockUpdate()
     {
@@ -164,7 +141,7 @@ public class ExtendedLevelSeven : BaseLevelRegisseur<ExtendedSevenLevelState, Ex
         _wd3.Input = _alu.Compute(a, b);
         if (TickCounter - 1 >= 0)
         {
-            _registerFile.WriteAddress = StateAt(TickCounter - 1).RegisterA3Value;
+            _registerFile.WriteAddress = StateAt(TickCounter - 1).A3.Value;
         }
         _registerFile.WriteData = _wd3.Output;
 

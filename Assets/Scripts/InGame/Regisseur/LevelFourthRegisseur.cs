@@ -161,54 +161,37 @@ public class LevelFourthRegisseur : BaseLevelRegisseur<LevelThreeState, LevelFou
             var before = StateAt(TickCounter);
             var upperBusSignal = 0;
             if (_mux.SelectedInput == 0)
-                upperBusSignal = before.RegisterPCValue;
+                upperBusSignal = before.Pc.Value;
             else if (_mux.SelectedInput == 1)
-                upperBusSignal = before.RegisterInstrValue;
+                upperBusSignal = before.Instruction.Value;
 
             yield return Bus.WaveBack((buses.adderToSrcA, _srcA.Input));
             yield return Bus.WaveBack((buses.muxToAdder, upperBusSignal), (buses.constFourToAdder, 4));
             yield return Bus.WaveBack(
-                (buses.srcBToDataMemWd, before.RegisterInstrValue), (buses.srcBToExt, before.RegisterInstrValue));
-            yield return Bus.WaveBack((buses.pcToAdrMux, before.RegisterPCValue), (buses.memDataToSrcB, _srcB.Input));
-            yield return Bus.WaveBack((buses.pcToMemAddr, before.RegisterPCValue));
+                (buses.srcBToDataMemWd, before.Instruction.Value), (buses.srcBToExt, before.Instruction.Value));
+            yield return Bus.WaveBack((buses.pcToAdrMux, before.Pc.Value), (buses.memDataToSrcB, _srcB.Input));
+            yield return Bus.WaveBack((buses.pcToMemAddr, before.Pc.Value));
 
             _currentBus--;
         }
     }
 
-    protected override LevelThreeState GetCurrentState()
+    protected override LevelThreeState GetCurrentState() => new()
     {
-        return new LevelThreeState
-        {
-            RegisterPCValue = _srcA.Output,
-            RegisterInstrValue = _srcB.Output,
-
-            FirstMemoryValue = _dataInstructionMemory.Read(0),
-            SecondMemoryValue = _dataInstructionMemory.Read(4),
-            ThirdMemoryValue = _dataInstructionMemory.Read(8),
-            FourthMemoryValue = _dataInstructionMemory.Read(12),
-
-            RegisterPcwe = _srcA.WriteEnable,
-            RegisterInstrWe = _srcB.WriteEnable,
-            InstrDataMemoryWe = _dataInstructionMemory.WriteEnable,
-
-            CurrentChosenMuxPath = _mux.SelectedInput,
-            AluOperation = _alu.Operation
-        };
-    }
+        Pc = _srcA.Save(),
+        Instruction = _srcB.Save(),
+        Memory = _dataInstructionMemory.Save(),
+        MuxInput = _mux.SelectedInput,
+        AluOperation = _alu.Operation
+    };
 
     protected override void ApplyState(LevelThreeState s)
     {
-        _srcA.Reset(s.RegisterPCValue);
-        _srcB.Reset(s.RegisterInstrValue);
-
-        _dataInstructionMemory.LoadWords(s.FirstMemoryValue, s.SecondMemoryValue, s.ThirdMemoryValue, s.FourthMemoryValue);
-
-        _srcA.WriteEnable = s.RegisterPcwe;
-        _srcB.WriteEnable = s.RegisterInstrWe;
-        _dataInstructionMemory.WriteEnable = s.InstrDataMemoryWe;
-
-        _mux.SelectedInput = s.CurrentChosenMuxPath;
+        _srcA.Restore(s.Pc);
+        _srcB.Restore(s.Instruction);
+        _dataInstructionMemory.Restore(s.Memory);
+        _mux.SelectedInput = s.MuxInput;
+        _alu.Operation = s.AluOperation;
     }
 
     protected override void BlinkClockedComponents()

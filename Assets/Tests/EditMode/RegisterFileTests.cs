@@ -7,8 +7,8 @@ public class RegisterFileTests
     {
         var registerFile = new RegisterFile();
 
-        Assert.AreEqual(32, registerFile.Registers.Length);
-        Assert.IsTrue(System.Array.TrueForAll(registerFile.Registers, v => v == 0));
+        Assert.AreEqual(32, registerFile.Registers.Count);
+        CollectionAssert.AreEqual(new int[32], registerFile.Registers);
     }
 
     [Test]
@@ -180,5 +180,52 @@ public class RegisterFileTests
         registers[31] = 41;
 
         Assert.AreEqual(expected, RegisterFile.ReadPort(registers, address));
+    }
+
+    // ---------------------------------------------------------------- snapshots for the tick history
+
+    [Test]
+    public void SaveRestore_RoundTripsValuesAndWriteEnable()
+    {
+        var values = new int[32];
+        values[4] = 40;
+        var registerFile = new RegisterFile(values, writeEnable: false);
+        var saved = registerFile.Save();
+
+        registerFile.WriteEnable = true;
+        registerFile.WriteAddress = 4;
+        registerFile.WriteData = 99;
+        registerFile.Clock();
+        registerFile.Restore(saved);
+
+        Assert.AreEqual(40, registerFile.Registers[4]);
+        Assert.IsFalse(registerFile.WriteEnable);
+    }
+
+    [Test]
+    public void Save_IsACopy_NotAffectedByLaterWrites()
+    {
+        var registerFile = new RegisterFile();
+        var saved = registerFile.Save();
+
+        registerFile.WriteAddress = 1;
+        registerFile.WriteData = 5;
+        registerFile.Clock();
+
+        Assert.AreEqual(0, saved.Values[1]);
+    }
+
+    [Test]
+    public void Restore_DoesNotAliasTheSnapshot()
+    {
+        var registerFile = new RegisterFile();
+        var saved = registerFile.Save();
+        registerFile.Restore(saved);
+
+        registerFile.WriteAddress = 1;
+        registerFile.WriteData = 5;
+        registerFile.Clock();
+
+        Assert.AreEqual(0, saved.Values[1], "restoring twice from the same history entry must give the same state");
     }
 }

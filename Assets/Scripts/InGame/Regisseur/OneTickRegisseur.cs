@@ -136,29 +136,14 @@ internal readonly struct CycleSignals
 
 public struct OneTickProcessorLevelState
 {
-    public int RegisterPCValue;
-
-    public int FirstInstructionMemory;
-    public int SecondInstructionMemory;
-    public int ThirdInstructionMemory;
-    public int FourthInstructionMemory;
-
-    public int FirstDataMemory;
-    public int SecondDataMemory;
-    public int ThirdDataMemory;
-    public int FourthDataMemory;
-
-    public int[] RegisterFieldValue;
-
-    public bool RegisterPCwe;
-
-    public bool DataMemoryWrite;
-    public bool RegisterFileWriteEnable;
+    public RegisterState Pc;
+    public MemoryState InstructionMemory;
+    public MemoryState DataMemory;
+    public RegisterFileState RegisterFile;
 
     public AluOperation AluOperation;
     public AluOperation PCAluOperation;
     public AluOperation BtaOperation;
-
     public ImmediateType ExtenderOperation;
 
     public int MuXadrPath;
@@ -273,69 +258,38 @@ public class OneTickRegisseur
         Clock.Tick();
     }
 
-    protected override OneTickProcessorLevelState GetCurrentState()
+    protected override OneTickProcessorLevelState GetCurrentState() => new()
     {
-        return new OneTickProcessorLevelState
-        {
-            RegisterPCValue = _pc.Output,
+        Pc = _pc.Save(),
+        InstructionMemory = _instructionMemory.Save(),
+        DataMemory = _dataMemory.Save(),
+        RegisterFile = _registerFile.Save(),
 
-            RegisterFieldValue = (int[])_registerFile.Registers.Clone(),
+        AluOperation = _alu.Operation,
+        PCAluOperation = _pcAlu.Operation,
+        BtaOperation = _btaAlu.Operation,
+        ExtenderOperation = _extender.Type,
 
-            FirstInstructionMemory = _instructionMemory.Read(0),
-            SecondInstructionMemory = _instructionMemory.Read(4),
-            ThirdInstructionMemory = _instructionMemory.Read(8),
-            FourthInstructionMemory = _instructionMemory.Read(12),
-
-            FirstDataMemory = _dataMemory.Read(0),
-            SecondDataMemory = _dataMemory.Read(4),
-            ThirdDataMemory = _dataMemory.Read(8),
-            FourthDataMemory = _dataMemory.Read(12),
-
-            RegisterPCwe = _pc.WriteEnable,
-            DataMemoryWrite           = _dataMemory.WriteEnable,
-            RegisterFileWriteEnable   = _registerFile.WriteEnable,
-
-            PCAluOperation = _pcAlu.Operation,
-            BtaOperation   = _btaAlu.Operation,
-
-            AluOperation = _alu.Operation,
-
-            ExtenderOperation = _extender.Type,
-
-            MuXadrPath = _adrMux.SelectedInput,
-            MuXsrcBPath = _srcBMux.SelectedInput,
-            MuXresultPath = _resultMux.SelectedInput
-        };
-    }
+        MuXadrPath = _adrMux.SelectedInput,
+        MuXsrcBPath = _srcBMux.SelectedInput,
+        MuXresultPath = _resultMux.SelectedInput
+    };
 
     protected override void ApplyState(OneTickProcessorLevelState s)
     {
-        _pc.Reset(s.RegisterPCValue);
-
-        _adrMux.SelectedInput = s.MuXadrPath;
-        _srcBMux.SelectedInput = s.MuXsrcBPath;
-        _resultMux.SelectedInput = s.MuXresultPath;
-
-        // restore in place: the memories are registered in the clock domain
-        _instructionMemory.Clear();
-        _instructionMemory.WriteEnable = false;
-        _instructionMemory.LoadWords(
-            s.FirstInstructionMemory, s.SecondInstructionMemory, s.ThirdInstructionMemory, s.FourthInstructionMemory);
-
-        _dataMemory.Clear();
-        _dataMemory.WriteEnable = s.DataMemoryWrite;
-        _dataMemory.LoadWords(s.FirstDataMemory, s.SecondDataMemory, s.ThirdDataMemory, s.FourthDataMemory);
-
-        // noch Register File einfuegen
-        _registerFile.Load(s.RegisterFieldValue);
-
-        _pc.WriteEnable = s.RegisterPCwe;
-        _registerFile.WriteEnable  = s.RegisterFileWriteEnable;
+        _pc.Restore(s.Pc);
+        _instructionMemory.Restore(s.InstructionMemory);
+        _dataMemory.Restore(s.DataMemory);
+        _registerFile.Restore(s.RegisterFile);
 
         _alu.Operation = s.AluOperation;
         _pcAlu.Operation = s.PCAluOperation;
         _btaAlu.Operation = s.BtaOperation;
         _extender.Type = s.ExtenderOperation;
+
+        _adrMux.SelectedInput = s.MuXadrPath;
+        _srcBMux.SelectedInput = s.MuXsrcBPath;
+        _resultMux.SelectedInput = s.MuXresultPath;
     }
 
     protected override void BlinkClockedComponents()
@@ -365,19 +319,15 @@ public class OneTickRegisseur
         // Reconstruct the bus values that were flowing during the tick we're undoing
         var s = StateAt(TickCounter); // pre-tick state (TickCounter already --)
 
-        // Rebuild data memory from saved state to get the correct ReadData
-        var savedDataMem = new DataInstMemory();
-        savedDataMem.LoadWords(s.FirstDataMemory, s.SecondDataMemory, s.ThirdDataMemory, s.FourthDataMemory);
-
         var sig = ComputeSignals(
-            s.RegisterPCValue, s.RegisterFieldValue,
+            s.Pc.Value, s.RegisterFile.Values,
             s.AluOperation, s.PCAluOperation,
             s.BtaOperation, s.ExtenderOperation,
             s.MuXsrcBPath, s.MuXresultPath,
-            s.MuXadrPath, savedDataMem);
+            s.MuXadrPath, s.DataMemory);
 
         // the same waves as the forward animation, played backwards
-        yield return Bus.PlayBackwards(BuildWaves(s.RegisterPCValue, sig));
+        yield return Bus.PlayBackwards(BuildWaves(s.Pc.Value, sig));
     }
 
     /// <summary> The order in which the values of one cycle travel through the datapath. </summary>
@@ -422,7 +372,7 @@ public class OneTickRegisseur
         ExerciseCheck.IsSolved(Initial, _registerFile.Registers, _dataMemory, _pc.Output);
 
     private CycleSignals ComputeSignals(
-        int pc, int[] regValues,
+        int pc, IReadOnlyList<int> regValues,
         AluOperation aluOp, AluOperation pcAluOp, AluOperation btaOp, ImmediateType extOp,
         int srcBPath, int resultPath, int adrPath,
         IReadableMemory dataMem)
@@ -436,8 +386,8 @@ public class OneTickRegisseur
         var rd = InstructionFields.Rd(instr);
 
         // ID: read register file  (x0 is hardwired to 0)
-        var rd1 = rs1 > 0 && rs1 < regValues.Length ? regValues[rs1] : 0;
-        var rd2 = rs2 > 0 && rs2 < regValues.Length ? regValues[rs2] : 0;
+        var rd1 = RegisterFile.ReadPort(regValues, rs1);
+        var rd2 = RegisterFile.ReadPort(regValues, rs2);
 
         // ID: sign-extend immediate
         var immExt = Extender.Evaluate(extOp, (uint)instr);
