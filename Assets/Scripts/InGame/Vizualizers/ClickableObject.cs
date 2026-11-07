@@ -1,21 +1,14 @@
 using UnityEngine;
 using UnityEngine.EventSystems;
 
-public class ClickableObject: MonoBehaviour, IPointerClickHandler
+/// <summary> Forwards a click on the 3D object to its <see cref="IVisualizer"/> (opens/closes the info panel). </summary>
+public class ClickableObject : MonoBehaviour, IPointerClickHandler
 {
-    // this method will call when we click on a object
     public void OnPointerClick(PointerEventData eventData)
     {
-        // releasing the finger/mouse at the end of a camera drag is not a click
-        if (CameraController.IsDragInProgressOrJustEnded) return;
-
-        // get the IVisualizer from an object
-        var visualiser = GetComponent<IVisualizer>();
-
-        if (visualiser != null)
+        if (TryGetComponent<IVisualizer>(out var visualizer))
         {
-            // call the functionality of the object, if it have component vizualizer
-            visualiser.ShowData();
+            visualizer.ShowData();
         }
     }
 }

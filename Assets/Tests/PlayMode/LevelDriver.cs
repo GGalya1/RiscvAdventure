@@ -43,7 +43,7 @@ namespace RiscvAdventure.PlayModeTests
     /// Plays a level scene the way a player does: it presses the same UI buttons
     /// (MUX path, ALU / Extender operation, write-enable, next tick, check solution)
     /// and observes the game's own <see cref="LevelEvents"/>.
-    /// Level internals that are not public (buttons, tick counter) are read through reflection,
+    /// Level internals that are not public (info panels, bound models, tick counter) are read through reflection,
     /// so no production code has to change.
     /// </summary>
     public sealed class LevelDriver : IDisposable
@@ -142,53 +142,57 @@ namespace RiscvAdventure.PlayModeTests
         public void SelectMux(string field, int path)
         {
             var mux = Visual<MultiplexerVisualizer>(field);
-            var button = ButtonAt(mux.UIController.WayButtons, path);
+            var button = ButtonAt(PanelOf<MultiplexerControlPanel>(mux, field).WayButtons, path);
             Assert.IsNotNull(button, Ctx($"'{field}' has no MUX input #{path}"));
 
             button.onClick.Invoke();
             Note($"{field}: MUX path {path}");
-            Assert.AreEqual(path, mux.CurrentChosenMuxPath, Ctx($"clicking MUX input #{path} of '{field}' had no effect"));
+            Assert.AreEqual(path, ModelOf<Multiplexer>(mux, field).SelectedInput,
+                Ctx($"clicking MUX input #{path} of '{field}' had no effect"));
         }
         
-        public void ChooseAlu(string field, Op op) => ClickOperation(field, (int)op, op.ToString().ToUpperInvariant());
-        
-        public void ChooseImmediate(string field, Imm type) => ClickOperation(field, (int)type, type + "-type");
-
-        private void ClickOperation(string field, int index, string label)
+        public void ChooseAlu(string field, Op op)
         {
             var vis = Visual<AluVisualiser>(field);
-            var button = ButtonAt(vis.uiController.OperationButtons, index);
+            ClickOperation(vis, field, (int)op, op.ToString().ToUpperInvariant());
+            Assert.AreEqual((AluOperation)(int)op, ModelOf<Alu>(vis, field).Operation,
+                Ctx($"clicking button #{(int)op} of '{field}' had no effect"));
+        }
+
+        public void ChooseImmediate(string field, Imm type)
+        {
+            var vis = Visual<ExtenderVisualizer>(field);
+            ClickOperation(vis, field, (int)type, type + "-type");
+            Assert.AreEqual((ImmediateType)(int)type, ModelOf<Extender>(vis, field).Type,
+                Ctx($"clicking button #{(int)type} of '{field}' had no effect"));
+        }
+
+        private void ClickOperation(OperationSelectorVisualizer vis, string field, int index, string label)
+        {
+            var button = ButtonAt(PanelOf<AluControlPanel>(vis, field).OperationButtons, index);
             Assert.IsNotNull(button, Ctx($"'{field}' has no button #{index}"));
 
             button.onClick.Invoke();
             Note($"{field}: {label}");
-            Assert.AreEqual(index, vis.CurrentAluOperation, Ctx($"clicking button #{index} of '{field}' had no effect"));
         }
         
         public void SetWriteEnable(string field, bool enabled)
         {
-            var target = ReadObject(field);
-            Assert.IsNotNull(target, Ctx($"Field '{field}' is not assigned in the scene"));
+            // registers, register file and memories: the WE button writes straight into the bound model
+            var view = Visual<SequentialVisualizer>(field);
+            var model = view.Model;
+            Assert.IsNotNull(model, Ctx($"'{field}' is not bound to a model (Bind was not called in OnLevelStart)"));
 
-            bool Current() => target switch
+            if (model.WriteEnable != enabled)
             {
-                RegisterVisualizer r => r.isWriteEnabled,
-                InstructionDataMemoryVisualizer m => m.isWriteEnabled,
-                RegisterFileVisualizer f => f.isWriteEnabled,
-                _ => throw new AssertionException($"'{field}' is a {target.GetType().Name}, which has no write-enable switch")
-            };
+                var button = PanelOf<IWriteEnablePanel>(view, field).WeButton;
+                Assert.IsNotNull(button, Ctx($"'{field}' has no write-enable button"));
+                button.onClick.Invoke();
+            }
 
-            Button button = target switch
-            {
-                RegisterVisualizer r => r.UIRegisterPanel.WeButton,
-                InstructionDataMemoryVisualizer m => m.UIRegisterPanel.WeButton,
-                RegisterFileVisualizer f => f.UIRegisterPanel.WeButton,
-                _ => null
-            };
-
-            if (Current() != enabled) button.onClick.Invoke();
             Note($"{field}: write-enable {(enabled ? "ON" : "OFF")}");
-            Assert.AreEqual(enabled, Current(), Ctx($"could not switch write-enable of '{field}'"));
+            Assert.AreEqual(enabled, model.WriteEnable,
+                Ctx($"could not switch write-enable of '{field}' (does it have a writeEnableIndicator in the scene?)"));
         }
         
         public IEnumerator Tick()
@@ -328,6 +332,41 @@ namespace RiscvAdventure.PlayModeTests
         /// <summary> Button with the given index of a panel button array, or null if there is none. </summary>
         private static Button ButtonAt(Button[] buttons, int index) =>
             buttons != null && index >= 0 && index < buttons.Length ? buttons[index] : null;
+
+        /// <summary> Component <typeparamref name="T"/> on the info panel of a visualizer (the panel the player clicks in). </summary>
+        private T PanelOf<T>(BaseVisualizer view, string field) where T : class
+        {
+            var panelField = FindField(view.GetType(), "panelInstance");
+            Assert.IsNotNull(panelField, Ctx($"{view.GetType().Name} has no field 'panelInstance'"));
+
+            var panel = panelField.GetValue(view) as GameObject;
+            Assert.IsNotNull(panel, Ctx($"'{field}' has no panel assigned in the scene"));
+
+            Assert.IsTrue(panel.TryGetComponent<T>(out var component), Ctx($"The panel of '{field}' has no {typeof(T).Name}"));
+            return component;
+        }
+
+        /// <summary>
+        /// The simulation model a visualizer was bound to in OnLevelStart (found by type, so renaming
+        /// the private field does not break the tests).
+        /// </summary>
+        private T ModelOf<T>(Component view, string field) where T : class
+        {
+            for (var t = view.GetType(); t != null; t = t.BaseType)
+            {
+                foreach (var f in t.GetFields(AnyInstance))
+                {
+                    if (f.FieldType != typeof(T)) continue;
+
+                    var model = (T)f.GetValue(view);
+                    Assert.IsNotNull(model, Ctx($"'{field}' is not bound to a {typeof(T).Name} (Bind was not called in OnLevelStart)"));
+                    return model;
+                }
+            }
+
+            Assert.Fail(Ctx($"{view.GetType().Name} has no {typeof(T).Name} field"));
+            return null;
+        }
 
         // ------------------------------------------------------------------ events
 

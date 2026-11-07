@@ -1,66 +1,10 @@
+using System;
 using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Serialization;
 
-public struct ProcessorLevelState
-{
-    public int RegisterPCValue;
-    public int RegisterOldPCValue;
-    public int RegisterInstrValue;
-    public int RegisterDataValue;
-    public int RegisterScrAValue;
-    public int RegisterSrcBValue;
-    public int RegisterAluOutValue;
-
-    public int FirstMemoryValue;
-    public int SecondMemoryValue;
-    public int ThirdMemoryValue;
-    public int FourthMemoryValue;
-
-    public int[] RegisterFieldValue;
-
-    public bool RegisterPCwe;
-    public bool RegisterOldPCwe;
-    public bool RegisterInstrWe;
-    public bool RegisterDataWe;
-    public bool RegisterScrAwe;
-    public bool RegisterSrcBwe;
-    public bool RegisterAluOutWe;
-
-    public int AluOperation;
-
-    public int ExtenderOperation;
-
-    public int MuXadrPath;
-    public int MuXsrcAPath;
-    public int MuXsrcBPath;
-    public int MuXresultPath;
-}
-
-internal readonly struct MehrtaktSignals
-{
-    public readonly int AdrMuxOut;
-    public readonly int SrcAMuxOut;
-    public readonly int SrcBMuxOut;
-    public readonly int AluResult;
-    public readonly int ResultMuxOut;
-
-    public MehrtaktSignals(
-        int adrMuxOut, int srcAMuxOut, int srcBMuxOut, 
-        int aluResult, int resultMuxOut
-    )
-    {
-        AdrMuxOut = adrMuxOut;
-        SrcAMuxOut = srcAMuxOut;
-        SrcBMuxOut = srcBMuxOut;
-        AluResult = aluResult;
-        ResultMuxOut = resultMuxOut;
-    }
-}
-
-[System.Serializable]
-public class FullProcessorBusSegments: IBusSegmentProvider
+[Serializable]
+public class FullProcessorBusSegments
 {
     [Header("IF - Instruction Fetch")]
     [Tooltip("PC -> ADR MUX input (selects instruction memory address)")]
@@ -119,39 +63,14 @@ public class FullProcessorBusSegments: IBusSegmentProvider
     public LineRenderer resultMuxToRegFile;
     [Tooltip("Result MUX -> third fanout destination")]
     public LineRenderer resultMuxFanOut;
-
-    public void RegisterAll(BusController c)
-    {
-        c.RegisterSegment(pcToAdrMux);
-        c.RegisterSegment(pcToOldPcReg);
-        c.RegisterSegment(pcToPcAdder);
-        c.RegisterSegment(constFourToPcAdder);
-        c.RegisterSegment(adrMuxToMem);
-        c.RegisterSegment(memToInstrReg);
-        c.RegisterSegment(srcAMuxToSrcAReg);
-        c.RegisterSegment(srcBMuxToSrcBReg);
-        c.RegisterSegment(aluToAluOutReg);
-        c.RegisterSegment(resultMuxToPC);
-        c.RegisterSegment(instrToRegFileA1);
-        c.RegisterSegment(instrToRegFileA2);
-        c.RegisterSegment(instrToExtend);
-        c.RegisterSegment(rd1ToSrcAMux);
-        c.RegisterSegment(rd2ToSrcBMux);
-        c.RegisterSegment(extToSrcBMux);
-        c.RegisterSegment(srcAMuxToAlu);
-        c.RegisterSegment(srcBMuxToAlu);
-        c.RegisterSegment(aluCombToAluOutReg);
-        c.RegisterSegment(aluOutToResultMux);
-        c.RegisterSegment(aluOutToDataMem);
-        c.RegisterSegment(resultMuxToPcWb);
-        c.RegisterSegment(resultMuxToRegFile);
-        c.RegisterSegment(resultMuxFanOut);
-    }
 }
 
+/// <summary> Multi-cycle (Mehrtakt) processor level. The datapath itself is <see cref="MultiCycleProcessor"/>. </summary>
 public class FullProcessorRegisseur
-    : ProcessorRegisseurBase<ProcessorLevelState, FullProcessorBusSegments, ProcessorInitialState>
+    : ProcessorRegisseurBase<MultiCycleProcessorState, FullProcessorBusSegments, ProcessorInitialState>
 {
+    private const int PhaseCount = 4; // fetch, decode, execute, write back
+
     [FormerlySerializedAs("_registerPCVisualizer")]
     [Header("Processor Specific Components")]
     [SerializeField] private RegisterVisualizer registerPCVisualizer;
@@ -179,595 +98,220 @@ public class FullProcessorRegisseur
     [Header("Extra Panel Fields")]
     [SerializeField] private SidePanelStateInformer sidePanelInformer;
 
-    #region CACHED UI REFERENCES
-    private InfoPanelUI _infoPCRegister;
-    private InfoPanelUI _infoOldPCRegister;
-    private InfoPanelUI _infoInstructionRegister;
-    private InfoPanelUI _infoDataRegister;
-    private InfoPanelUI _infoSrcARegister;
-    private InfoPanelUI _infoSrcBRegister;
-    private InfoPanelUI _infoAluOutRegister;
-
-    private InstrMemoryControlPanel _infoDataMemory;
-    #endregion
-
-    // Intern components for computations
-    private Register _pc;
-    private Register _oldPC;
-    private Register _instructionReg;
-    private Register _dataReg;
-    private Register _srcA;
-    private Register _srcB;
-    private Register _aluOutReg;
-
-    private DataInstMemory _dataInstructionMemory;
-    private RegisterFile _registerFile;
+    private MultiCycleProcessor _cpu;
 
 
-    private int _currentBus; // [0, 10]
-
-    protected override void Start()
-    {
-        base.Start();
-        buses.RegisterAll(busController);
-    }
     protected override void OnLevelStart()
     {
         base.OnLevelStart();
-        
-        _pc = new Register(Initial.pcRegisterInitialValue)
-        {
-            WriteEnable = true
-        };
-        _oldPC = new Register()
-        {
-            WriteEnable = true
-        };
-        _instructionReg = new Register()
-        {
-            WriteEnable = true
-        };
-        _dataReg = new Register()
-        {
-            WriteEnable = true
-        };
-        _srcA = new Register()
-        {
-            WriteEnable = true
-        };
-        _srcB = new Register()
-        {
-            WriteEnable = true
-        };
-        _aluOutReg = new Register()
-        {
-            WriteEnable = true
-        };
 
-        _registerFile = new RegisterFile
-        {
-            RegisterWriteEnable = true
-        };
-        _registerFile.InitializeRegisters(new [] { 0, 1, 39, 43, 5, 6, 8,
-                                                     40, 3, 39, 13, 56, 63, 20,
-                                                     50, 51, 0, 12, 53, 65, 29,
-                                                     60, 61, 0, 25, 54, 0, 28,
-                                                     70, 30, 31, 0});
+        _cpu = new MultiCycleProcessor(
+            Clock,
+            Initial.pcRegisterInitialValue,
+            memoryWords: new[] { Initial.firstMemoWord, Initial.secondMemoWord, Initial.thirdMemoWord, Initial.fourthMemoWord },
+            registers: ProcessorDefaults.RegisterValues);
 
-        _dataInstructionMemory = new DataInstMemory
-        {
-            MemoryWrite = true
-        };
+        aluVisualizer.Bind(_cpu.Alu);
+        extenderVisualizer.Bind(_cpu.Extender);
 
-        _dataInstructionMemory.LoadWord(0, Initial.firstMemoWord);
-        _dataInstructionMemory.LoadWord(4, Initial.secondMemoWord);
-        _dataInstructionMemory.LoadWord(8, Initial.thirdMemoWord);
-        _dataInstructionMemory.LoadWord(12, Initial.fourthMemoWord);
+        adrMuxVisualizer.Bind(_cpu.AdrMux);
+        srcAmuxVisualizer.Bind(_cpu.SrcAMux);
+        srcBmuxVisualizer.Bind(_cpu.SrcBMux);
+        resultMuxVisualizer.Bind(_cpu.ResultMux);
 
-        // Caching of UI panels for visualizers
-        _infoPCRegister = registerPCVisualizer.UIRegisterPanel;
-        _infoOldPCRegister = registerOldPCVisualizer.UIRegisterPanel;
-        _infoInstructionRegister = registerInstructionVisualizer.UIRegisterPanel;
-        _infoDataRegister = registerDataVisualizer.UIRegisterPanel;
-        _infoSrcARegister = registerSrcAVisualizer.UIRegisterPanel;
-        _infoSrcBRegister = registerSrcBVisualizer.UIRegisterPanel;
-        _infoAluOutRegister = registerAluOutVisualizer.UIRegisterPanel;
-
-        UpdateVisualizers();
-    }
-    
-    private MehrtaktSignals ComputeMehrtaktSignals()
-    {
-        var ext = Extender.Evaluate(extenderVisualizer.CurrentAluOperation, (uint)_instructionReg.Output);
-        var srcA = EvaluateMux(srcAmuxVisualizer.CurrentChosenMuxPath, _pc.Output, _oldPC.Output, _srcA.Output);
-        var srcB = EvaluateMux(srcBmuxVisualizer.CurrentChosenMuxPath, _srcB.Output, ext, 4);
-        var alu = Alu.Calculate(srcA, srcB, aluVisualizer.CurrentAluOperation);
-        var result = EvaluateMux(resultMuxVisualizer.CurrentChosenMuxPath, _aluOutReg.Output, _dataReg.Output, alu);
-        var adr = EvaluateMux(adrMuxVisualizer.CurrentChosenMuxPath, _pc.Output, result, 0);
-
-        return new MehrtaktSignals(
-            adr, srcA,
-            srcB, alu, result
-        );
+        Show(
+            registerPCVisualizer.Bind(_cpu.Pc, "PC Register"),
+            registerOldPCVisualizer.Bind(_cpu.OldPc, "Old PC Register"),
+            registerInstructionVisualizer.Bind(_cpu.Instruction, "Instruction Register", Disassemble),
+            registerDataVisualizer.Bind(_cpu.Data, "Data Register"),
+            registerSrcAVisualizer.Bind(_cpu.SrcA, "SrcA Register"),
+            registerSrcBVisualizer.Bind(_cpu.SrcB, "SrcB Register"),
+            registerAluOutVisualizer.Bind(_cpu.AluOut, "ALU Out Register"),
+            memoryVisualizer.Bind(_cpu.Memory, MemoryDisplay.Instructions),
+            registerFileVisualizer.Bind(_cpu.RegisterFile));
     }
 
-    protected override void ApplyState(ProcessorLevelState s)
-    {
-        _pc.Reset(s.RegisterPCValue);
-        _oldPC.Reset(s.RegisterOldPCValue);
-        _instructionReg.Reset(s.RegisterInstrValue);
-        _dataReg.Reset(s.RegisterDataValue);
-        _srcA.Reset(s.RegisterScrAValue);
-        _srcB.Reset(s.RegisterSrcBValue);
-        _aluOutReg.Reset(s.RegisterAluOutValue);
-        
-        ApplyMuxState(s.MuXadrPath, adrMuxVisualizer);
-        ApplyMuxState(s.MuXsrcAPath, srcAmuxVisualizer);
-        ApplyMuxState(s.MuXsrcBPath, srcBmuxVisualizer);
-        ApplyMuxState(s.MuXresultPath, resultMuxVisualizer);
-        
-        // WE for dataInstrMem ???
-        _dataInstructionMemory.LoadWord(0, s.FirstMemoryValue);
-        _dataInstructionMemory.LoadWord(4, s.SecondMemoryValue);
-        _dataInstructionMemory.LoadWord(8, s.ThirdMemoryValue);
-        _dataInstructionMemory.LoadWord(12, s.FourthMemoryValue);
+    private static string Disassemble(int word) => RiscVDecoder.CommandBuilder((uint)word);
 
-        // noch Register File einfuegen
-        _registerFile.InitializeRegisters(s.RegisterFieldValue);
+    protected override void HandleClockUpdate() => _cpu.Step();
 
-        _pc.WriteEnable = s.RegisterPCwe;
-        _oldPC.WriteEnable = s.RegisterOldPCwe;
-        _instructionReg.WriteEnable = s.RegisterInstrWe;
-        _dataReg.WriteEnable = s.RegisterDataWe;
-        _srcA.WriteEnable = s.RegisterScrAwe;
-        _srcB.WriteEnable = s.RegisterSrcBwe;
-        _aluOutReg.WriteEnable = s.RegisterAluOutWe;
+    protected override MultiCycleProcessorState GetCurrentState() => _cpu.Save();
 
-        aluVisualizer.ChooseAluOperation(s.AluOperation);
-        extenderVisualizer.ChooseAluOperation(s.ExtenderOperation);
-    }
+    protected override void ApplyState(MultiCycleProcessorState state) => _cpu.Restore(state);
+
+    protected override bool CheckWinCondition() =>
+        ExerciseCheck.IsSolved(Initial, _cpu.RegisterFile.Registers, _cpu.Memory, _cpu.Pc.Output);
 
     protected override void BlinkClockedComponents()
     {
-        registerPCVisualizer.TriggerBlink();
-        registerOldPCVisualizer.TriggerBlink();
-        registerInstructionVisualizer.TriggerBlink();
-        registerDataVisualizer.TriggerBlink();
-        registerSrcAVisualizer.TriggerBlink();
-        registerSrcBVisualizer.TriggerBlink();
-        registerAluOutVisualizer.TriggerBlink();
-
-        memoryVisualizer.TriggerBlink();
-        registerFileVisualizer.TriggerBlink();
-
+        base.BlinkClockedComponents();
         numberBlinker.Trigger();
     }
 
-    protected override bool CheckWinCondition() =>
-        ExerciseCheck.IsSolved(Initial, _registerFile.Registers, address => _dataInstructionMemory.Memory[address], _pc.Output);
+    /// <summary> Phase (0 fetch .. 3 write back) of the tick with the given index. </summary>
+    private static int PhaseOf(int tick) => tick % PhaseCount;
 
-    protected override ProcessorLevelState GetCurrentState()
-    {
-        return new ProcessorLevelState
-        {
-            RegisterPCValue = _pc.Output,
-            RegisterOldPCValue = _oldPC.Output,
-            RegisterInstrValue = _instructionReg.Output,
-            RegisterDataValue = _dataReg.Output,
-            RegisterScrAValue = _srcA.Output,
-            RegisterSrcBValue = _srcB.Output,
-            RegisterAluOutValue = _aluOutReg.Output,
-
-            RegisterFieldValue = (int[])_registerFile.Registers.Clone(),
-
-            FirstMemoryValue = _dataInstructionMemory.Memory[0],
-            SecondMemoryValue = _dataInstructionMemory.Memory[4],
-            ThirdMemoryValue = _dataInstructionMemory.Memory[8],
-            FourthMemoryValue = _dataInstructionMemory.Memory[12],
-
-            RegisterPCwe = _pc.WriteEnable,
-            RegisterOldPCwe = _oldPC.WriteEnable,
-            RegisterInstrWe = _instructionReg.WriteEnable,
-            RegisterDataWe = _dataReg.WriteEnable,
-            RegisterScrAwe = _srcA.WriteEnable,
-            RegisterSrcBwe = _srcB.WriteEnable,
-            RegisterAluOutWe = _aluOutReg.WriteEnable,
-
-            AluOperation = aluVisualizer.CurrentAluOperation,
-
-            ExtenderOperation = extenderVisualizer.CurrentAluOperation,
-
-            MuXadrPath = adrMuxVisualizer.CurrentChosenMuxPath,
-            MuXsrcAPath = srcAmuxVisualizer.CurrentChosenMuxPath,
-            MuXsrcBPath = srcBmuxVisualizer.CurrentChosenMuxPath,
-            MuXresultPath = resultMuxVisualizer.CurrentChosenMuxPath,
-        };
-    }
-
-    protected override void HandleClockUpdate()
-    {
-        // synchronize visualizers and concrete objects
-        _pc.WriteEnable = registerPCVisualizer.isWriteEnabled;
-        _oldPC.WriteEnable = registerOldPCVisualizer.isWriteEnabled;
-        _instructionReg.WriteEnable = registerInstructionVisualizer.isWriteEnabled;
-        _dataReg.WriteEnable = registerDataVisualizer.isWriteEnabled;
-        _srcA.WriteEnable = registerSrcAVisualizer.isWriteEnabled;
-        _srcB.WriteEnable = registerSrcBVisualizer.isWriteEnabled;
-        _aluOutReg.WriteEnable = registerAluOutVisualizer.isWriteEnabled;
-        _dataInstructionMemory.MemoryWrite = memoryVisualizer.isWriteEnabled;
-        _registerFile.RegisterWriteEnable = registerFileVisualizer.isWriteEnabled;
-
-        var sig = ComputeMehrtaktSignals();
-
-        // implementation
-
-        #region first step (memory)
-        var tmpAddress = sig.AdrMuxOut;
-        if (_dataInstructionMemory.Memory.ContainsKey(tmpAddress))
-        {
-            _instructionReg.Input = _dataInstructionMemory.Memory[tmpAddress];
-            _dataReg.Input = _dataInstructionMemory.Memory[tmpAddress];
-        }
-        else
-        {
-            _instructionReg.Input = 0;
-            _dataReg.Input = 0;
-        }
-
-        _oldPC.Input = _pc.Output;
-
-        _dataInstructionMemory.Address = tmpAddress;
-        #endregion
-
-        #region second step (register file)
-
-        // A1: [19:15] (Register Source 1)
-        _registerFile.ReadAdress1 = (_instructionReg.Output >> 15) & 0x1F;
-
-        // A2: [24:20] (Register Source 2)
-        _registerFile.ReadAdress2 = (_instructionReg.Output >> 20) & 0x1F;
-
-        _registerFile.ReadRegisters();
-        
-        // A3: [11:7] (Register Destination / rd)
-
-        _srcA.Input = _registerFile.ReadData1;
-        _srcB.Input = _registerFile.ReadData2;
-        #endregion
-
-        #region third step (ALU)
-
-        _aluOutReg.Input = sig.AluResult;
-        _dataInstructionMemory.WriteData = _srcB.Output;
-        #endregion
-
-        #region fourth step (WB)
-        
-        /*if (TickCounter - 2 >= 0) {
-            _registerFile.WriteAdress = ((TickStateValues[TickCounter - 2].RegisterInstrValue >> 7) & 0x1F);
-            // _registerFile.WriteData = TickStateValues[TickCounter - 2].RegisterInstrValue;
-        }*/
-        
-        _registerFile.WriteAdress = (_instructionReg.Output >> 7) & 0x1F;
-
-
-        var tmpResult = sig.ResultMuxOut;
-        _registerFile.WriteData = tmpResult;
-        _pc.Input = tmpResult;
-        #endregion
-
-        _pc.PreClockUpdate();
-        _oldPC.PreClockUpdate();
-        _instructionReg.PreClockUpdate();
-        _dataReg.PreClockUpdate();
-        _srcA.PreClockUpdate();
-        _srcB.PreClockUpdate();
-        _aluOutReg.PreClockUpdate();
-        _dataInstructionMemory.PreClockUpdate();
-        _registerFile.PreClockUpdate();
-
-        _pc.Clock();
-        _oldPC.Clock();
-        _instructionReg.Clock();
-        _dataReg.Clock();
-        _srcA.Clock();
-        _srcB.Clock();
-        _aluOutReg.Clock();
-        _dataInstructionMemory.Clock();
-        _registerFile.Clock();
-    }
-
+    #region Bus animation
     protected override IEnumerator RunBusVisualizations()
     {
-        if (_currentBus >= 0 && _currentBus < maxTickNumber)
+        switch (PhaseOf(TickCounter))
         {
-            switch (_currentBus % 4)
-            {
-                case 0: yield return RunFetchVisualisation(); break;
-                case 1: yield return RunDecodeVisualisation(); break;
-                case 2: yield return RunExecutionVisualisation(); break;
-                case 3: yield return RunWriteBackVisualisation(); break;
-            }
-
-            _currentBus++;
+            case 0: yield return RunFetch(); break;
+            case 1: yield return RunDecode(); break;
+            case 2: yield return RunExecute(); break;
+            case 3: yield return RunWriteBack(); break;
         }
     }
 
     protected override IEnumerator ReverseBusVisualizations()
     {
-        if (_currentBus >= 1 && _currentBus <= maxTickNumber)
+        switch (PhaseOf(TickCounter))
         {
-            switch ((_currentBus - 1) % 4)
-            {
-                case 0: yield return ReverseFetchVisualisation(); break;
-                case 1: yield return ReverseDecodeVisualisation(); break;
-                case 2: yield return ReverseExecutionVisualisation(); break;
-                case 3: yield return ReverseWriteBackVisualisation(); break;
-            }
-
-            _currentBus--;
+            case 0: yield return ReverseFetch(); break;
+            case 1: yield return ReverseDecode(); break;
+            case 2: yield return ReverseExecute(); break;
+            case 3: yield return ReverseWriteBack(); break;
         }
     }
 
-    #region vizualization helpers
-    private int ImmExt => Extender.Evaluate(extenderVisualizer.CurrentAluOperation, (uint)_instructionReg.Output);
-
-    private IEnumerator RunFetchVisualisation()
+    private IEnumerator RunFetch()
     {
-        var pc = _pc.Output;
-        var sig = ComputeMehrtaktSignals();
+        var pc = _cpu.Pc.Output;
+        var sig = _cpu.ComputeSignals();
 
         yield return Bus.Wave((buses.pcToAdrMux, pc), (buses.pcToOldPcReg, pc), (buses.pcToPcAdder, pc));
-        yield return Bus.Wave((buses.adrMuxToMem, sig.AdrMuxOut));
-        yield return Bus.Wave((buses.memToInstrReg, _dataInstructionMemory.Memory.GetValueOrDefault(sig.AdrMuxOut, 0)));
+        yield return Bus.Wave((buses.adrMuxToMem, sig.Address));
+        yield return Bus.Wave((buses.memToInstrReg, _cpu.Memory.Read(sig.Address)));
         yield return Bus.Wave((buses.constFourToPcAdder, 4));
-        yield return Bus.Wave((buses.srcAMuxToSrcAReg, sig.SrcAMuxOut), (buses.srcBMuxToSrcBReg, sig.SrcBMuxOut));
+        yield return Bus.Wave((buses.srcAMuxToSrcAReg, sig.SrcA), (buses.srcBMuxToSrcBReg, sig.SrcB));
         yield return Bus.Wave((buses.aluToAluOutReg, sig.AluResult));
-        yield return Bus.Wave((buses.resultMuxToPC, sig.ResultMuxOut));
+        yield return Bus.Wave((buses.resultMuxToPC, sig.Result));
     }
 
-    private IEnumerator RunDecodeVisualisation()
+    private IEnumerator RunDecode()
     {
-        var instr = _instructionReg.Output;
-        var rs1 = (instr >> 15) & 0x1F;
-        var rs2 = (instr >> 20) & 0x1F;
+        var instr = _cpu.Instruction.Output;
+        var registers = _cpu.RegisterFile.Registers;
 
         yield return Bus.Wave((buses.instrToRegFileA1, instr), (buses.instrToRegFileA2, instr), (buses.instrToExtend, instr));
-        yield return Bus.Wave((buses.rd1ToSrcAMux, _registerFile.Registers[rs1]), (buses.rd2ToSrcBMux, _registerFile.Registers[rs2]));
+        yield return Bus.Wave(
+            (buses.rd1ToSrcAMux, registers[InstructionFields.Rs1(instr)]),
+            (buses.rd2ToSrcBMux, registers[InstructionFields.Rs2(instr)]));
     }
 
-    private IEnumerator RunExecutionVisualisation()
+    private IEnumerator RunExecute()
     {
-        var sig = ComputeMehrtaktSignals();
+        var sig = _cpu.ComputeSignals();
 
-        yield return Bus.Wave((buses.srcAMuxToSrcAReg, _srcA.Output), (buses.extToSrcBMux, ImmExt));
-        yield return Bus.Wave((buses.srcAMuxToAlu, sig.SrcAMuxOut), (buses.srcBMuxToAlu, sig.SrcBMuxOut));
+        yield return Bus.Wave((buses.srcAMuxToSrcAReg, _cpu.SrcA.Output), (buses.extToSrcBMux, _cpu.ImmExt));
+        yield return Bus.Wave((buses.srcAMuxToAlu, sig.SrcA), (buses.srcBMuxToAlu, sig.SrcB));
         yield return Bus.Wave((buses.aluCombToAluOutReg, sig.AluResult));
     }
 
-    private IEnumerator RunWriteBackVisualisation()
+    private IEnumerator RunWriteBack()
     {
-        var aluOut = _aluOutReg.Output;
-        var res = ComputeMehrtaktSignals().ResultMuxOut;
+        var aluOut = _cpu.AluOut.Output;
+        var result = _cpu.ComputeSignals().Result;
 
         yield return Bus.Wave((buses.aluOutToResultMux, aluOut), (buses.aluOutToDataMem, aluOut));
-        yield return Bus.Wave((buses.resultMuxToPC, res), (buses.resultMuxToRegFile, res), (buses.resultMuxFanOut, res));
+        yield return Bus.Wave((buses.resultMuxToPC, result), (buses.resultMuxToRegFile, result), (buses.resultMuxFanOut, result));
     }
 
-    private IEnumerator ReverseFetchVisualisation()
+    private IEnumerator ReverseFetch()
     {
-        var pc = _pc.Output;
-        var sig = ComputeMehrtaktSignals();
+        var pc = _cpu.Pc.Output;
+        var sig = _cpu.ComputeSignals();
 
-        yield return Bus.WaveBack((buses.resultMuxToPC, _pc.Input));
+        yield return Bus.WaveBack((buses.resultMuxToPC, _cpu.Pc.Input));
         yield return Bus.WaveBack((buses.aluToAluOutReg, sig.AluResult));
-        yield return Bus.WaveBack((buses.srcAMuxToSrcAReg, _srcA.Output), (buses.srcBMuxToSrcBReg, _srcB.Output));
-        yield return Bus.WaveBack((buses.memToInstrReg, _instructionReg.Input));
+        yield return Bus.WaveBack((buses.srcAMuxToSrcAReg, _cpu.SrcA.Output), (buses.srcBMuxToSrcBReg, _cpu.SrcB.Output));
+        yield return Bus.WaveBack((buses.memToInstrReg, _cpu.Instruction.Input));
         yield return Bus.WaveBack((buses.constFourToPcAdder, 4));
-        yield return Bus.WaveBack((buses.adrMuxToMem, _dataInstructionMemory.Address));
+        yield return Bus.WaveBack((buses.adrMuxToMem, _cpu.Memory.Address));
         yield return Bus.WaveBack((buses.pcToAdrMux, pc), (buses.pcToOldPcReg, pc), (buses.pcToPcAdder, pc));
     }
 
-    private IEnumerator ReverseDecodeVisualisation()
+    private IEnumerator ReverseDecode()
     {
-        var instr = _instructionReg.Output;
+        var instr = _cpu.Instruction.Output;
 
-        yield return Bus.WaveBack((buses.rd1ToSrcAMux, _srcA.Input), (buses.rd2ToSrcBMux, _srcB.Input));
+        yield return Bus.WaveBack((buses.rd1ToSrcAMux, _cpu.SrcA.Input), (buses.rd2ToSrcBMux, _cpu.SrcB.Input));
         yield return Bus.WaveBack((buses.instrToRegFileA1, instr), (buses.instrToRegFileA2, instr), (buses.instrToExtend, instr));
     }
 
-    private IEnumerator ReverseExecutionVisualisation()
+    private IEnumerator ReverseExecute()
     {
-        var sig = ComputeMehrtaktSignals();
+        var sig = _cpu.ComputeSignals();
 
         yield return Bus.WaveBack((buses.aluCombToAluOutReg, sig.AluResult));
-        yield return Bus.WaveBack((buses.srcAMuxToSrcAReg, _srcA.Output), (buses.extToSrcBMux, ImmExt));
-        yield return Bus.WaveBack((buses.srcAMuxToAlu, sig.SrcAMuxOut), (buses.srcBMuxToAlu, sig.SrcBMuxOut));
+        yield return Bus.WaveBack((buses.srcAMuxToSrcAReg, _cpu.SrcA.Output), (buses.extToSrcBMux, _cpu.ImmExt));
+        yield return Bus.WaveBack((buses.srcAMuxToAlu, sig.SrcA), (buses.srcBMuxToAlu, sig.SrcB));
     }
 
-    private IEnumerator ReverseWriteBackVisualisation()
+    private IEnumerator ReverseWriteBack()
     {
-        var aluOut = _aluOutReg.Output;
-        var res = ComputeMehrtaktSignals().ResultMuxOut;
+        var aluOut = _cpu.AluOut.Output;
+        var result = _cpu.ComputeSignals().Result;
 
-        yield return Bus.WaveBack((buses.resultMuxToPC, res), (buses.resultMuxToRegFile, res), (buses.resultMuxFanOut, res));
+        yield return Bus.WaveBack((buses.resultMuxToPC, result), (buses.resultMuxToRegFile, result), (buses.resultMuxFanOut, result));
         yield return Bus.WaveBack((buses.aluOutToResultMux, aluOut), (buses.aluOutToDataMem, aluOut));
     }
     #endregion
 
-    protected override void UpdateVisualizers()
+    #region Side panel
+    protected override void OnViewsRefreshed()
     {
-        UpdateSidePanel();
-
-        _infoPCRegister.Display("PC Register", _pc.Output);
-        _infoOldPCRegister.Display("Old PC Register", _oldPC.Output);
-        _infoInstructionRegister.Display("Instruction Register", RiscVDecoder.CommandBuilder((uint)_instructionReg.Output));
-        _infoDataRegister.Display("Data Register", _dataReg.Output);
-        _infoSrcARegister.Display("SrcA Register", _srcA.Output);
-        _infoSrcBRegister.Display("SrcB Register", _srcB.Output);
-        _infoAluOutRegister.Display("ALU Out Register", _aluOutReg.Output);
-
-        memoryVisualizer.UIRegisterPanel.Display(
-            RiscVDecoder.CommandBuilder((uint)_dataInstructionMemory.Memory[0]),
-            RiscVDecoder.CommandBuilder((uint)_dataInstructionMemory.Memory[4]),
-            RiscVDecoder.CommandBuilder((uint)_dataInstructionMemory.Memory[8]),
-            RiscVDecoder.CommandBuilder((uint)_dataInstructionMemory.Memory[12])
-        );
-        registerFileVisualizer.UIRegisterPanel.Display(_registerFile.Registers);
-
-
-        // ==============================  WE SECTION  =====================================
-        registerPCVisualizer.ForceUpdateWriteEnableVisualization(_pc.WriteEnable);
-        registerOldPCVisualizer.ForceUpdateWriteEnableVisualization(_oldPC.WriteEnable);
-        registerInstructionVisualizer.ForceUpdateWriteEnableVisualization(_instructionReg.WriteEnable);
-        registerDataVisualizer.ForceUpdateWriteEnableVisualization(_dataReg.WriteEnable);
-        registerSrcAVisualizer.ForceUpdateWriteEnableVisualization(_srcA.WriteEnable);
-        registerSrcBVisualizer.ForceUpdateWriteEnableVisualization(_srcB.WriteEnable);
-        registerAluOutVisualizer.ForceUpdateWriteEnableVisualization(_aluOutReg.WriteEnable);
-
-        registerFileVisualizer.ForceUpdateWriteEnableVisualization(_registerFile.RegisterWriteEnable);
-        memoryVisualizer.ForceUpdateWriteEnableVisualization(_dataInstructionMemory.MemoryWrite);
+        sidePanelInformer.SetStateInfo(CurrentStateName());
     }
 
-
-    /*private void UpdateSidePanel() {
-        var containsKey = _pc.Output % 4 == 0 
-                          && _pc.Output is <= 12 and >= 0
-                          && _dataInstructionMemory.Memory.ContainsKey(_pc.Output)
-                          && _dataInstructionMemory.Memory[_pc.Output] > GameConstants.MinValidInstruction;
-        if (containsKey)
-        {
-            sidePanelInformer.SetStateInfo(StateName.FETCH);
-        }
-        else if (_instructionReg.Output > GameConstants.MinValidInstruction)
-        {
-            sidePanelInformer.SetStateInfo(StateName.DECODE);
-        }
-        else if (TickCounter - 2 >= 0) {
-            var s = TickStateValues[TickCounter - 1];
-
-            if (s.RegisterInstrValue < GameConstants.MinValidInstruction) return;
-            var opcode = s.RegisterInstrValue & 0x7F;
-
-            switch(opcode)
-            {
-                case 0x33:
-                    sidePanelInformer.SetStateInfo(StateName.EXECUTE_R);
-                    break;
-                case 0x13:
-                    sidePanelInformer.SetStateInfo(StateName.EXECUTE_I);
-                    break;
-                case 0x03:
-                case 0x23:
-                    sidePanelInformer.SetStateInfo(StateName.MEM_ADDRESS);
-                    break;
-                case 0x63:
-                    sidePanelInformer.SetStateInfo(StateName.BEQ);
-                    break;
-                case 0x6F:
-                case 0x67:
-                    sidePanelInformer.SetStateInfo(StateName.JAL);
-                    break;
-            }
-        }
-        else if (TickCounter - 3 >= 0)
-        {
-            var s = TickStateValues[TickCounter - 2];
-
-            if (s.RegisterInstrValue < GameConstants.MinValidInstruction) return;
-            var opcode = s.RegisterInstrValue & 0x7F;
-
-            switch (opcode)
-            {
-                case 0x33:
-                case 0x13:
-                    sidePanelInformer.SetStateInfo(StateName.ALU_WB);
-                    break;
-                case 0x03:
-                    sidePanelInformer.SetStateInfo(StateName.MEM_READ);
-                    break;
-                case 0x23:
-                    sidePanelInformer.SetStateInfo(StateName.MEM_WRITE);
-                    break;
-                case 0x6F:
-                case 0x67:
-                    sidePanelInformer.SetStateInfo(StateName.ALU_WB);
-                    break;
-            }
-        }
-        else if (TickCounter - 4 >= 0)
-        {
-            if (TickStateValues[TickCounter - 3].RegisterInstrValue < GameConstants.MinValidInstruction) return;
-            var opcode = TickStateValues[TickCounter - 3].RegisterInstrValue & 0x7F;
-
-            if (opcode == 0x03)
-            {
-                sidePanelInformer.SetStateInfo(StateName.MEM_WB);
-            }
-        }
-        else
-        {
-            sidePanelInformer.SetStateInfo(StateName.UNKNOWN);
-        }
-    }*/
-    
-    private void UpdateSidePanel()
+    /// <summary> Which FSM state of the multi-cycle control unit the next tick corresponds to. </summary>
+    private StateName CurrentStateName()
     {
-        var stage = _currentBus % 4;
- 
-        // FETCH (Phase 0): Liegt am PC eine gültige Instruktion?
-        if (stage == 0)
+        var phase = PhaseOf(TickCounter);
+        var pc = _cpu.Pc.Output;
+        var instr = _cpu.Instruction.Output;
+
+        // FETCH: is there a valid instruction at the PC?
+        if (phase == 0)
         {
-            var hasFetch = _pc.Output % 4 == 0
-                           && _pc.Output is >= 0 and <= 12
-                           && _dataInstructionMemory.Memory.ContainsKey(_pc.Output)
-                           && _dataInstructionMemory.Memory[_pc.Output] > GameConstants.MinValidInstruction;
-            sidePanelInformer.SetStateInfo(hasFetch ? StateName.FETCH : StateName.UNKNOWN);
-            return;
+            var hasFetch = pc % 4 == 0
+                           && pc is >= 0 and <= 12
+                           && _cpu.Memory.Contains(pc)
+                           && _cpu.Memory.Read(pc) > GameConstants.MinValidInstruction;
+            return hasFetch ? StateName.FETCH : StateName.UNKNOWN;
         }
- 
-        // Phasen 1-3: InstrReg muss eine gültige Instruktion enthalten
-        if (_instructionReg.Output <= GameConstants.MinValidInstruction)
+
+        // phases 1-3 need a valid instruction in the Instr register
+        if (instr <= GameConstants.MinValidInstruction) return StateName.UNKNOWN;
+
+        var opcode = instr & 0x7F;
+
+        return phase switch
         {
-            sidePanelInformer.SetStateInfo(StateName.UNKNOWN);
-            return;
-        }
- 
-        var opcode = _instructionReg.Output & 0x7F;
- 
-        switch (stage)
-        {
-            // DECODE: unabhängig vom Instruktionstyp immer gleich
-            case 1:
-                sidePanelInformer.SetStateInfo(StateName.DECODE);
-                break;
-            
-            case 2:
-                sidePanelInformer.SetStateInfo(opcode switch
-                {
-                    0x33 => StateName.EXECUTE_R,    // R-Typ
-                    0x13 => StateName.EXECUTE_I,    // I-Typ
-                    0x03 => StateName.MEM_ADDRESS,  // LOAD
-                    0x23 => StateName.MEM_ADDRESS,  // STORE
-                    0x63 => StateName.BEQ,          // Branch
-                    0x6F => StateName.JAL,          // JAL
-                    0x67 => StateName.JAL,          // JALR
-                    _    => StateName.UNKNOWN
-                });
-                break;
-            case 3:
-                sidePanelInformer.SetStateInfo(opcode switch
-                {
-                    0x33 => StateName.ALU_WB,    // R-Typ  Write-Back
-                    0x13 => StateName.ALU_WB,    // I-Typ  Write-Back
-                    0x03 => StateName.MEM_READ,  // LOAD   Memory-Read
-                    0x23 => StateName.MEM_WRITE, // STORE  Memory-Write
-                    0x63 => StateName.BEQ,       // Branch PC-Update
-                    0x6F => StateName.ALU_WB,    // JAL    Write-Back (rd = PC+4)
-                    0x67 => StateName.ALU_WB,    // JALR   Write-Back
-                    _    => StateName.UNKNOWN
-                });
-                break;
-        }
+            1 => StateName.DECODE,
+            2 => opcode switch
+            {
+                0x33 => StateName.EXECUTE_R,    // R-type
+                0x13 => StateName.EXECUTE_I,    // I-type
+                0x03 => StateName.MEM_ADDRESS,  // LOAD
+                0x23 => StateName.MEM_ADDRESS,  // STORE
+                0x63 => StateName.BEQ,          // branch
+                0x6F => StateName.JAL,          // JAL
+                0x67 => StateName.JAL,          // JALR
+                _ => StateName.UNKNOWN
+            },
+            _ => opcode switch
+            {
+                0x33 => StateName.ALU_WB,       // R-type write back
+                0x13 => StateName.ALU_WB,       // I-type write back
+                0x03 => StateName.MEM_READ,     // LOAD memory read
+                0x23 => StateName.MEM_WRITE,    // STORE memory write
+                0x63 => StateName.BEQ,          // branch PC update
+                0x6F => StateName.ALU_WB,       // JAL write back (rd = PC+4)
+                0x67 => StateName.ALU_WB,       // JALR write back
+                _ => StateName.UNKNOWN
+            }
+        };
     }
+    #endregion
 }

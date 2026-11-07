@@ -4,17 +4,14 @@ using UnityEngine.Serialization;
 
 public struct LevelTwoExtendedState
 {
-    public int RegisterAValue;
-    public bool RegisterAwe;
-    public int RegisterBValue;
-    public bool RegisterBwe;
-    public int OutputValue;
-    public bool OutputWe;
-    public int AluOperation;
+    public RegisterState SrcA;
+    public RegisterState SrcB;
+    public RegisterState Output;
+    public AluOperation AluOperation;
 }
 
 [System.Serializable]
-public class LevelTwoExtendedBusSegments: IBusSegmentProvider
+public class LevelTwoExtendedBusSegments
 {
     [Tooltip("SrcA register -> ALU input A")]
     public LineRenderer srcAToAlu;
@@ -22,13 +19,6 @@ public class LevelTwoExtendedBusSegments: IBusSegmentProvider
     public LineRenderer srcBToAlu;
     [Tooltip("ALU result → Output register")]
     public LineRenderer aluToOutput;
-
-    public void RegisterAll(BusController c)
-    {
-        c.RegisterSegment(srcAToAlu);
-        c.RegisterSegment(srcBToAlu);
-        c.RegisterSegment(aluToOutput);
-    }
 }
 
 public class LevelTwoExtended : BaseLevelRegisseur<LevelTwoExtendedState, LevelTwoExtendedBusSegments>
@@ -43,60 +33,35 @@ public class LevelTwoExtended : BaseLevelRegisseur<LevelTwoExtendedState, LevelT
     [SerializeField] private int srcAValue;
     [SerializeField] private int srcBValue;
 
-    #region CACHED UI REFERENCES
-    private InfoPanelUI _infoSrcARegister;
-    private InfoPanelUI _infoSrcBRegister;
-    private InfoPanelUI _infoOutputRegister;
-    #endregion
-
     private Register _srcA;
     private Register _srcB;
     private Register _output;
 
-    private int _currentBus; // [0, 1]
-    
+
+    private readonly Alu _alu = new();
+
     protected override void OnLevelStart()
     {
-        _srcA = new Register(srcAValue)
-        {
-            WriteEnable = true
-        };
-        _srcB = new Register(srcBValue)
-        {
-            WriteEnable = true
-        };
-        _output = new Register()
-        {
-            WriteEnable = true
-        };
+        aluVisualizer.Bind(_alu);
 
-        _infoSrcARegister = registerSrcAVisualizer.UIRegisterPanel;
-        _infoSrcBRegister = registerSrcBVisualizer.UIRegisterPanel;
-        _infoOutputRegister = registerOutputVisualizer.UIRegisterPanel;
+        _srcA = new Register(srcAValue);
+        _srcB = new Register(srcBValue);
+        _output = new Register();
 
-        UpdateVisualizers();
+        Clock.Add(_srcA, _srcB, _output);
+
+        Show(
+            registerSrcAVisualizer.Bind(_srcA, "Register 1"),
+            registerSrcBVisualizer.Bind(_srcB, "Register 2"),
+            registerOutputVisualizer.Bind(_output, "Register 3"));
     }
 
     protected override void ApplyState(LevelTwoExtendedState s)
     {
-        _srcA.Reset(s.RegisterAValue);
-        _srcA.WriteEnable = s.RegisterAwe;
-
-
-        _srcB.Reset(s.RegisterBValue);
-        _srcB.WriteEnable = s.RegisterBwe;
-
-        _output.Reset(s.OutputValue);
-        _output.WriteEnable = s.OutputWe;
-
-        aluVisualizer.ChooseAluOperation(s.AluOperation);
-    }
-
-    protected override void BlinkClockedComponents()
-    {
-        registerSrcAVisualizer.TriggerBlink();
-        registerSrcBVisualizer.TriggerBlink();
-        registerOutputVisualizer.TriggerBlink();
+        _srcA.Restore(s.SrcA);
+        _srcB.Restore(s.SrcB);
+        _output.Restore(s.Output);
+        _alu.Operation = s.AluOperation;
     }
 
     protected override bool CheckWinCondition()
@@ -104,67 +69,30 @@ public class LevelTwoExtended : BaseLevelRegisseur<LevelTwoExtendedState, LevelT
         return (_output.Output == RightAnswerValue);
     }
 
-    protected override LevelTwoExtendedState GetCurrentState()
+    protected override LevelTwoExtendedState GetCurrentState() => new()
     {
-        return new LevelTwoExtendedState
-        {
-            RegisterAValue = _srcA.Output,
-            RegisterAwe = _srcA.WriteEnable,
-            RegisterBValue = _srcB.Output,
-            RegisterBwe = _srcB.WriteEnable,
-            OutputValue = _output.Output,
-            OutputWe = _output.WriteEnable,
-            AluOperation = aluVisualizer.CurrentAluOperation,
-        };
-    }
+        SrcA = _srcA.Save(),
+        SrcB = _srcB.Save(),
+        Output = _output.Save(),
+        AluOperation = _alu.Operation
+    };
 
     protected override void HandleClockUpdate()
     {
-        // synchronize visualizers and concrete objects
-        _srcA.WriteEnable = registerSrcAVisualizer.isWriteEnabled;
-        _srcB.WriteEnable = registerSrcBVisualizer.isWriteEnabled;
-        _output.WriteEnable = registerOutputVisualizer.isWriteEnabled;
+        _output.Input = _alu.Compute(_srcA.Output, _srcB.Output);
 
-        _output.Input = Alu.Calculate(_srcA.Output, _srcB.Output, aluVisualizer.CurrentAluOperation);
-        _srcA.PreClockUpdate();
-        _srcB.PreClockUpdate();
-        _output.PreClockUpdate();
-
-        _srcA.Clock();
-        _srcB.Clock();
-        _output.Clock();
+        Clock.Tick();
     }
 
     protected override IEnumerator ReverseBusVisualizations()
     {
-        if (_currentBus >= 1 && _currentBus <= maxTickNumber)
-        {
-            yield return Bus.WaveBack((buses.aluToOutput, _output.Input));
-            yield return Bus.WaveBack((buses.srcAToAlu, _srcA.Output), (buses.srcBToAlu, _srcB.Output));
-
-            _currentBus--;
-        }
+        yield return Bus.WaveBack((buses.aluToOutput, _output.Input));
+        yield return Bus.WaveBack((buses.srcAToAlu, _srcA.Output), (buses.srcBToAlu, _srcB.Output));
     }
 
     protected override IEnumerator RunBusVisualizations()
     {
-        if (_currentBus >= 0 && _currentBus < maxTickNumber)
-        {
-            yield return Bus.Wave((buses.srcAToAlu, _srcA.Output), (buses.srcBToAlu, _srcB.Output));
-            yield return Bus.Wave((buses.aluToOutput, Alu.Calculate(_srcA.Output, _srcB.Output, aluVisualizer.CurrentAluOperation)));
-
-            _currentBus++;
-        }
-    }
-
-    protected override void UpdateVisualizers()
-    {
-        _infoSrcARegister.Display("Register 1", _srcA.Output);
-        _infoSrcBRegister.Display("Register 2", _srcB.Output);
-        _infoOutputRegister.Display("Register 3", _output.Output);
-
-        registerSrcAVisualizer.ForceUpdateWriteEnableVisualization(_srcA.WriteEnable);
-        registerSrcBVisualizer.ForceUpdateWriteEnableVisualization(_srcB.WriteEnable);
-        registerOutputVisualizer.ForceUpdateWriteEnableVisualization(_output.WriteEnable);
+        yield return Bus.Wave((buses.srcAToAlu, _srcA.Output), (buses.srcBToAlu, _srcB.Output));
+        yield return Bus.Wave((buses.aluToOutput, _alu.Compute(_srcA.Output, _srcB.Output)));
     }
 }

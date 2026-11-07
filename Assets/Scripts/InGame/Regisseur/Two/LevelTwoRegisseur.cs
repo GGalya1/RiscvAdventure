@@ -4,13 +4,12 @@ using UnityEngine.Serialization;
 
 public struct LevelTwoState
 {
-    public int RegisterAValue;
-    public bool RegisterAwe;
-    public int AluOperation;
+    public RegisterState SrcA;
+    public AluOperation AluOperation;
 }
 
 [System.Serializable]
-public class LevelTwoBusSegments: IBusSegmentProvider
+public class LevelTwoBusSegments
 {
     [Tooltip("PC register output -> ALU input A")]
     public LineRenderer pcToAdder;
@@ -18,57 +17,46 @@ public class LevelTwoBusSegments: IBusSegmentProvider
     public LineRenderer constFourToAdder;
     [Tooltip("ALU/adder result -> PC register input")]
     public LineRenderer adderToPC;
-
-    public void RegisterAll(BusController c)
-    {
-        c.RegisterSegment(pcToAdder);
-        c.RegisterSegment(constFourToAdder);
-        c.RegisterSegment(adderToPC);
-    }
 }
 
 public class LevelTwoRegisseur : BaseLevelRegisseur<LevelTwoState, LevelTwoBusSegments>
 {
+    private const int AnimatedTicks = 5;
+
     [FormerlySerializedAs("_aluVizualizer")]
     [Header("Level 2 Specific Components")]
     [SerializeField] private AluVisualiser aluVisualizer;
     [FormerlySerializedAs("_registerSrcAVisualizer")] [SerializeField] private RegisterVisualizer registerSrcAVisualizer;
     [FormerlySerializedAs("_numberBlinker")] [SerializeField] private Blinker numberBlinker;
 
-    #region CACHED UI REFERENCES
-    private InfoPanelUI _infoSrcARegister;
-    #endregion
-
     private Register _srcA;
 
     protected override int RightAnswerValue => 8;
 
-    private int _currentBus; // [0, 1]
+
+    private readonly Alu _alu = new();
 
     protected override void OnLevelStart()
     {
-        _srcA = new Register(1)
-        {
-            WriteEnable = true
-        };
+        aluVisualizer.Bind(_alu);
+
+        _srcA = new Register(1);
         // second argument must be 4
 
-        _infoSrcARegister = registerSrcAVisualizer.UIRegisterPanel;
+        Clock.Add(_srcA);
 
-        UpdateVisualizers();
+        Show(registerSrcAVisualizer.Bind(_srcA, "Register 1"));
     }
 
     protected override void ApplyState(LevelTwoState s)
     {
-        _srcA.Reset(s.RegisterAValue);
-        _srcA.WriteEnable = s.RegisterAwe;
-
-        aluVisualizer.ChooseAluOperation(s.AluOperation);
+        _srcA.Restore(s.SrcA);
+        _alu.Operation = s.AluOperation;
     }
 
     protected override void BlinkClockedComponents()
     {
-        registerSrcAVisualizer.TriggerBlink();
+        base.BlinkClockedComponents();
         numberBlinker.Trigger();
     }
 
@@ -77,54 +65,33 @@ public class LevelTwoRegisseur : BaseLevelRegisseur<LevelTwoState, LevelTwoBusSe
         return (_srcA.Output == RightAnswerValue);
     }
 
-    protected override LevelTwoState GetCurrentState()
+    protected override LevelTwoState GetCurrentState() => new()
     {
-        return new LevelTwoState
-        {
-            RegisterAValue = _srcA.Output,
-            RegisterAwe = _srcA.WriteEnable,
-            AluOperation = aluVisualizer.CurrentAluOperation,
-        };
-    }
+        SrcA = _srcA.Save(),
+        AluOperation = _alu.Operation
+    };
 
     protected override void HandleClockUpdate()
     {
-        // synchronize visualizers and concrete objects
-        _srcA.WriteEnable = registerSrcAVisualizer.isWriteEnabled;
-
-        _srcA.Input = Alu.Calculate(_srcA.Output, 4, aluVisualizer.CurrentAluOperation);
-        _srcA.PreClockUpdate();
-        _srcA.Clock();
-    }
-
-    protected override void UpdateVisualizers()
-    {
-        _infoSrcARegister.Display("Register 1", _srcA.Output);
-
-        registerSrcAVisualizer.ForceUpdateWriteEnableVisualization(_srcA.WriteEnable);
+        _srcA.Input = _alu.Compute(_srcA.Output, 4);
+        Clock.Tick();
     }
 
     #region busVizualisation
     protected override IEnumerator RunBusVisualizations()
     {
-        if (_currentBus is >= 0 and < 5)
-        {
-            yield return Bus.Wave((buses.pcToAdder, _srcA.Output), (buses.constFourToAdder, 4));
-            yield return Bus.Wave((buses.adderToPC, Alu.Calculate(_srcA.Output, 4, aluVisualizer.CurrentAluOperation)));
+        if (TickCounter >= AnimatedTicks) yield break;
 
-            _currentBus++;
-        }
+        yield return Bus.Wave((buses.pcToAdder, _srcA.Output), (buses.constFourToAdder, 4));
+        yield return Bus.Wave((buses.adderToPC, _alu.Compute(_srcA.Output, 4)));
     }
 
     protected override IEnumerator ReverseBusVisualizations()
     {
-        if (_currentBus is >= 1 and <= 5)
-        {
-            yield return Bus.WaveBack((buses.adderToPC, _srcA.Input));
-            yield return Bus.WaveBack((buses.pcToAdder, StateAt(TickCounter).RegisterAValue), (buses.constFourToAdder, 4));
+        if (TickCounter >= AnimatedTicks) yield break;
 
-            _currentBus--;
-        }
+        yield return Bus.WaveBack((buses.adderToPC, _srcA.Input));
+        yield return Bus.WaveBack((buses.pcToAdder, StateAt(TickCounter).SrcA.Value), (buses.constFourToAdder, 4));
     }
     #endregion
 }

@@ -19,15 +19,10 @@ public class BusSignal : BaseVisualizer
         _panel.Display("Signal", value);
     }
 
-    //  Prepares the signal for returning to the pool
-    public override void ResetVisualisation()
+    // Prepares the signal for returning to the pool
+    public void ResetSignal()
     {
         _panel.Display("", "N/A");
         HidePanelImmediately();
-    }
-
-    public override void SetInteractable(bool value)
-    {
-        // nothing to do here
     }
 }

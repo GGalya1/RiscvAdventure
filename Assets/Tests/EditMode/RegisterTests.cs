@@ -19,6 +19,13 @@ public class RegisterTests
     }
 
     [Test]
+    public void Constructor_WriteEnable_DefaultsToTrue()
+    {
+        Assert.IsTrue(new Register().WriteEnable);
+        Assert.IsFalse(new Register(3, writeEnable: false).WriteEnable);
+    }
+
+    [Test]
     public void ClockCycle_WriteEnabled_StoresInputAsNewOutput()
     {
         var register = new Register() { Input = 7, WriteEnable = true };
@@ -114,5 +121,38 @@ public class RegisterTests
         register.Clock();
 
         Assert.AreEqual(50, register.Output);
+    }
+
+    // ---------------------------------------------------------------- snapshots for the tick history
+
+    [Test]
+    public void SaveRestore_RoundTripsValueAndWriteEnable()
+    {
+        var register = new Register(3, writeEnable: false);
+        var saved = register.Save();
+
+        register.WriteEnable = true;
+        register.Input = 10;
+        register.PreClockUpdate();
+        register.Clock();
+        register.Restore(saved);
+
+        Assert.AreEqual(3, register.Output);
+        Assert.IsFalse(register.WriteEnable);
+    }
+
+    [Test]
+    public void Restore_ThenClockWithoutWrite_KeepsRestoredValue()
+    {
+        var register = new Register(3);
+        var saved = register.Save();
+        register.Input = 10;
+        register.PreClockUpdate();  // buffers 10
+        register.Restore(saved);    // must drop the buffered value as well
+
+        register.WriteEnable = false;
+        register.Clock();
+
+        Assert.AreEqual(3, register.Output);
     }
 }

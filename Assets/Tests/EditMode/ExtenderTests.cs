@@ -1,12 +1,8 @@
+using System.Collections.Generic;
 using NUnit.Framework;
 
 public class ExtenderTests
 {
-    private const int IMM_SRC_TYPE_I = 0;
-    private const int IMM_SRC_TYPE_S = 1;
-    private const int IMM_SRC_TYPE_B = 2;
-    private const int IMM_SRC_TYPE_J = 3;
-
     // I-type: imm[11:0] -> instruction bits [31:20]
     private static uint BuildIType(int imm)
     {
@@ -54,7 +50,7 @@ public class ExtenderTests
     {
         var word = BuildIType(imm);
 
-        var result = Extender.Evaluate(IMM_SRC_TYPE_I, word);
+        var result = Extender.Evaluate(ImmediateType.I, word);
 
         Assert.AreEqual(imm, result);
     }
@@ -69,7 +65,7 @@ public class ExtenderTests
     {
         var word = BuildSType(imm);
 
-        var result = Extender.Evaluate(IMM_SRC_TYPE_S, word);
+        var result = Extender.Evaluate(ImmediateType.S, word);
 
         Assert.AreEqual(imm, result);
     }
@@ -83,7 +79,7 @@ public class ExtenderTests
     {
         var word = BuildBType(imm);
 
-        var result = Extender.Evaluate(IMM_SRC_TYPE_B, word);
+        var result = Extender.Evaluate(ImmediateType.B, word);
 
         Assert.AreEqual(imm, result);
     }
@@ -97,17 +93,60 @@ public class ExtenderTests
     {
         var word = BuildJType(imm);
 
-        var result = Extender.Evaluate(IMM_SRC_TYPE_J, word);
+        var result = Extender.Evaluate(ImmediateType.J, word);
 
         Assert.AreEqual(imm, result);
     }
 
     [Test]
-    public void Evaluate_UnknownControlCode_ReturnsZero()
+    public void Evaluate_UnknownType_ReturnsZero()
     {
-        // Any control code outside 0-3 has no defined immediate format.
-        var result = Extender.Evaluate(99, 0xFFFFFFFF);
+        // Any control value outside I/S/B/J has no defined immediate format.
+        var result = Extender.Evaluate((ImmediateType)99, 0xFFFFFFFF);
 
         Assert.AreEqual(0, result);
+    }
+
+    // The numeric value of ImmediateType is the button index in the extender panel.
+    [TestCase(0, ImmediateType.I)]
+    [TestCase(1, ImmediateType.S)]
+    [TestCase(2, ImmediateType.B)]
+    [TestCase(3, ImmediateType.J)]
+    public void ButtonIndex_MapsToImmediateType(int buttonIndex, ImmediateType expected)
+    {
+        Assert.AreEqual(expected, (ImmediateType)buttonIndex);
+    }
+
+    // ---------------------------------------------------------------- Extender as a model (control signal + event)
+
+    [Test]
+    public void Model_DefaultType_IsI()
+    {
+        Assert.AreEqual(ImmediateType.I, new Extender().Type);
+    }
+
+    [Test]
+    public void Model_Extend_UsesCurrentType()
+    {
+        var extender = new Extender { Type = ImmediateType.S };
+        var word = (int)BuildSType(-20);
+
+        Assert.AreEqual(-20, extender.Extend(word));
+
+        extender.Type = ImmediateType.I;
+        Assert.AreEqual(Extender.Evaluate(ImmediateType.I, (uint)word), extender.Extend(word));
+    }
+
+    [Test]
+    public void Model_SettingType_RaisesEvent()
+    {
+        var extender = new Extender();
+        var received = new List<ImmediateType>();
+        extender.TypeChanged += received.Add;
+
+        extender.Type = ImmediateType.B;
+        extender.Type = ImmediateType.B;
+
+        CollectionAssert.AreEqual(new[] { ImmediateType.B, ImmediateType.B }, received);
     }
 }

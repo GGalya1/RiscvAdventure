@@ -1,14 +1,18 @@
 using UnityEngine;
 using UnityEngine.Serialization;
 
-public class MultiplexerVisualizer: BaseVisualizer
+/// <summary>
+/// View of a <see cref="Multiplexer"/>: the way buttons set the selected input,
+/// the selected input bus, its bit indicator and the output bus are highlighted.
+/// </summary>
+public class MultiplexerVisualizer : BaseVisualizer
 {
     [FormerlySerializedAs("_inputBuses")]
     [Header("Bus Line Renderers")]
     [SerializeField] private LineRenderer[] inputBuses;
 
     [FormerlySerializedAs("_outputBus")] [SerializeField] private LineRenderer outputBus;
-    [FormerlySerializedAs("_controlBus")] [SerializeField] private LineRenderer controlBus;
+    [FormerlySerializedAs("_controlBus")] [SerializeField] private LineRenderer controlBus; // currently not highlighted
 
     [FormerlySerializedAs("_bitRenderers")]
     [Header("Visual Bits Renderers")]
@@ -19,76 +23,94 @@ public class MultiplexerVisualizer: BaseVisualizer
     [SerializeField] private Color disabledColor = Color.gray;
     [FormerlySerializedAs("_activeColor")] [SerializeField] private Color activeColor = Color.red;
 
-    public MultiplexerControlPanel UIController { get; private set; }
+    private MultiplexerControlPanel _panel;
+    private Multiplexer _mux;
 
-    public int CurrentChosenMuxPath { get; private set; } = -1;
-
+    protected override void InitializePanel()
+    {
+        _panel = RequirePanel<MultiplexerControlPanel>();
+    }
 
     protected override void Awake()
     {
         base.Awake();
 
- 
-        if (UIController != null)
+        if (_panel != null)
         {
-            if (bitRenderers.Length > 2) 
+            var hasThirdInput = bitRenderers.Length > 2;
+            _panel.Setup(true, true, hasThirdInput, hasThirdInput ? "Multiplexer 3" : "Multiplexer 2");
+
+            var buttons = _panel.WayButtons;
+            for (var i = 0; i < buttons.Length; i++)
             {
-                UIController.Setup(true, true, true, "Multiplexer 3");
-            }
-            else
-            {
-                UIController.Setup(true, true, false, "Multiplexer 2");
+                var index = i;
+                if (buttons[i] != null) buttons[i].onClick.AddListener(() => OnWayButton(index));
             }
         }
 
-        var buttons = UIController.WayButtons;
-        for (var i = 0; i < buttons.Length; i++)
+        UpdateVisuals(Multiplexer.NoInput);
+    }
+
+    public MultiplexerVisualizer Bind(Multiplexer mux)
+    {
+        Unbind();
+        _mux = mux;
+        _mux.SelectionChanged += OnSelectionChanged;
+        UpdateVisuals(_mux.SelectedInput);
+        return this;
+    }
+
+    private void OnWayButton(int index)
+    {
+        if (_mux == null || !IsValidInput(index)) return;
+        _mux.SelectedInput = index;
+    }
+
+    private void OnSelectionChanged(int selectedInput)
+    {
+        if (selectedInput == Multiplexer.NoInput)
         {
-            var path = i;
-            buttons[i].onClick.AddListener(() => SelectPath(path));
+            UpdateVisuals(Multiplexer.NoInput);
+            return;
         }
 
-        ResetVisualisation();
-    }
-    protected override void InitializePanel()
-    {
-        UIController = RequirePanel<MultiplexerControlPanel>();
-    }
+        if (!IsValidInput(selectedInput)) return;
 
-    public override void ResetVisualisation() {
-        CurrentChosenMuxPath = -1;
-        UpdateVisuals(-1);
-    }
-    public void SelectPath(int index)
-    {
-        if (index < 0 || index >= inputBuses.Length) return;
-
-        // Debug.Log($"Path {index + 1} chosen");
-        CurrentChosenMuxPath = index;
-        UpdateVisuals(index);
+        UpdateVisuals(selectedInput);
         HideData();
     }
 
-    #region helpers
+    private bool IsValidInput(int index) => index >= 0 && index < inputBuses.Length;
+
     private void UpdateVisuals(int activeIndex)
     {
         for (var i = 0; i < inputBuses.Length; i++)
         {
-            var isActive = (i == activeIndex);
-            RendererColor.Set(inputBuses[i], isActive ? activeColor : disabledColor);
+            var color = i == activeIndex ? activeColor : disabledColor;
+            RendererColor.Set(inputBuses[i], color);
 
             if (i < bitRenderers.Length)
-                RendererColor.Set(bitRenderers[i], isActive ? activeColor : disabledColor);
+                RendererColor.Set(bitRenderers[i], color);
         }
 
-        RendererColor.Set(outputBus, activeIndex != -1 ? activeColor : disabledColor);
+        RendererColor.Set(outputBus, activeIndex != Multiplexer.NoInput ? activeColor : disabledColor);
     }
 
-    public override void SetInteractable(bool value) {
-        foreach (var button in UIController.WayButtons)
+    public override void SetInteractable(bool value)
+    {
+        if (_panel == null) return;
+
+        foreach (var button in _panel.WayButtons)
         {
             if (button != null) button.interactable = value;
         }
     }
-    #endregion
+
+    private void Unbind()
+    {
+        if (_mux != null) _mux.SelectionChanged -= OnSelectionChanged;
+        _mux = null;
+    }
+
+    private void OnDestroy() => Unbind();
 }

@@ -16,9 +16,9 @@ public static class RiscVDecoder
             0x33 => DecodeRType(funct3, funct7, rd, rs1, rs2),
             0x13 => DecodeITypeAlu(funct3, rd, rs1, (int)val >> 20),
             0x03 => $"lw x{rd}, {(int)val >> 20}(x{rs1})",
-            0x23 => $"sw x{rs2}, {Extender.Evaluate(1, val)}(x{rs1})",
-            0x63 => $"beq x{rs1}, x{rs2}, {Extender.Evaluate(2, val)}",
-            0x6F => $"jal x{rd}, {Extender.Evaluate(3, val)}",
+            0x23 => $"sw x{rs2}, {Extender.Evaluate(ImmediateType.S, val)}(x{rs1})",
+            0x63 => $"beq x{rs1}, x{rs2}, {Extender.Evaluate(ImmediateType.B, val)}",
+            0x6F => $"jal x{rd}, {Extender.Evaluate(ImmediateType.J, val)}",
             0x67 => $"jalr x{rd}, {(int)val >> 20}(x{rs1})",
             _ => $"unknown (0x{val:X8})"
         };

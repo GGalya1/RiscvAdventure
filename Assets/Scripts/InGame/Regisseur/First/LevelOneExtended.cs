@@ -5,16 +5,15 @@ using UnityEngine.Serialization;
 
 public struct ExtendedFirstLevelState
 {
-    public int RegisterOutputValue;
-
-    public int MuXup;
-    public int MuXmiddle;
-    public int MuXdown;
-    public int MuXoutput;
+    public RegisterState Output;
+    public int UpperMux;
+    public int MiddleMux;
+    public int DownMux;
+    public int OutputMux;
 }
 
 [Serializable]
-public class LevelOneExtendedBusSegments: IBusSegmentProvider
+public class LevelOneExtendedBusSegments
 {
     [Header("Middle MUX inputs (constants 8 and 12)")] [Tooltip("Constant 8 -> Middle MUX input [0]")]
     public LineRenderer constAToMiddleMux;
@@ -48,21 +47,6 @@ public class LevelOneExtendedBusSegments: IBusSegmentProvider
 
     [Header("Output")] [Tooltip("Output MUX -> Output register")]
     public LineRenderer outputMuxToRegister;
-
-    public void RegisterAll(BusController c)
-    {
-        c.RegisterSegment(constAToMiddleMux);
-        c.RegisterSegment(constBToMiddleMux);
-        c.RegisterSegment(middleMuxToDownMux);
-        c.RegisterSegment(constCToDownMux);
-        c.RegisterSegment(constDToDownMux);
-        c.RegisterSegment(constEToUpperMux);
-        c.RegisterSegment(constFToUpperMux);
-        c.RegisterSegment(upperMuxToOutputMux);
-        c.RegisterSegment(downMuxToOutputMux);
-        c.RegisterSegment(constGToOutputMux);
-        c.RegisterSegment(outputMuxToRegister);
-    }
 }
 
 public class LevelOneExtended : BaseLevelRegisseur<ExtendedFirstLevelState, LevelOneExtendedBusSegments>
@@ -85,32 +69,36 @@ public class LevelOneExtended : BaseLevelRegisseur<ExtendedFirstLevelState, Leve
     [FormerlySerializedAs("_numberBlinkers")] [SerializeField]
     private Blinker[] numberBlinkers;
 
-    private int _currentBus; // [0, 2]
-    private InfoPanelUI _infoOutputRegister;
 
     private Register _output;
 
     protected override int RightAnswerValue => 12;
 
+    private readonly Multiplexer _upperMux = new();
+    private readonly Multiplexer _middleMux = new();
+    private readonly Multiplexer _downMux = new();
+    private readonly Multiplexer _outputMux = new();
+
     protected override void OnLevelStart()
     {
-        _infoOutputRegister = registerOutputVisualizer.UIRegisterPanel;
-        _output = new Register(11)
-        {
-            WriteEnable = true
-        };
+        upperMuxVisualizer.Bind(_upperMux);
+        middleMuxVisualizer.Bind(_middleMux);
+        downMuxVisualizer.Bind(_downMux);
+        outputMuxVisualizer.Bind(_outputMux);
 
-        UpdateVisualizers();
+        _output = new Register(11);
+        Clock.Add(_output);
+
+        Show(registerOutputVisualizer.Bind(_output, "Register 1"));
     }
 
-    protected override void ApplyState(ExtendedFirstLevelState s) // "s" for state
+    protected override void ApplyState(ExtendedFirstLevelState s)
     {
-        _output.Reset(s.RegisterOutputValue);
-
-        ApplyMuxState(s.MuXup, upperMuxVisualizer);
-        ApplyMuxState(s.MuXmiddle, middleMuxVisualizer);
-        ApplyMuxState(s.MuXdown, downMuxVisualizer);
-        ApplyMuxState(s.MuXoutput, outputMuxVisualizer);
+        _output.Restore(s.Output);
+        _upperMux.SelectedInput = s.UpperMux;
+        _middleMux.SelectedInput = s.MiddleMux;
+        _downMux.SelectedInput = s.DownMux;
+        _outputMux.SelectedInput = s.OutputMux;
     }
 
     protected override void BlinkClockedComponents()
@@ -123,73 +111,51 @@ public class LevelOneExtended : BaseLevelRegisseur<ExtendedFirstLevelState, Leve
         return _output.Output == RightAnswerValue;
     }
 
-    protected override ExtendedFirstLevelState GetCurrentState()
+    protected override ExtendedFirstLevelState GetCurrentState() => new()
     {
-        return new ExtendedFirstLevelState
-        {
-            RegisterOutputValue = _output.Output,
+        Output = _output.Save(),
+        UpperMux = _upperMux.SelectedInput,
+        MiddleMux = _middleMux.SelectedInput,
+        DownMux = _downMux.SelectedInput,
+        OutputMux = _outputMux.SelectedInput
+    };
 
-            MuXup = upperMuxVisualizer.CurrentChosenMuxPath,
-            MuXmiddle = middleMuxVisualizer.CurrentChosenMuxPath,
-            MuXdown = downMuxVisualizer.CurrentChosenMuxPath,
-            MuXoutput = outputMuxVisualizer.CurrentChosenMuxPath
-        };
+    private (int up, int middle, int down, int output) RouteAll()
+    {
+        var up = _upperMux.Route(-4, 0, -1);
+        var middle = _middleMux.Route(8, 12, -1);
+        var down = _downMux.Route(middle, -8, -12);
+        var output = _outputMux.Route(up, 4, down);
+        return (up, middle, down, output);
     }
 
     protected override void HandleClockUpdate()
     {
-        var up = EvaluateMux(upperMuxVisualizer.CurrentChosenMuxPath, -4, 0, -1);
-        var left = EvaluateMux(middleMuxVisualizer.CurrentChosenMuxPath, 8, 12, -1);
-        var down = EvaluateMux(downMuxVisualizer.CurrentChosenMuxPath, left, -8, -12);
-
-        _output.Input = EvaluateMux(outputMuxVisualizer.CurrentChosenMuxPath, up, 4, down);
-        _output.WriteEnable = registerOutputVisualizer.isWriteEnabled;
-
-        _output.PreClockUpdate();
-        _output.Clock();
+        _output.Input = RouteAll().output;
+        Clock.Tick();
     }
 
     protected override IEnumerator ReverseBusVisualizations()
     {
-        if (_currentBus >= 1 && _currentBus <= maxTickNumber)
-        {
-            var up = upperMuxVisualizer.CurrentChosenMuxPath == 0 ? -4 : 0;
-            var left = middleMuxVisualizer.CurrentChosenMuxPath == 0 ? 8 : 12;
-            var down = EvaluateMux(downMuxVisualizer.CurrentChosenMuxPath, left, -8, -12);
+        var (up, middle, down, _) = RouteAll();
 
-            yield return Bus.WaveBack((buses.outputMuxToRegister, _output.Input));
-            yield return Bus.WaveBack((buses.upperMuxToOutputMux, up), (buses.downMuxToOutputMux, down), (buses.constGToOutputMux, 4));
-            yield return Bus.WaveBack(
-                (buses.middleMuxToDownMux, left), (buses.constCToDownMux, -8), (buses.constDToDownMux, -12),
-                (buses.constEToUpperMux, -4), (buses.constFToUpperMux, 0));
-            yield return Bus.WaveBack((buses.constAToMiddleMux, 8), (buses.constBToMiddleMux, 12));
-
-            _currentBus--;
-        }
+        yield return Bus.WaveBack((buses.outputMuxToRegister, _output.Input));
+        yield return Bus.WaveBack((buses.upperMuxToOutputMux, up), (buses.downMuxToOutputMux, down), (buses.constGToOutputMux, 4));
+        yield return Bus.WaveBack(
+            (buses.middleMuxToDownMux, middle), (buses.constCToDownMux, -8), (buses.constDToDownMux, -12),
+            (buses.constEToUpperMux, -4), (buses.constFToUpperMux, 0));
+        yield return Bus.WaveBack((buses.constAToMiddleMux, 8), (buses.constBToMiddleMux, 12));
     }
 
     protected override IEnumerator RunBusVisualizations()
     {
-        if (_currentBus >= 0 && _currentBus < maxTickNumber)
-        {
-            var up = EvaluateMux(upperMuxVisualizer.CurrentChosenMuxPath, -4, 0, -1);
-            var left = EvaluateMux(middleMuxVisualizer.CurrentChosenMuxPath, 8, 12, -1);
-            var down = EvaluateMux(downMuxVisualizer.CurrentChosenMuxPath, left, -8, -12);
-            var output = EvaluateMux(outputMuxVisualizer.CurrentChosenMuxPath, up, 4, down);
+        var (up, middle, down, output) = RouteAll();
 
-            yield return Bus.Wave((buses.constAToMiddleMux, 8), (buses.constBToMiddleMux, 12));
-            yield return Bus.Wave(
-                (buses.middleMuxToDownMux, left), (buses.constCToDownMux, -8), (buses.constDToDownMux, -12),
-                (buses.constEToUpperMux, -4), (buses.constFToUpperMux, 0));
-            yield return Bus.Wave((buses.upperMuxToOutputMux, up), (buses.downMuxToOutputMux, down), (buses.constGToOutputMux, 4));
-            yield return Bus.Wave((buses.outputMuxToRegister, output));
-
-            _currentBus++;
-        }
-    }
-
-    protected override void UpdateVisualizers()
-    {
-        _infoOutputRegister.Display("Register 1", _output.Output);
+        yield return Bus.Wave((buses.constAToMiddleMux, 8), (buses.constBToMiddleMux, 12));
+        yield return Bus.Wave(
+            (buses.middleMuxToDownMux, middle), (buses.constCToDownMux, -8), (buses.constDToDownMux, -12),
+            (buses.constEToUpperMux, -4), (buses.constFToUpperMux, 0));
+        yield return Bus.Wave((buses.upperMuxToOutputMux, up), (buses.downMuxToOutputMux, down), (buses.constGToOutputMux, 4));
+        yield return Bus.Wave((buses.outputMuxToRegister, output));
     }
 }

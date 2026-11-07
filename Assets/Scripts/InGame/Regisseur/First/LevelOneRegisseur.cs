@@ -5,19 +5,14 @@ using UnityEngine.Serialization;
 
 public struct LevelOneState
 {
-    public int RegisterAValue;
-    public int RegisterBValue;
-    public int OutputRegisterValue;
-
-    public bool RegisterAwe;
-    public bool RegisterBwe;
-    public bool OutputRegisterWe;
-
-    public int CurrentChosenMuxPath;
+    public RegisterState SrcA;
+    public RegisterState SrcB;
+    public RegisterState Output;
+    public int MuxInput;
 }
 
 [Serializable]
-public class LevelOneBusSegments: IBusSegmentProvider
+public class LevelOneBusSegments
 {
     [Tooltip("SrcA register -> MUX input [0]")]
     public LineRenderer srcAToMux;
@@ -27,13 +22,6 @@ public class LevelOneBusSegments: IBusSegmentProvider
 
     [Tooltip("MUX output -> Output register")]
     public LineRenderer muxToOutput;
-
-    public void RegisterAll(BusController c)
-    {
-        c.RegisterSegment(srcAToMux);
-        c.RegisterSegment(srcBToMux);
-        c.RegisterSegment(muxToOutput);
-    }
 }
 
 public class LevelOneRegisseur : BaseLevelRegisseur<LevelOneState, LevelOneBusSegments>
@@ -52,84 +40,50 @@ public class LevelOneRegisseur : BaseLevelRegisseur<LevelOneState, LevelOneBusSe
 
     // protected override int RightAnswerValue => 4;
 
-    private int _currentBus; // [0, 1]
     private Register _output;
 
     // Intern components for computations
     private Register _srcA;
     private Register _srcB;
 
+    private readonly Multiplexer _mux = new();
+
     protected override void OnLevelStart()
     {
+        multiplexerVisualizer.Bind(_mux);
+
         // Initialization of logical components
-        _srcA = new Register(4)
-        {
-            WriteEnable = true
-        };
-        _srcB = new Register(2)
-        {
-            WriteEnable = true
-        };
-        _output = new Register
-        {
-            WriteEnable = true
-        };
+        _srcA = new Register(4);
+        _srcB = new Register(2);
+        _output = new Register();
 
-        _infoSrcARegister = registerSrcAVisualizer.UIRegisterPanel;
-        _infoSrcBRegister = registerSrcBVisualizer.UIRegisterPanel;
-        _infoOutputRegister = registerOutputVisualizer.UIRegisterPanel;
+        Clock.Add(_srcA, _srcB, _output);
 
-        UpdateVisualizers();
+        Show(
+            registerSrcAVisualizer.Bind(_srcA, "Register 1"),
+            registerSrcBVisualizer.Bind(_srcB, "Register 2"),
+            registerOutputVisualizer.Bind(_output, "Register 3"));
     }
 
-    protected override void BlinkClockedComponents()
+    protected override LevelOneState GetCurrentState() => new()
     {
-        registerSrcAVisualizer.TriggerBlink();
-        registerSrcBVisualizer.TriggerBlink();
-        registerOutputVisualizer.TriggerBlink();
-    }
-
-    protected override LevelOneState GetCurrentState()
-    {
-        return new LevelOneState
-        {
-            RegisterAValue = _srcA.Output,
-            RegisterBValue = _srcB.Output,
-            OutputRegisterValue = _output.Output,
-            CurrentChosenMuxPath = multiplexerVisualizer.CurrentChosenMuxPath,
-            RegisterAwe = _srcA.WriteEnable,
-            RegisterBwe = _srcB.WriteEnable,
-            OutputRegisterWe = _output.WriteEnable
-        };
-    }
+        SrcA = _srcA.Save(),
+        SrcB = _srcB.Save(),
+        Output = _output.Save(),
+        MuxInput = _mux.SelectedInput
+    };
 
     protected override void ApplyState(LevelOneState s)
     {
-        _srcA.Reset(s.RegisterAValue);
-        _srcB.Reset(s.RegisterBValue);
-        _output.Reset(s.OutputRegisterValue);
-        _srcA.WriteEnable = s.RegisterAwe;
-        _srcB.WriteEnable = s.RegisterBwe;
-        _output.WriteEnable = s.OutputRegisterWe;
-
-        ApplyMuxState(s.CurrentChosenMuxPath, multiplexerVisualizer);
-    }
-
-    protected override void UpdateVisualizers()
-    {
-        _infoSrcARegister.Display("Register 1", _srcA.Output);
-        _infoSrcBRegister.Display("Register 2", _srcB.Output);
-        _infoOutputRegister.Display("Register 3", _output.Output);
-
-        registerSrcAVisualizer.ForceUpdateWriteEnableVisualization(_srcA.WriteEnable);
-        registerSrcBVisualizer.ForceUpdateWriteEnableVisualization(_srcB.WriteEnable);
-        registerOutputVisualizer.ForceUpdateWriteEnableVisualization(_output.WriteEnable);
+        _srcA.Restore(s.SrcA);
+        _srcB.Restore(s.SrcB);
+        _output.Restore(s.Output);
+        _mux.SelectedInput = s.MuxInput;
     }
 
     protected override void HandleClockUpdate()
     {
-        var path = multiplexerVisualizer.CurrentChosenMuxPath;
-        int[] inputs = { _srcA.Output, _srcB.Output };
+        var path = _mux.SelectedInput;
         var res = 0;
 
         switch (path)
@@ -138,28 +92,15 @@ public class LevelOneRegisseur : BaseLevelRegisseur<LevelOneState, LevelOneBusSe
                 CustomLog.LogEditorError("Multiplexer path not selected (-1). Data will be lost.");
                 break;
             case >= 0 and <= 1:
-                res = Multiplexer.SelectNto1(inputs, path);
+                res = Multiplexer.Select(path, _srcA.Output, _srcB.Output);
                 break;
             default:
                 CustomLog.LogEditorError($"Multiplexer path {path} is an invalid value!");
                 break;
         }
 
-        // synchronize visualizers and concrete objects
-        _srcA.WriteEnable = registerSrcAVisualizer.isWriteEnabled;
-        _srcB.WriteEnable = registerSrcBVisualizer.isWriteEnabled;
-        _output.WriteEnable = registerOutputVisualizer.isWriteEnabled;
-
-        _srcA.PreClockUpdate();
-        _srcB.PreClockUpdate();
-
         _output.Input = res;
-        _output.PreClockUpdate();
-
-        // Only if WriteEnable = true, call Clock
-        _srcA.Clock();
-        _srcB.Clock();
-        _output.Clock();
+        Clock.Tick();
     }
 
     protected override bool CheckWinCondition()
@@ -169,44 +110,29 @@ public class LevelOneRegisseur : BaseLevelRegisseur<LevelOneState, LevelOneBusSe
 
     protected override IEnumerator RunBusVisualizations()
     {
-        if (_currentBus == 0)
-        {
-            yield return Bus.Wave((buses.srcAToMux, _srcA.Output), (buses.srcBToMux, _srcB.Output));
+        if (TickCounter != 0) yield break;
 
-            if (multiplexerVisualizer.CurrentChosenMuxPath != -1)
-            {
-                var propagationVal = multiplexerVisualizer.CurrentChosenMuxPath switch
-                {
-                    0 => _srcA.Output,
-                    1 => _srcB.Output,
-                    _ => 0
-                };
+        yield return Bus.Wave((buses.srcAToMux, _srcA.Output), (buses.srcBToMux, _srcB.Output));
 
-                yield return Bus.Wave((buses.muxToOutput, propagationVal));
-            }
-
-            _currentBus++;
-        }
+        if (_mux.HasSelection)
+            yield return Bus.Wave((buses.muxToOutput, _mux.Route(_srcA.Output, _srcB.Output)));
     }
 
     protected override IEnumerator ReverseBusVisualizations()
     {
-        if (_currentBus == 1)
-        {
-            if (multiplexerVisualizer.CurrentChosenMuxPath == -1)
-                yield return Bus.WaveBack((buses.srcAToMux, 4), (buses.srcBToMux, 2));
-            else
-                yield return Bus.WaveBack((buses.muxToOutput, _output.Input), (buses.srcAToMux, 4), (buses.srcBToMux, 2));
+        if (TickCounter != 0) yield break;
 
-            _currentBus--;
+        var before = StateAt(TickCounter);
+        if (_mux.HasSelection)
+        {
+            yield return Bus.WaveBack(
+                (buses.muxToOutput, _output.Input),
+                (buses.srcAToMux, before.SrcA.Value),
+                (buses.srcBToMux, before.SrcB.Value));
+        }
+        else
+        {
+            yield return Bus.WaveBack((buses.srcAToMux, before.SrcA.Value), (buses.srcBToMux, before.SrcB.Value));
         }
     }
-
-    #region CACHED UI REFERENCES
-
-    private InfoPanelUI _infoSrcARegister;
-    private InfoPanelUI _infoSrcBRegister;
-    private InfoPanelUI _infoOutputRegister;
-
-    #endregion
 }

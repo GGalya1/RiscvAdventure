@@ -4,28 +4,18 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Serialization;
 
+/// <summary> State of levels 3, 4 and 6: PC register (SrcA), instruction register (SrcB), memory, MUX, ALU. </summary>
 public struct LevelThreeState
 {
-    public int RegisterPCValue;
-    public int RegisterInstrValue;
-
-    public int FirstMemoryValue;
-    public int SecondMemoryValue;
-    public int ThirdMemoryValue;
-    public int FourthMemoryValue;
-
-    public bool RegisterPcwe;
-    public bool RegisterInstrWe;
-    public bool InstrDataMemoryWe;
-
-    public int
-        CurrentChosenMuxPath; // since we can call ResetVisualization and, based on the selected path, call one of the Visualizer methods
-
-    public int AluOperation;
+    public RegisterState Pc;
+    public RegisterState Instruction;
+    public MemoryState Memory;
+    public int MuxInput;
+    public AluOperation AluOperation;
 }
 
 [Serializable]
-public class LevelThirdBusSegments: IBusSegmentProvider
+public class LevelThirdBusSegments
 {
     [Header("PC fanout")] [Tooltip("PC (SrcA) -> Memory address input")]
     public LineRenderer pcToMemAddr;
@@ -47,17 +37,6 @@ public class LevelThirdBusSegments: IBusSegmentProvider
 
     [Tooltip("PC+4 adder result -> SrcA register input")]
     public LineRenderer adderToSrcA;
-
-    public void RegisterAll(BusController c)
-    {
-        c.RegisterSegment(pcToMemAddr);
-        c.RegisterSegment(pcToAdrMux);
-        c.RegisterSegment(memDataToSrcB);
-        c.RegisterSegment(srcBToExt);
-        c.RegisterSegment(muxToAdder);
-        c.RegisterSegment(constFourToAdder);
-        c.RegisterSegment(adderToSrcA);
-    }
 }
 
 public class LevelThirdRegisseur : BaseLevelRegisseur<LevelThreeState, LevelThirdBusSegments>
@@ -83,63 +62,47 @@ public class LevelThirdRegisseur : BaseLevelRegisseur<LevelThreeState, LevelThir
     [FormerlySerializedAs("_numberBlinker")] [SerializeField]
     private Blinker numberBlinker;
 
-
-    private int _currentBus; // [0, 5]
     private DataInstMemory _dataInstructionMemory;
 
     // Intern components for computations
     private Register _srcA;
     private Register _srcB;
 
+    private readonly Alu _alu = new();
+
+    private readonly Multiplexer _mux = new();
+
     protected override void OnLevelStart()
     {
+        multiplexerVisualizer.Bind(_mux);
+        aluVisualizer.Bind(_alu);
+
         // Initialization of logical components
-        _srcA = new Register(srcAValue)
-        {
-            WriteEnable = true
-        };
-        _srcB = new Register(srcBValue)
-        {
-            WriteEnable = true
-        };
-        _dataInstructionMemory = new DataInstMemory
-        {
-            MemoryWrite = true
-        };
-        _dataInstructionMemory.LoadWord(0, 256);
-        _dataInstructionMemory.LoadWord(4, 128);
-        _dataInstructionMemory.LoadWord(8, -89);
-        _dataInstructionMemory.LoadWord(12, 66);
+        _srcA = new Register(srcAValue);
+        _srcB = new Register(srcBValue);
+        _dataInstructionMemory = new DataInstMemory();
+        _dataInstructionMemory.LoadWords(256, 128, -89, 66);
 
-        // Caching of UI panels for visualizers
-        _infoSrcARegister = registerSrcAVisualizer.UIRegisterPanel;
-        _infoSrcBRegister = registerSrcBVisualizer.UIRegisterPanel;
+        Clock.Add(_srcA, _srcB, _dataInstructionMemory);
 
-        UpdateVisualizers();
+        Show(
+            registerSrcAVisualizer.Bind(_srcA, "Register 1"),
+            registerSrcBVisualizer.Bind(_srcB, "Register 2"),
+            registerOutputVisualizer.Bind(_dataInstructionMemory, MemoryDisplay.Values));
     }
 
     protected override void ApplyState(LevelThreeState s)
     {
-        _srcA.Reset(s.RegisterPCValue);
-        _srcB.Reset(s.RegisterInstrValue);
-        
-        _dataInstructionMemory.MemoryWrite = s.InstrDataMemoryWe;
-        _dataInstructionMemory.LoadWord(0, s.FirstMemoryValue);
-        _dataInstructionMemory.LoadWord(4, s.SecondMemoryValue);
-        _dataInstructionMemory.LoadWord(8, s.ThirdMemoryValue);
-        _dataInstructionMemory.LoadWord(12, s.FourthMemoryValue);
-
-        _srcA.WriteEnable = s.RegisterPcwe;
-        _srcB.WriteEnable = s.RegisterInstrWe;
-
-        ApplyMuxState(s.CurrentChosenMuxPath, multiplexerVisualizer);
+        _srcA.Restore(s.Pc);
+        _srcB.Restore(s.Instruction);
+        _dataInstructionMemory.Restore(s.Memory);
+        _mux.SelectedInput = s.MuxInput;
+        _alu.Operation = s.AluOperation;
     }
 
     protected override void BlinkClockedComponents()
     {
-        registerSrcAVisualizer.TriggerBlink();
-        registerSrcBVisualizer.TriggerBlink();
-        registerOutputVisualizer.TriggerBlink();
+        base.BlinkClockedComponents();
         numberBlinker.Trigger();
     }
 
@@ -148,39 +111,21 @@ public class LevelThirdRegisseur : BaseLevelRegisseur<LevelThreeState, LevelThir
         return _srcB.Output == RightAnswerValue;
     }
 
-    protected override LevelThreeState GetCurrentState()
+    protected override LevelThreeState GetCurrentState() => new()
     {
-        return new LevelThreeState
-        {
-            RegisterPCValue = _srcA.Output,
-            RegisterInstrValue = _srcB.Output,
-
-            FirstMemoryValue = _dataInstructionMemory.Memory[0],
-            SecondMemoryValue = _dataInstructionMemory.Memory[4],
-            ThirdMemoryValue = _dataInstructionMemory.Memory[8],
-            FourthMemoryValue = _dataInstructionMemory.Memory[12],
-
-            RegisterPcwe = _srcA.WriteEnable,
-            RegisterInstrWe = _srcB.WriteEnable,
-            InstrDataMemoryWe = _dataInstructionMemory.MemoryWrite,
-
-            CurrentChosenMuxPath = multiplexerVisualizer.CurrentChosenMuxPath,
-            AluOperation = aluVisualizer.CurrentAluOperation
-        };
-    }
+        Pc = _srcA.Save(),
+        Instruction = _srcB.Save(),
+        Memory = _dataInstructionMemory.Save(),
+        MuxInput = _mux.SelectedInput,
+        AluOperation = _alu.Operation
+    };
 
     protected override void HandleClockUpdate()
     {
-        // synchronize visualizers and concrete objects
-        _srcA.WriteEnable = registerSrcAVisualizer.isWriteEnabled;
-        _srcB.WriteEnable = registerSrcBVisualizer.isWriteEnabled;
-        _dataInstructionMemory.MemoryWrite = registerOutputVisualizer.isWriteEnabled;
-
         // implementation
-        _srcB.Input = _dataInstructionMemory.Memory.GetValueOrDefault(_srcA.Output, 0);
+        _srcB.Input = _dataInstructionMemory.Read(_srcA.Output);
 
-
-        var p = multiplexerVisualizer.CurrentChosenMuxPath;
+        var p = _mux.SelectedInput;
         switch (p)
         {
             case -1:
@@ -188,10 +133,10 @@ public class LevelThirdRegisseur : BaseLevelRegisseur<LevelThreeState, LevelThir
                 _srcA.Input = 0;
                 break;
             case 0:
-                _srcA.Input = Alu.Calculate(_srcA.Output, 4, aluVisualizer.CurrentAluOperation);
+                _srcA.Input = _alu.Compute(_srcA.Output, 4);
                 break;
             case 1:
-                _srcA.Input = Alu.Calculate(_srcB.Output, 4, aluVisualizer.CurrentAluOperation);
+                _srcA.Input = _alu.Compute(_srcB.Output, 4);
                 break;
             default:
                 CustomLog.LogEditorError($"MUX path is incorrect! Expected [-1, 1] but got {p}");
@@ -199,90 +144,51 @@ public class LevelThirdRegisseur : BaseLevelRegisseur<LevelThreeState, LevelThir
                 break;
         }
 
-
-        _srcA.PreClockUpdate();
-        _srcB.PreClockUpdate();
-        _dataInstructionMemory.PreClockUpdate();
-
-
-        // Only if WriteEnable = true, call Clock
-        _srcA.Clock();
-        _srcB.Clock();
-        _dataInstructionMemory.Clock();
+        Clock.Tick();
     }
 
     protected override IEnumerator ReverseBusVisualizations()
     {
-        if (_currentBus >= 1 && _currentBus <= maxTickNumber)
-        {
-            var before = StateAt(TickCounter);
-            var upperBusSignal = 0;
-            if (multiplexerVisualizer.CurrentChosenMuxPath == 0)
-                upperBusSignal = before.RegisterPCValue;
-            else if (multiplexerVisualizer.CurrentChosenMuxPath == 1)
-                upperBusSignal = before.RegisterInstrValue;
+        var before = StateAt(TickCounter);
+        var upperBusSignal = 0;
+        if (_mux.SelectedInput == 0)
+            upperBusSignal = before.Pc.Value;
+        else if (_mux.SelectedInput == 1)
+            upperBusSignal = before.Instruction.Value;
 
-            yield return Bus.WaveBack((buses.adderToSrcA, _srcA.Input));
-            yield return Bus.WaveBack((buses.adderToSrcA, upperBusSignal), (buses.constFourToAdder, 4));
-            yield return Bus.WaveBack((buses.pcToAdrMux, before.RegisterPCValue), (buses.srcBToExt, before.RegisterInstrValue));
-            yield return Bus.WaveBack((buses.memDataToSrcB, _srcB.Input));
-            yield return Bus.WaveBack((buses.pcToMemAddr, before.RegisterPCValue));
-
-            _currentBus--;
-        }
+        yield return Bus.WaveBack((buses.adderToSrcA, _srcA.Input));
+        yield return Bus.WaveBack((buses.muxToAdder, upperBusSignal), (buses.constFourToAdder, 4));
+        yield return Bus.WaveBack((buses.pcToAdrMux, before.Pc.Value), (buses.srcBToExt, before.Instruction.Value));
+        yield return Bus.WaveBack((buses.memDataToSrcB, _srcB.Input));
+        yield return Bus.WaveBack((buses.pcToMemAddr, before.Pc.Value));
     }
 
     protected override IEnumerator RunBusVisualizations()
     {
-        if (_currentBus >= 0 && _currentBus < maxTickNumber)
+        var pc = _srcA.Output;
+
+        yield return Bus.Wave((buses.pcToMemAddr, pc), (buses.pcToAdrMux, pc));
+        yield return Bus.Wave((buses.memDataToSrcB, _dataInstructionMemory.Read(pc)));
+        yield return Bus.Wave((buses.srcBToExt, _srcB.Output));
+
+        var propagationVal = 0;
+        if (!_mux.HasSelection)
         {
-            var pc = _srcA.Output;
-
-            yield return Bus.Wave((buses.pcToMemAddr, pc), (buses.pcToAdrMux, pc));
-            yield return Bus.Wave((buses.memDataToSrcB, _dataInstructionMemory.Memory.GetValueOrDefault(pc, 0)));
-            yield return Bus.Wave((buses.srcBToExt, _srcB.Output));
-
-            var propagationVal = 0;
-            if (multiplexerVisualizer.CurrentChosenMuxPath == -1)
-            {
-                yield return Bus.Wave((buses.constFourToAdder, 0));
-            }
-            else
-            {
-                if (multiplexerVisualizer.CurrentChosenMuxPath == 0)
-                    propagationVal = _srcA.Output;
-                else if (multiplexerVisualizer.CurrentChosenMuxPath == 1)
-                    propagationVal = _srcB.Output;
-                else
-                    CustomLog.LogEditorError($"Unexpected MUX path {multiplexerVisualizer.CurrentChosenMuxPath}");
-
-                yield return Bus.Wave((buses.muxToAdder, propagationVal), (buses.constFourToAdder, 4));
-            }
-
-            // from ALU to first register
-            yield return Bus.Wave((buses.adderToSrcA, Alu.Calculate(propagationVal, 4, aluVisualizer.CurrentAluOperation)));
-
-            _currentBus++;
+            yield return Bus.Wave((buses.constFourToAdder, 0));
         }
+        else
+        {
+            if (_mux.SelectedInput == 0)
+                propagationVal = _srcA.Output;
+            else if (_mux.SelectedInput == 1)
+                propagationVal = _srcB.Output;
+            else
+                CustomLog.LogEditorError($"Unexpected MUX path {_mux.SelectedInput}");
+
+            yield return Bus.Wave((buses.muxToAdder, propagationVal), (buses.constFourToAdder, 4));
+        }
+
+        // from ALU to first register
+        yield return Bus.Wave((buses.adderToSrcA, _alu.Compute(propagationVal, 4)));
     }
-
-    protected override void UpdateVisualizers()
-    {
-        _infoSrcARegister.Display("Register 1", _srcA.Output);
-        _infoSrcBRegister.Display("Register 2", _srcB.Output);
-        registerOutputVisualizer.UIRegisterPanel.Display(_dataInstructionMemory.Memory[0],
-            _dataInstructionMemory.Memory[4], _dataInstructionMemory.Memory[8],
-            _dataInstructionMemory.Memory[12]);
-
-        registerSrcAVisualizer.ForceUpdateWriteEnableVisualization(_srcA.WriteEnable);
-        registerSrcBVisualizer.ForceUpdateWriteEnableVisualization(_srcB.WriteEnable);
-        registerOutputVisualizer.ForceUpdateWriteEnableVisualization(_dataInstructionMemory.MemoryWrite);
-    }
-
-    #region CACHED UI REFERENCES
-
-    private InfoPanelUI _infoSrcARegister;
-    private InfoPanelUI _infoSrcBRegister;
-
-    #endregion
 }

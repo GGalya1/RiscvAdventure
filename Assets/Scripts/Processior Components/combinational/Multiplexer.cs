@@ -1,12 +1,39 @@
-public static class Multiplexer
+using System;
+
+/// <summary>
+/// Multiplexer with up to three inputs and one control signal (<see cref="SelectedInput"/>).
+/// <br/>An unselected multiplexer (<see cref="NoInput"/>) or an out-of-range selection outputs 0.
+/// </summary>
+public sealed class Multiplexer
 {
-    public static int Select2To1(int a, int b, bool control) {
-        return control ? a : b;
+    public const int NoInput = -1;
+
+    private int _selectedInput = NoInput;
+
+    // Raised every time the control signal is assigned
+    public event Action<int> SelectionChanged;
+
+    public int SelectedInput
+    {
+        get => _selectedInput;
+        set
+        {
+            _selectedInput = value;
+            SelectionChanged?.Invoke(value);
+        }
     }
 
-    public static int SelectNto1(int[] inputs, int control) {
-        // if(control < 0 || control >= inputs.Length) 
-        //    CustomLog.LogEditorError($"Multiplexer Error: {control} is not in range of inputs for MUL_N.");
-        return inputs[control];
-    }
+    public bool HasSelection => _selectedInput != NoInput;
+
+    // Output for the current control signal
+    public int Route(int input0, int input1, int input2 = 0) => Select(_selectedInput, input0, input1, input2);
+
+    // Output for an arbitrary (e.g. saved) control signal
+    public static int Select(int selectedInput, int input0, int input1, int input2 = 0) => selectedInput switch
+    {
+        0 => input0,
+        1 => input1,
+        2 => input2,
+        _ => 0
+    };
 }
