@@ -157,7 +157,7 @@ public class LevelThirdRegisseur : BaseLevelRegisseur<LevelThreeState, LevelThir
             upperBusSignal = before.Instruction.Value;
 
         yield return Bus.WaveBack((buses.adderToSrcA, _srcA.Input));
-        yield return Bus.WaveBack((buses.adderToSrcA, upperBusSignal), (buses.constFourToAdder, 4));
+        yield return Bus.WaveBack((buses.muxToAdder, upperBusSignal), (buses.constFourToAdder, 4));
         yield return Bus.WaveBack((buses.pcToAdrMux, before.Pc.Value), (buses.srcBToExt, before.Instruction.Value));
         yield return Bus.WaveBack((buses.memDataToSrcB, _srcB.Input));
         yield return Bus.WaveBack((buses.pcToMemAddr, before.Pc.Value));

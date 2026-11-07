@@ -120,41 +120,40 @@ public class LevelOneExtended : BaseLevelRegisseur<ExtendedFirstLevelState, Leve
         OutputMux = _outputMux.SelectedInput
     };
 
-    protected override void HandleClockUpdate()
+    private (int up, int middle, int down, int output) RouteAll()
     {
         var up = _upperMux.Route(-4, 0, -1);
-        var left = _middleMux.Route(8, 12, -1);
-        var down = _downMux.Route(left, -8, -12);
+        var middle = _middleMux.Route(8, 12, -1);
+        var down = _downMux.Route(middle, -8, -12);
+        var output = _outputMux.Route(up, 4, down);
+        return (up, middle, down, output);
+    }
 
-        _output.Input = _outputMux.Route(up, 4, down);
-
+    protected override void HandleClockUpdate()
+    {
+        _output.Input = RouteAll().output;
         Clock.Tick();
     }
 
     protected override IEnumerator ReverseBusVisualizations()
     {
-        var up = _upperMux.SelectedInput == 0 ? -4 : 0;
-        var left = _middleMux.SelectedInput == 0 ? 8 : 12;
-        var down = _downMux.Route(left, -8, -12);
+        var (up, middle, down, _) = RouteAll();
 
         yield return Bus.WaveBack((buses.outputMuxToRegister, _output.Input));
         yield return Bus.WaveBack((buses.upperMuxToOutputMux, up), (buses.downMuxToOutputMux, down), (buses.constGToOutputMux, 4));
         yield return Bus.WaveBack(
-            (buses.middleMuxToDownMux, left), (buses.constCToDownMux, -8), (buses.constDToDownMux, -12),
+            (buses.middleMuxToDownMux, middle), (buses.constCToDownMux, -8), (buses.constDToDownMux, -12),
             (buses.constEToUpperMux, -4), (buses.constFToUpperMux, 0));
         yield return Bus.WaveBack((buses.constAToMiddleMux, 8), (buses.constBToMiddleMux, 12));
     }
 
     protected override IEnumerator RunBusVisualizations()
     {
-        var up = _upperMux.Route(-4, 0, -1);
-        var left = _middleMux.Route(8, 12, -1);
-        var down = _downMux.Route(left, -8, -12);
-        var output = _outputMux.Route(up, 4, down);
+        var (up, middle, down, output) = RouteAll();
 
         yield return Bus.Wave((buses.constAToMiddleMux, 8), (buses.constBToMiddleMux, 12));
         yield return Bus.Wave(
-            (buses.middleMuxToDownMux, left), (buses.constCToDownMux, -8), (buses.constDToDownMux, -12),
+            (buses.middleMuxToDownMux, middle), (buses.constCToDownMux, -8), (buses.constDToDownMux, -12),
             (buses.constEToUpperMux, -4), (buses.constFToUpperMux, 0));
         yield return Bus.Wave((buses.upperMuxToOutputMux, up), (buses.downMuxToOutputMux, down), (buses.constGToOutputMux, 4));
         yield return Bus.Wave((buses.outputMuxToRegister, output));

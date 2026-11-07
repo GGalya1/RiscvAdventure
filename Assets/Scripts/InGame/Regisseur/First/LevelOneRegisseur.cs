@@ -110,31 +110,29 @@ public class LevelOneRegisseur : BaseLevelRegisseur<LevelOneState, LevelOneBusSe
 
     protected override IEnumerator RunBusVisualizations()
     {
-        // Only the first tick is animated.
         if (TickCounter != 0) yield break;
 
         yield return Bus.Wave((buses.srcAToMux, _srcA.Output), (buses.srcBToMux, _srcB.Output));
 
         if (_mux.HasSelection)
-        {
-            var propagationVal = _mux.SelectedInput switch
-            {
-                0 => _srcA.Output,
-                1 => _srcB.Output,
-                _ => 0
-            };
-
-            yield return Bus.Wave((buses.muxToOutput, propagationVal));
-        }
+            yield return Bus.Wave((buses.muxToOutput, _mux.Route(_srcA.Output, _srcB.Output)));
     }
 
     protected override IEnumerator ReverseBusVisualizations()
     {
         if (TickCounter != 0) yield break;
 
-        if (!_mux.HasSelection)
-            yield return Bus.WaveBack((buses.srcAToMux, 4), (buses.srcBToMux, 2));
+        var before = StateAt(TickCounter);
+        if (_mux.HasSelection)
+        {
+            yield return Bus.WaveBack(
+                (buses.muxToOutput, _output.Input),
+                (buses.srcAToMux, before.SrcA.Value),
+                (buses.srcBToMux, before.SrcB.Value));
+        }
         else
-            yield return Bus.WaveBack((buses.muxToOutput, _output.Input), (buses.srcAToMux, 4), (buses.srcBToMux, 2));
+        {
+            yield return Bus.WaveBack((buses.srcAToMux, before.SrcA.Value), (buses.srcBToMux, before.SrcB.Value));
+        }
     }
 }
