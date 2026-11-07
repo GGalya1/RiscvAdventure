@@ -15,7 +15,7 @@ public struct LevelThreeState
 }
 
 [Serializable]
-public class LevelThirdBusSegments: IBusSegmentProvider
+public class LevelThirdBusSegments
 {
     [Header("PC fanout")] [Tooltip("PC (SrcA) -> Memory address input")]
     public LineRenderer pcToMemAddr;
@@ -37,17 +37,6 @@ public class LevelThirdBusSegments: IBusSegmentProvider
 
     [Tooltip("PC+4 adder result -> SrcA register input")]
     public LineRenderer adderToSrcA;
-
-    public void RegisterAll(BusController c)
-    {
-        c.RegisterSegment(pcToMemAddr);
-        c.RegisterSegment(pcToAdrMux);
-        c.RegisterSegment(memDataToSrcB);
-        c.RegisterSegment(srcBToExt);
-        c.RegisterSegment(muxToAdder);
-        c.RegisterSegment(constFourToAdder);
-        c.RegisterSegment(adderToSrcA);
-    }
 }
 
 public class LevelThirdRegisseur : BaseLevelRegisseur<LevelThreeState, LevelThirdBusSegments>

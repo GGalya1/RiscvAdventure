@@ -9,7 +9,7 @@ public struct LevelTwoState
 }
 
 [System.Serializable]
-public class LevelTwoBusSegments: IBusSegmentProvider
+public class LevelTwoBusSegments
 {
     [Tooltip("PC register output -> ALU input A")]
     public LineRenderer pcToAdder;
@@ -17,13 +17,6 @@ public class LevelTwoBusSegments: IBusSegmentProvider
     public LineRenderer constFourToAdder;
     [Tooltip("ALU/adder result -> PC register input")]
     public LineRenderer adderToPC;
-
-    public void RegisterAll(BusController c)
-    {
-        c.RegisterSegment(pcToAdder);
-        c.RegisterSegment(constFourToAdder);
-        c.RegisterSegment(adderToPC);
-    }
 }
 
 public class LevelTwoRegisseur : BaseLevelRegisseur<LevelTwoState, LevelTwoBusSegments>

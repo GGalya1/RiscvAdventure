@@ -4,7 +4,7 @@ using UnityEngine;
 using UnityEngine.Serialization;
 
 [Serializable]
-public class FullProcessorBusSegments : IBusSegmentProvider
+public class FullProcessorBusSegments
 {
     [Header("IF - Instruction Fetch")]
     [Tooltip("PC -> ADR MUX input (selects instruction memory address)")]
@@ -63,34 +63,6 @@ public class FullProcessorBusSegments : IBusSegmentProvider
     public LineRenderer resultMuxToRegFile;
     [Tooltip("Result MUX -> third fanout destination")]
     public LineRenderer resultMuxFanOut;
-
-    public void RegisterAll(BusController c)
-    {
-        c.RegisterSegment(pcToAdrMux);
-        c.RegisterSegment(pcToOldPcReg);
-        c.RegisterSegment(pcToPcAdder);
-        c.RegisterSegment(constFourToPcAdder);
-        c.RegisterSegment(adrMuxToMem);
-        c.RegisterSegment(memToInstrReg);
-        c.RegisterSegment(srcAMuxToSrcAReg);
-        c.RegisterSegment(srcBMuxToSrcBReg);
-        c.RegisterSegment(aluToAluOutReg);
-        c.RegisterSegment(resultMuxToPC);
-        c.RegisterSegment(instrToRegFileA1);
-        c.RegisterSegment(instrToRegFileA2);
-        c.RegisterSegment(instrToExtend);
-        c.RegisterSegment(rd1ToSrcAMux);
-        c.RegisterSegment(rd2ToSrcBMux);
-        c.RegisterSegment(extToSrcBMux);
-        c.RegisterSegment(srcAMuxToAlu);
-        c.RegisterSegment(srcBMuxToAlu);
-        c.RegisterSegment(aluCombToAluOutReg);
-        c.RegisterSegment(aluOutToResultMux);
-        c.RegisterSegment(aluOutToDataMem);
-        c.RegisterSegment(resultMuxToPcWb);
-        c.RegisterSegment(resultMuxToRegFile);
-        c.RegisterSegment(resultMuxFanOut);
-    }
 }
 
 /// <summary> Multi-cycle (Mehrtakt) processor level. The datapath itself is <see cref="MultiCycleProcessor"/>. </summary>

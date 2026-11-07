@@ -13,7 +13,7 @@ public struct LevelSevenState
 }
 
 [Serializable]
-public class LevelSevenBusSegments: IBusSegmentProvider
+public class LevelSevenBusSegments
 {
     [Tooltip("SrcA register (rs1 address) -> Register File A1")]
     public LineRenderer srcAToRegFileA1;
@@ -29,15 +29,6 @@ public class LevelSevenBusSegments: IBusSegmentProvider
 
     [Tooltip("ALU result -> Output register")]
     public LineRenderer aluToOutput;
-
-    public void RegisterAll(BusController c)
-    {
-        c.RegisterSegment(srcAToRegFileA1);
-        c.RegisterSegment(srcBToRegFileA2);
-        c.RegisterSegment(rd1ToAlu);
-        c.RegisterSegment(rd2ToAlu);
-        c.RegisterSegment(aluToOutput);
-    }
 }
 
 public class LevelSevenRegisseur : BaseLevelRegisseur<LevelSevenState, LevelSevenBusSegments>

@@ -16,7 +16,7 @@ using UnityEngine.Serialization;
 /// </summary>
 public abstract class BaseLevelRegisseur<TState, TBus> : MonoBehaviour
     where TState : struct
-    where TBus : IBusSegmentProvider
+    where TBus : class
 {
     [FormerlySerializedAs("_levelTargetDescription")]
     [Header("Level Content Configuration")]
@@ -154,8 +154,6 @@ public abstract class BaseLevelRegisseur<TState, TBus> : MonoBehaviour
 
         _history = new TickHistory<TState>(maxTickNumber);
         _history.Save(0, GetCurrentState());
-
-        buses.RegisterAll(busController);
     }
 
     #region CLOCK

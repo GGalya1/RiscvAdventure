@@ -13,7 +13,7 @@ public struct ExtendedFirstLevelState
 }
 
 [Serializable]
-public class LevelOneExtendedBusSegments: IBusSegmentProvider
+public class LevelOneExtendedBusSegments
 {
     [Header("Middle MUX inputs (constants 8 and 12)")] [Tooltip("Constant 8 -> Middle MUX input [0]")]
     public LineRenderer constAToMiddleMux;
@@ -47,21 +47,6 @@ public class LevelOneExtendedBusSegments: IBusSegmentProvider
 
     [Header("Output")] [Tooltip("Output MUX -> Output register")]
     public LineRenderer outputMuxToRegister;
-
-    public void RegisterAll(BusController c)
-    {
-        c.RegisterSegment(constAToMiddleMux);
-        c.RegisterSegment(constBToMiddleMux);
-        c.RegisterSegment(middleMuxToDownMux);
-        c.RegisterSegment(constCToDownMux);
-        c.RegisterSegment(constDToDownMux);
-        c.RegisterSegment(constEToUpperMux);
-        c.RegisterSegment(constFToUpperMux);
-        c.RegisterSegment(upperMuxToOutputMux);
-        c.RegisterSegment(downMuxToOutputMux);
-        c.RegisterSegment(constGToOutputMux);
-        c.RegisterSegment(outputMuxToRegister);
-    }
 }
 
 public class LevelOneExtended : BaseLevelRegisseur<ExtendedFirstLevelState, LevelOneExtendedBusSegments>

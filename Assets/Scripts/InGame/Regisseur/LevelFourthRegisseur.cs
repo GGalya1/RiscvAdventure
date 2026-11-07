@@ -5,7 +5,7 @@ using UnityEngine;
 using UnityEngine.Serialization;
 
 [Serializable]
-public class LevelFourthBusSegments: IBusSegmentProvider
+public class LevelFourthBusSegments
 {
     [Header("PC fanout")] [Tooltip("PC (_srcA) -> Memory address input")]
     public LineRenderer pcToMemAddr;
@@ -30,18 +30,6 @@ public class LevelFourthBusSegments: IBusSegmentProvider
 
     [FormerlySerializedAs("adderTo_srcA")] [Tooltip("PC+4 adder result -> _srcA register input")]
     public LineRenderer adderToSrcA;
-
-    public void RegisterAll(BusController c)
-    {
-        c.RegisterSegment(pcToMemAddr);
-        c.RegisterSegment(pcToAdrMux);
-        c.RegisterSegment(memDataToSrcB);
-        c.RegisterSegment(srcBToExt);
-        c.RegisterSegment(srcBToDataMemWd);
-        c.RegisterSegment(muxToAdder);
-        c.RegisterSegment(constFourToAdder);
-        c.RegisterSegment(adderToSrcA);
-    }
 }
 
 public class LevelFourthRegisseur : BaseLevelRegisseur<LevelThreeState, LevelFourthBusSegments>

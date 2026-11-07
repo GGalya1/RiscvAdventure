@@ -11,19 +11,13 @@ public struct LevelFiveExtendedState
 }
 
 [Serializable]
-public class LevelFiveExtendedBusSegments: IBusSegmentProvider
+public class LevelFiveExtendedBusSegments
 {
     [Tooltip("SrcA register (raw instruction word) -> Extend unit")]
     public LineRenderer srcAToExtend;
 
     [Tooltip("Extend unit output -> Output register")]
     public LineRenderer extendToOutput;
-
-    public void RegisterAll(BusController c)
-    {
-        c.RegisterSegment(srcAToExtend);
-        c.RegisterSegment(extendToOutput);
-    }
 }
 
 public class LevelFiveExtended : BaseLevelRegisseur<LevelFiveExtendedState, LevelFiveExtendedBusSegments>

@@ -15,7 +15,7 @@ public struct LevelFiveState
 }
 
 [Serializable]
-public class LevelFiveBusSegments: IBusSegmentProvider
+public class LevelFiveBusSegments
 {
     [Header("Fetch")] [Tooltip("PC -> Memory address")]
     public LineRenderer pcToMemAddr;
@@ -36,17 +36,6 @@ public class LevelFiveBusSegments: IBusSegmentProvider
 
     [Tooltip("Extend unit output -> downstream MUX/register")]
     public LineRenderer extendToMux;
-
-    public void RegisterAll(BusController c)
-    {
-        c.RegisterSegment(pcToMemAddr);
-        c.RegisterSegment(pcToBtaAdder);
-        c.RegisterSegment(constFourToAdder);
-        c.RegisterSegment(memDataToInstrReg);
-        c.RegisterSegment(adderToSrcB);
-        c.RegisterSegment(instrRegToExtend);
-        c.RegisterSegment(extendToMux);
-    }
 }
 
 public class LevelFiveRegisseur : BaseLevelRegisseur<LevelFiveState, LevelFiveBusSegments>

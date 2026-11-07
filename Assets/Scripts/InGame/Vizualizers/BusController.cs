@@ -53,8 +53,6 @@ public class BusController : MonoBehaviour
         {
             CustomLog.LogEditorError("Slider is null !");
         }
-
-        CustomLog.LogEditor($"The controller has loaded {_busPaths.Count} bus segments.");
     }
 
     private void OnDestroy()
@@ -101,7 +99,7 @@ public class BusController : MonoBehaviour
     // Sends one value along targetBus without waiting
     public void StartBusSignal(LineRenderer targetBus, int value, bool reversedPath = false)
     {
-        var pathPoints = (reversedPath ? _reverseBusPaths : _busPaths).GetValueOrDefault(targetBus);
+        var pathPoints = GetPath(targetBus, reversedPath);
         if (pathPoints == null || pathPoints.Length < 2) return;
 
         var signal = GetSignal(pathPoints[0]);
@@ -109,41 +107,6 @@ public class BusController : MonoBehaviour
 
         _activeSignals.Add(signal);
         StartCoroutine(MoveSphereAlongPath(signal, pathPoints));
-    }
-
-    // Pre-computes the world-space path of a segment
-    public void RegisterSegment(LineRenderer lr)
-    {
-        if (lr == null)
-        {
-            CustomLog.LogEditorWarning("null LineRenderer passed - skipping.");
-            return;
-        }
-
-        // Idempotent - skip if already registered
-        if (_busPaths.ContainsKey(lr))
-            return;
-
-        var count = lr.positionCount;
-        if (count < 2)
-        {
-            CustomLog.LogEditorWarning($" '{lr.gameObject.name}' has fewer than 2 vertices - skipping.");
-            return;
-        }
-
-        // local positions -> world space
-        var t = lr.transform;
-        var points = new Vector3[count];
-        lr.GetPositions(points);
-        for (var i = 0; i < count; i++)
-            points[i] = t.TransformPoint(points[i]);
-
-        var reversed = new Vector3[count];
-        Array.Copy(points, reversed, count);
-        Array.Reverse(reversed);
-
-        _busPaths[lr] = points;
-        _reverseBusPaths[lr] = reversed;
     }
     #endregion
 
@@ -179,6 +142,46 @@ public class BusController : MonoBehaviour
     {
         movementSpeed = value;
     }
+
+    #region Paths
+    private Vector3[] GetPath(LineRenderer segment, bool reversed)
+    {
+        if (segment == null)
+        {
+            CustomLog.LogEditorWarning("Bus segment is not assigned - signal skipped.");
+            return null;
+        }
+
+        if (!_busPaths.ContainsKey(segment) && !CachePath(segment)) return null;
+
+        return reversed ? _reverseBusPaths[segment] : _busPaths[segment];
+    }
+
+    private bool CachePath(LineRenderer lr)
+    {
+        var count = lr.positionCount;
+        if (count < 2)
+        {
+            CustomLog.LogEditorWarning($"'{lr.gameObject.name}' has fewer than 2 vertices - skipping.");
+            return false;
+        }
+
+        // local positions -> world space
+        var t = lr.transform;
+        var points = new Vector3[count];
+        lr.GetPositions(points);
+        for (var i = 0; i < count; i++)
+            points[i] = t.TransformPoint(points[i]);
+
+        var reversed = new Vector3[count];
+        Array.Copy(points, reversed, count);
+        Array.Reverse(reversed);
+
+        _busPaths[lr] = points;
+        _reverseBusPaths[lr] = reversed;
+        return true;
+    }
+    #endregion
 
     #region Pool
     private void PrewarmPool()

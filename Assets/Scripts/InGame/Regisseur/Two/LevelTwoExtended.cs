@@ -11,7 +11,7 @@ public struct LevelTwoExtendedState
 }
 
 [System.Serializable]
-public class LevelTwoExtendedBusSegments: IBusSegmentProvider
+public class LevelTwoExtendedBusSegments
 {
     [Tooltip("SrcA register -> ALU input A")]
     public LineRenderer srcAToAlu;
@@ -19,13 +19,6 @@ public class LevelTwoExtendedBusSegments: IBusSegmentProvider
     public LineRenderer srcBToAlu;
     [Tooltip("ALU result → Output register")]
     public LineRenderer aluToOutput;
-
-    public void RegisterAll(BusController c)
-    {
-        c.RegisterSegment(srcAToAlu);
-        c.RegisterSegment(srcBToAlu);
-        c.RegisterSegment(aluToOutput);
-    }
 }
 
 public class LevelTwoExtended : BaseLevelRegisseur<LevelTwoExtendedState, LevelTwoExtendedBusSegments>

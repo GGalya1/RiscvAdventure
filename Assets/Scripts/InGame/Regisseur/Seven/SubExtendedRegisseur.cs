@@ -15,7 +15,7 @@ public struct SubExtendedSevenLevelState
 }
 
 [System.Serializable]
-public class SubExtendedBusSegments: IBusSegmentProvider
+public class SubExtendedBusSegments
 {
     [Header("Decode - addresses")]
     [Tooltip("SrcA register (rs1 address) -> Register File A1")]
@@ -40,19 +40,6 @@ public class SubExtendedBusSegments: IBusSegmentProvider
     public LineRenderer aluToWd3Reg;
     [Tooltip("WD3 register -> Register File WD3")]
     public LineRenderer wd3RegToRegFile;
-
-    public void RegisterAll(BusController c)
-    {
-        c.RegisterSegment(srcAToRegFileA1);
-        c.RegisterSegment(a3ToRegFileA3);
-        c.RegisterSegment(immToExtend);
-        c.RegisterSegment(rd1ToAlu);
-        c.RegisterSegment(zeroToSrcBMux);
-        c.RegisterSegment(extToSrcBMux);
-        c.RegisterSegment(srcBMuxToAlu);
-        c.RegisterSegment(aluToWd3Reg);
-        c.RegisterSegment(wd3RegToRegFile);
-    }
 }
 
 public class SubExtendedRegisseur : BaseLevelRegisseur<SubExtendedSevenLevelState, SubExtendedBusSegments>

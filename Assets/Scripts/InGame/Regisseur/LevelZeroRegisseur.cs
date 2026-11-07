@@ -11,19 +11,13 @@ public struct LevelZeroState
 }
 
 [Serializable]
-public class LevelZeroBusSegments: IBusSegmentProvider
+public class LevelZeroBusSegments
 {
     [Tooltip("SrcA register -> SrcB register")]
     public LineRenderer srcAToSrcB;
 
     [Tooltip("SrcB register -> Output register")]
     public LineRenderer srcBToOutput;
-
-    public void RegisterAll(BusController c)
-    {
-        c.RegisterSegment(srcAToSrcB);
-        c.RegisterSegment(srcBToOutput);
-    }
 }
 
 public class LevelZeroRegisseur : BaseLevelRegisseur<LevelZeroState, LevelZeroBusSegments>

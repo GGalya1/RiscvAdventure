@@ -1,14 +1,14 @@
-/*
- Common part of the full processor levels (single-cycle and multi-cycle): the level data (Initial) 
- is chosen by the level loader, and the next sub-level is offered to the LevelManager when the current
- one is finished.
-*/
+/// <summary>
+/// Common part of the full processor levels (single-cycle and multi-cycle): the level data
+/// (<see cref="Initial"/>) is chosen by the level loader, and the next sub-level is offered to the
+/// <see cref="LevelManager"/> when the current one is finished.
+/// </summary>
 public abstract class ProcessorRegisseurBase<TState, TBus, TInitial> : BaseLevelRegisseur<TState, TBus>
     where TState : struct
-    where TBus : IBusSegmentProvider
+    where TBus : class
     where TInitial : BaseProcessorInitialState
 {
-    // Data of the current sub-level. Set by the level loader before the scene is loaded
+    /// <summary> Data of the current sub-level. Set by the level loader before the scene is loaded. </summary>
     public static TInitial Initial;
 
     protected virtual void Awake()

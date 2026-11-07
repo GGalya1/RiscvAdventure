@@ -3,7 +3,7 @@ using System.Collections;
 using UnityEngine;
 
 [Serializable]
-public class OneTickBusSegments : IBusSegmentProvider
+public class OneTickBusSegments
 {
     [Header("IF - Instruction Fetch")] [Tooltip("PC -> Instruction Memory address input")]
     public LineRenderer pcToInstrMem;
@@ -59,34 +59,6 @@ public class OneTickBusSegments : IBusSegmentProvider
     public LineRenderer resultToRegFileWd3;
 
     [Tooltip("PC Mux output -> PC input")] public LineRenderer pcNextToPc;
-
-    /// <summary>
-    ///     Registers all segments with BusController so their world-space paths are pre-computed.
-    /// </summary>
-    public void RegisterAll(BusController ctrl)
-    {
-        ctrl.RegisterSegment(pcToInstrMem);
-        ctrl.RegisterSegment(pcToPCPlus4);
-        ctrl.RegisterSegment(pcPlus4ToResultMux);
-        ctrl.RegisterSegment(pcToBta);
-        ctrl.RegisterSegment(instrToA1);
-        ctrl.RegisterSegment(instrToA2);
-        ctrl.RegisterSegment(instrToA3);
-        ctrl.RegisterSegment(instrToExtend);
-        ctrl.RegisterSegment(rd1ToAluSrcA);
-        ctrl.RegisterSegment(rd2ToSrcBMux);
-        ctrl.RegisterSegment(rd2ToDataMemWd);
-        ctrl.RegisterSegment(immExtToSrcBMux);
-        ctrl.RegisterSegment(immExtToBta);
-        ctrl.RegisterSegment(srcBMuxToAlu);
-        ctrl.RegisterSegment(pcPlus4ToPcMux);
-        ctrl.RegisterSegment(btaToPcMux);
-        ctrl.RegisterSegment(aluResToDataMemAddr);
-        ctrl.RegisterSegment(aluResToResultMux);
-        ctrl.RegisterSegment(readDataToResultMux);
-        ctrl.RegisterSegment(resultToRegFileWd3);
-        ctrl.RegisterSegment(pcNextToPc);
-    }
 }
 
 /// <summary> Single-cycle (Eintakt) processor level. The datapath itself is <see cref="SingleCycleProcessor"/>. </summary>

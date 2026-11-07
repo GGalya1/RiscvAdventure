@@ -12,7 +12,7 @@ public struct LevelOneState
 }
 
 [Serializable]
-public class LevelOneBusSegments: IBusSegmentProvider
+public class LevelOneBusSegments
 {
     [Tooltip("SrcA register -> MUX input [0]")]
     public LineRenderer srcAToMux;
@@ -22,13 +22,6 @@ public class LevelOneBusSegments: IBusSegmentProvider
 
     [Tooltip("MUX output -> Output register")]
     public LineRenderer muxToOutput;
-
-    public void RegisterAll(BusController c)
-    {
-        c.RegisterSegment(srcAToMux);
-        c.RegisterSegment(srcBToMux);
-        c.RegisterSegment(muxToOutput);
-    }
 }
 
 public class LevelOneRegisseur : BaseLevelRegisseur<LevelOneState, LevelOneBusSegments>
