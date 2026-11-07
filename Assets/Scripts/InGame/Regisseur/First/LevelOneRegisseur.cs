@@ -40,7 +40,6 @@ public class LevelOneRegisseur : BaseLevelRegisseur<LevelOneState, LevelOneBusSe
 
     // protected override int RightAnswerValue => 4;
 
-    private int _currentBus; // [0, 1]
     private Register _output;
 
     // Intern components for computations
@@ -111,36 +110,31 @@ public class LevelOneRegisseur : BaseLevelRegisseur<LevelOneState, LevelOneBusSe
 
     protected override IEnumerator RunBusVisualizations()
     {
-        if (_currentBus == 0)
+        // Only the first tick is animated.
+        if (TickCounter != 0) yield break;
+
+        yield return Bus.Wave((buses.srcAToMux, _srcA.Output), (buses.srcBToMux, _srcB.Output));
+
+        if (_mux.HasSelection)
         {
-            yield return Bus.Wave((buses.srcAToMux, _srcA.Output), (buses.srcBToMux, _srcB.Output));
-
-            if (_mux.HasSelection)
+            var propagationVal = _mux.SelectedInput switch
             {
-                var propagationVal = _mux.SelectedInput switch
-                {
-                    0 => _srcA.Output,
-                    1 => _srcB.Output,
-                    _ => 0
-                };
+                0 => _srcA.Output,
+                1 => _srcB.Output,
+                _ => 0
+            };
 
-                yield return Bus.Wave((buses.muxToOutput, propagationVal));
-            }
-
-            _currentBus++;
+            yield return Bus.Wave((buses.muxToOutput, propagationVal));
         }
     }
 
     protected override IEnumerator ReverseBusVisualizations()
     {
-        if (_currentBus == 1)
-        {
-            if (!_mux.HasSelection)
-                yield return Bus.WaveBack((buses.srcAToMux, 4), (buses.srcBToMux, 2));
-            else
-                yield return Bus.WaveBack((buses.muxToOutput, _output.Input), (buses.srcAToMux, 4), (buses.srcBToMux, 2));
+        if (TickCounter != 0) yield break;
 
-            _currentBus--;
-        }
+        if (!_mux.HasSelection)
+            yield return Bus.WaveBack((buses.srcAToMux, 4), (buses.srcBToMux, 2));
+        else
+            yield return Bus.WaveBack((buses.muxToOutput, _output.Input), (buses.srcAToMux, 4), (buses.srcBToMux, 2));
     }
 }

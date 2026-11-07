@@ -61,7 +61,6 @@ public class LevelFiveRegisseur : BaseLevelRegisseur<LevelFiveState, LevelFiveBu
     [FormerlySerializedAs("_blinkerNumber")] [SerializeField]
     private Blinker blinkerNumber;
 
-    private int _currentBus; // [0, 6]
     private DataInstMemory _dataInstructionMemory;
     private Register _output;
 
@@ -103,34 +102,24 @@ public class LevelFiveRegisseur : BaseLevelRegisseur<LevelFiveState, LevelFiveBu
 
     protected override IEnumerator RunBusVisualizations()
     {
-        if (_currentBus >= 0 && _currentBus < maxTickNumber)
-        {
-            var pc = _srcA.Output;
+        var pc = _srcA.Output;
 
-            yield return Bus.Wave((buses.pcToMemAddr, pc), (buses.pcToBtaAdder, pc), (buses.constFourToAdder, 4));
-            yield return Bus.Wave(
-                (buses.memDataToInstrReg, _dataInstructionMemory.Read(pc)),
-                (buses.adderToSrcB, _alu.Compute(pc, 4)));
-            yield return Bus.Wave((buses.instrRegToExtend, _srcB.Output));
-            yield return Bus.Wave((buses.extendToMux, _extender.Extend(_srcB.Output)));
-
-            _currentBus++;
-        }
+        yield return Bus.Wave((buses.pcToMemAddr, pc), (buses.pcToBtaAdder, pc), (buses.constFourToAdder, 4));
+        yield return Bus.Wave(
+            (buses.memDataToInstrReg, _dataInstructionMemory.Read(pc)),
+            (buses.adderToSrcB, _alu.Compute(pc, 4)));
+        yield return Bus.Wave((buses.instrRegToExtend, _srcB.Output));
+        yield return Bus.Wave((buses.extendToMux, _extender.Extend(_srcB.Output)));
     }
 
     protected override IEnumerator ReverseBusVisualizations()
     {
-        if (_currentBus >= 1 && _currentBus <= maxTickNumber)
-        {
-            var before = StateAt(TickCounter);
+        var before = StateAt(TickCounter);
 
-            yield return Bus.WaveBack((buses.extendToMux, _output.Input));
-            yield return Bus.WaveBack((buses.instrRegToExtend, before.Instruction.Value));
-            yield return Bus.WaveBack((buses.memDataToInstrReg, _srcB.Input), (buses.adderToSrcB, _srcA.Input));
-            yield return Bus.WaveBack((buses.pcToMemAddr, _srcA.Output), (buses.pcToBtaAdder, _srcA.Output), (buses.constFourToAdder, 4));
-
-            _currentBus--;
-        }
+        yield return Bus.WaveBack((buses.extendToMux, _output.Input));
+        yield return Bus.WaveBack((buses.instrRegToExtend, before.Instruction.Value));
+        yield return Bus.WaveBack((buses.memDataToInstrReg, _srcB.Input), (buses.adderToSrcB, _srcA.Input));
+        yield return Bus.WaveBack((buses.pcToMemAddr, _srcA.Output), (buses.pcToBtaAdder, _srcA.Output), (buses.constFourToAdder, 4));
     }
 
     protected override void HandleClockUpdate()
@@ -145,21 +134,10 @@ public class LevelFiveRegisseur : BaseLevelRegisseur<LevelFiveState, LevelFiveBu
 
         _output.Input = _extender.Extend(_srcB.Output);
 
-        switch (_currentBus)
-        {
-            case 2:
-                _dataInstructionMemory.LoadWord(0, _output.Output);
-                break;
-            case 3:
-                _dataInstructionMemory.LoadWord(4, _output.Output);
-                break;
-            case 4:
-                _dataInstructionMemory.LoadWord(8, _output.Output);
-                break;
-            case 5:
-                _dataInstructionMemory.LoadWord(12, _output.Output);
-                break;
-        }
+        // ticks 2..5 (1-based) store the immediate extended in the previous tick
+        var tickNumber = TickCounter + 1;
+        if (tickNumber is >= 2 and <= 5)
+            _dataInstructionMemory.LoadWord((tickNumber - 2) * DataInstMemory.WordSize, _output.Output);
 
         Clock.Tick();
     }

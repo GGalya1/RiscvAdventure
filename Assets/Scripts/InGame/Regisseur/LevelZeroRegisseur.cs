@@ -37,7 +37,6 @@ public class LevelZeroRegisseur : BaseLevelRegisseur<LevelZeroState, LevelZeroBu
     [FormerlySerializedAs("_srcBValue")] [SerializeField]
     private int srcBValue;
 
-    private int _currentBus; // [0, 2]
     private Register _output;
 
     // Intern components for computations
@@ -85,23 +84,22 @@ public class LevelZeroRegisseur : BaseLevelRegisseur<LevelZeroState, LevelZeroBu
         Clock.Tick();
     }
 
+    // Only the first two ticks move data along the chain.
     protected override IEnumerator RunBusVisualizations()
     {
-        if (_currentBus == 0)
-            yield return Bus.Wave((buses.srcAToSrcB, _srcA.Output));
-        else if (_currentBus == 1)
-            yield return Bus.Wave((buses.srcBToOutput, _srcB.Output));
-
-        _currentBus++;
+        switch (TickCounter)
+        {
+            case 0: yield return Bus.Wave((buses.srcAToSrcB, _srcA.Output)); break;
+            case 1: yield return Bus.Wave((buses.srcBToOutput, _srcB.Output)); break;
+        }
     }
 
     protected override IEnumerator ReverseBusVisualizations()
     {
-        if (_currentBus == 2)
-            yield return Bus.WaveBack((buses.srcBToOutput, _output.Input));
-        else if (_currentBus == 1)
-            yield return Bus.WaveBack((buses.srcAToSrcB, _srcB.Input));
-
-        _currentBus--;
+        switch (TickCounter)
+        {
+            case 1: yield return Bus.WaveBack((buses.srcBToOutput, _output.Input)); break;
+            case 0: yield return Bus.WaveBack((buses.srcAToSrcB, _srcB.Input)); break;
+        }
     }
 }

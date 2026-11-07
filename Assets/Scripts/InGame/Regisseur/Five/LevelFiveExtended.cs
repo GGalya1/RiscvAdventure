@@ -40,7 +40,6 @@ public class LevelFiveExtended : BaseLevelRegisseur<LevelFiveExtendedState, Leve
 
     private Register _srcA;
 
-    protected int CurrentBus = 0;
 
     private readonly Extender _extender = new();
 

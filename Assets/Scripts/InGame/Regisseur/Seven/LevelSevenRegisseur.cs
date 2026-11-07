@@ -48,7 +48,6 @@ public class LevelSevenRegisseur : BaseLevelRegisseur<LevelSevenState, LevelSeve
     [FormerlySerializedAs("_aluVizualizer")] [SerializeField]
     protected AluVisualiser aluVisualizer;
 
-    private int _currentBus; // [0, 2]
     private Register _output;
     private RegisterFile _registerFile;
 
@@ -122,32 +121,22 @@ public class LevelSevenRegisseur : BaseLevelRegisseur<LevelSevenState, LevelSeve
 
     protected override IEnumerator ReverseBusVisualizations()
     {
-        if (_currentBus >= 1 && _currentBus <= maxTickNumber)
-        {
-            var before = StateAt(TickCounter);
+        var before = StateAt(TickCounter);
 
-            yield return Bus.WaveBack((buses.aluToOutput, _output.Input));
-            yield return Bus.WaveBack(
-                (buses.rd1ToAlu, _registerFile.Registers[before.SrcA.Value]),
-                (buses.rd2ToAlu, _registerFile.Registers[before.SrcB.Value]));
-            yield return Bus.WaveBack((buses.srcAToRegFileA1, before.SrcA.Value), (buses.srcBToRegFileA2, before.SrcB.Value));
-
-            _currentBus--;
-        }
+        yield return Bus.WaveBack((buses.aluToOutput, _output.Input));
+        yield return Bus.WaveBack(
+            (buses.rd1ToAlu, _registerFile.Registers[before.SrcA.Value]),
+            (buses.rd2ToAlu, _registerFile.Registers[before.SrcB.Value]));
+        yield return Bus.WaveBack((buses.srcAToRegFileA1, before.SrcA.Value), (buses.srcBToRegFileA2, before.SrcB.Value));
     }
 
     protected override IEnumerator RunBusVisualizations()
     {
-        if (_currentBus >= 0 && _currentBus < maxTickNumber)
-        {
-            var rd1 = _registerFile.ReadData1;
-            var rd2 = _registerFile.ReadData2;
+        var rd1 = _registerFile.ReadData1;
+        var rd2 = _registerFile.ReadData2;
 
-            yield return Bus.Wave((buses.srcAToRegFileA1, _srcA.Output), (buses.srcBToRegFileA2, _srcB.Output));
-            yield return Bus.Wave((buses.rd1ToAlu, rd1), (buses.rd2ToAlu, rd2));
-            yield return Bus.Wave((buses.aluToOutput, _alu.Compute(rd1, rd2)));
-
-            _currentBus++;
-        }
+        yield return Bus.Wave((buses.srcAToRegFileA1, _srcA.Output), (buses.srcBToRegFileA2, _srcB.Output));
+        yield return Bus.Wave((buses.rd1ToAlu, rd1), (buses.rd2ToAlu, rd2));
+        yield return Bus.Wave((buses.aluToOutput, _alu.Compute(rd1, rd2)));
     }
 }

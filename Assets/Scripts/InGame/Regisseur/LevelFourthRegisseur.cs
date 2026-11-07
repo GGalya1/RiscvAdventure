@@ -43,7 +43,6 @@ public class LevelFourthRegisseur : BaseLevelRegisseur<LevelThreeState, LevelFou
     [SerializeField] private AluVisualiser aluVisualizer;
     [SerializeField] private Blinker numberBlinker;
 
-    private int _currentBus;
     private DataInstMemory _dataInstructionMemory;
 
     private Register _srcA;
@@ -110,58 +109,48 @@ public class LevelFourthRegisseur : BaseLevelRegisseur<LevelThreeState, LevelFou
 
     protected override IEnumerator RunBusVisualizations()
     {
-        if (_currentBus >= 0 && _currentBus < maxTickNumber)
+        var pc = _srcA.Output;
+
+        yield return Bus.Wave((buses.pcToMemAddr, pc), (buses.pcToAdrMux, pc));
+        yield return Bus.Wave((buses.memDataToSrcB, _dataInstructionMemory.Read(pc)));
+        yield return Bus.Wave((buses.srcBToExt, _srcB.Output), (buses.srcBToDataMemWd, _srcB.Output));
+
+        var propagationVal = 0;
+        if (!_mux.HasSelection)
         {
-            var pc = _srcA.Output;
-
-            yield return Bus.Wave((buses.pcToMemAddr, pc), (buses.pcToAdrMux, pc));
-            yield return Bus.Wave((buses.memDataToSrcB, _dataInstructionMemory.Read(pc)));
-            yield return Bus.Wave((buses.srcBToExt, _srcB.Output), (buses.srcBToDataMemWd, _srcB.Output));
-
-            var propagationVal = 0;
-            if (!_mux.HasSelection)
-            {
-                yield return Bus.Wave((buses.constFourToAdder, 0));
-            }
-            else
-            {
-                if (_mux.SelectedInput == 0)
-                    propagationVal = _srcA.Output;
-                else if (_mux.SelectedInput == 1)
-                    propagationVal = _srcB.Output;
-                else
-                    CustomLog.LogEditorError($"Unexpected MUX path {_mux.SelectedInput}");
-
-                yield return Bus.Wave((buses.muxToAdder, propagationVal), (buses.constFourToAdder, 4));
-            }
-
-            // from ALU to first register
-            yield return Bus.Wave((buses.adderToSrcA, _alu.Compute(propagationVal, 4)));
-
-            _currentBus++;
+            yield return Bus.Wave((buses.constFourToAdder, 0));
         }
+        else
+        {
+            if (_mux.SelectedInput == 0)
+                propagationVal = _srcA.Output;
+            else if (_mux.SelectedInput == 1)
+                propagationVal = _srcB.Output;
+            else
+                CustomLog.LogEditorError($"Unexpected MUX path {_mux.SelectedInput}");
+
+            yield return Bus.Wave((buses.muxToAdder, propagationVal), (buses.constFourToAdder, 4));
+        }
+
+        // from ALU to first register
+        yield return Bus.Wave((buses.adderToSrcA, _alu.Compute(propagationVal, 4)));
     }
 
     protected override IEnumerator ReverseBusVisualizations()
     {
-        if (_currentBus >= 1 && _currentBus <= maxTickNumber)
-        {
-            var before = StateAt(TickCounter);
-            var upperBusSignal = 0;
-            if (_mux.SelectedInput == 0)
-                upperBusSignal = before.Pc.Value;
-            else if (_mux.SelectedInput == 1)
-                upperBusSignal = before.Instruction.Value;
+        var before = StateAt(TickCounter);
+        var upperBusSignal = 0;
+        if (_mux.SelectedInput == 0)
+            upperBusSignal = before.Pc.Value;
+        else if (_mux.SelectedInput == 1)
+            upperBusSignal = before.Instruction.Value;
 
-            yield return Bus.WaveBack((buses.adderToSrcA, _srcA.Input));
-            yield return Bus.WaveBack((buses.muxToAdder, upperBusSignal), (buses.constFourToAdder, 4));
-            yield return Bus.WaveBack(
-                (buses.srcBToDataMemWd, before.Instruction.Value), (buses.srcBToExt, before.Instruction.Value));
-            yield return Bus.WaveBack((buses.pcToAdrMux, before.Pc.Value), (buses.memDataToSrcB, _srcB.Input));
-            yield return Bus.WaveBack((buses.pcToMemAddr, before.Pc.Value));
-
-            _currentBus--;
-        }
+        yield return Bus.WaveBack((buses.adderToSrcA, _srcA.Input));
+        yield return Bus.WaveBack((buses.muxToAdder, upperBusSignal), (buses.constFourToAdder, 4));
+        yield return Bus.WaveBack(
+            (buses.srcBToDataMemWd, before.Instruction.Value), (buses.srcBToExt, before.Instruction.Value));
+        yield return Bus.WaveBack((buses.pcToAdrMux, before.Pc.Value), (buses.memDataToSrcB, _srcB.Input));
+        yield return Bus.WaveBack((buses.pcToMemAddr, before.Pc.Value));
     }
 
     protected override LevelThreeState GetCurrentState() => new()

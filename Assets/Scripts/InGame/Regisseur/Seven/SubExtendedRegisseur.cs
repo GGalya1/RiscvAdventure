@@ -63,7 +63,6 @@ public class SubExtendedRegisseur : BaseLevelRegisseur<SubExtendedSevenLevelStat
 
     private RegisterFile _registerFile;
 
-    private int _currentBus;
 
     private readonly Alu _alu = new();
     private readonly Extender _extender = new();
@@ -155,20 +154,15 @@ public class SubExtendedRegisseur : BaseLevelRegisseur<SubExtendedSevenLevelStat
 
     protected override IEnumerator ReverseBusVisualizations()
     {
-        if (_currentBus >= 1 && _currentBus <= maxTickNumber)
-        {
-            var ext = _extender.Extend(_immValue.Output);
-            var mux = Multiplexer.Select(0, ext, -1, _mux.SelectedInput);
+        var ext = _extender.Extend(_immValue.Output);
+        var mux = Multiplexer.Select(0, ext, -1, _mux.SelectedInput);
 
-            yield return Bus.WaveBack((buses.wd3RegToRegFile, _wd3.Input));
-            yield return Bus.WaveBack((buses.aluToWd3Reg, _wd3.Input));
-            yield return Bus.WaveBack((buses.rd1ToAlu, _registerFile.Registers[_srcA.Output]), (buses.srcBMuxToAlu, mux));
-            yield return Bus.WaveBack((buses.zeroToSrcBMux, 0), (buses.extToSrcBMux, ext));
-            yield return Bus.Wave(
-                (buses.srcAToRegFileA1, _srcA.Output), (buses.a3ToRegFileA3, _a3.Output), (buses.immToExtend, _immValue.Output));
-
-            _currentBus--;
-        }
+        yield return Bus.WaveBack((buses.wd3RegToRegFile, _wd3.Input));
+        yield return Bus.WaveBack((buses.aluToWd3Reg, _wd3.Input));
+        yield return Bus.WaveBack((buses.rd1ToAlu, _registerFile.Registers[_srcA.Output]), (buses.srcBMuxToAlu, mux));
+        yield return Bus.WaveBack((buses.zeroToSrcBMux, 0), (buses.extToSrcBMux, ext));
+        yield return Bus.Wave(
+            (buses.srcAToRegFileA1, _srcA.Output), (buses.a3ToRegFileA3, _a3.Output), (buses.immToExtend, _immValue.Output));
     }
 
     /// <summary> Register value as shown on the RD buses: only r1..r15 are displayed, everything else reads 0. </summary>
@@ -177,20 +171,15 @@ public class SubExtendedRegisseur : BaseLevelRegisseur<SubExtendedSevenLevelStat
 
     protected override IEnumerator RunBusVisualizations()
     {
-        if (_currentBus >= 0 && _currentBus < maxTickNumber)
-        {
-            var a = DisplayedRegister(_srcA.Output);
-            var ext = _extender.Extend(_immValue.Output);
-            var mux = Multiplexer.Select(0, ext, -1, _mux.SelectedInput);
+        var a = DisplayedRegister(_srcA.Output);
+        var ext = _extender.Extend(_immValue.Output);
+        var mux = Multiplexer.Select(0, ext, -1, _mux.SelectedInput);
 
-            yield return Bus.Wave(
-                (buses.srcAToRegFileA1, _srcA.Output), (buses.a3ToRegFileA3, _a3.Output), (buses.immToExtend, _immValue.Output));
-            yield return Bus.Wave((buses.zeroToSrcBMux, 0), (buses.extToSrcBMux, ext));
-            yield return Bus.Wave((buses.rd1ToAlu, a), (buses.srcBMuxToAlu, mux));
-            yield return Bus.Wave((buses.aluToWd3Reg, _alu.Compute(a, mux)));
-            yield return Bus.Wave((buses.wd3RegToRegFile, _wd3.Output));
-
-            _currentBus++;
-        }
+        yield return Bus.Wave(
+            (buses.srcAToRegFileA1, _srcA.Output), (buses.a3ToRegFileA3, _a3.Output), (buses.immToExtend, _immValue.Output));
+        yield return Bus.Wave((buses.zeroToSrcBMux, 0), (buses.extToSrcBMux, ext));
+        yield return Bus.Wave((buses.rd1ToAlu, a), (buses.srcBMuxToAlu, mux));
+        yield return Bus.Wave((buses.aluToWd3Reg, _alu.Compute(a, mux)));
+        yield return Bus.Wave((buses.wd3RegToRegFile, _wd3.Output));
     }
 }

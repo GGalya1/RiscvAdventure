@@ -69,7 +69,6 @@ public class LevelOneExtended : BaseLevelRegisseur<ExtendedFirstLevelState, Leve
     [FormerlySerializedAs("_numberBlinkers")] [SerializeField]
     private Blinker[] numberBlinkers;
 
-    private int _currentBus; // [0, 2]
 
     private Register _output;
 
@@ -134,40 +133,30 @@ public class LevelOneExtended : BaseLevelRegisseur<ExtendedFirstLevelState, Leve
 
     protected override IEnumerator ReverseBusVisualizations()
     {
-        if (_currentBus >= 1 && _currentBus <= maxTickNumber)
-        {
-            var up = _upperMux.SelectedInput == 0 ? -4 : 0;
-            var left = _middleMux.SelectedInput == 0 ? 8 : 12;
-            var down = _downMux.Route(left, -8, -12);
+        var up = _upperMux.SelectedInput == 0 ? -4 : 0;
+        var left = _middleMux.SelectedInput == 0 ? 8 : 12;
+        var down = _downMux.Route(left, -8, -12);
 
-            yield return Bus.WaveBack((buses.outputMuxToRegister, _output.Input));
-            yield return Bus.WaveBack((buses.upperMuxToOutputMux, up), (buses.downMuxToOutputMux, down), (buses.constGToOutputMux, 4));
-            yield return Bus.WaveBack(
-                (buses.middleMuxToDownMux, left), (buses.constCToDownMux, -8), (buses.constDToDownMux, -12),
-                (buses.constEToUpperMux, -4), (buses.constFToUpperMux, 0));
-            yield return Bus.WaveBack((buses.constAToMiddleMux, 8), (buses.constBToMiddleMux, 12));
-
-            _currentBus--;
-        }
+        yield return Bus.WaveBack((buses.outputMuxToRegister, _output.Input));
+        yield return Bus.WaveBack((buses.upperMuxToOutputMux, up), (buses.downMuxToOutputMux, down), (buses.constGToOutputMux, 4));
+        yield return Bus.WaveBack(
+            (buses.middleMuxToDownMux, left), (buses.constCToDownMux, -8), (buses.constDToDownMux, -12),
+            (buses.constEToUpperMux, -4), (buses.constFToUpperMux, 0));
+        yield return Bus.WaveBack((buses.constAToMiddleMux, 8), (buses.constBToMiddleMux, 12));
     }
 
     protected override IEnumerator RunBusVisualizations()
     {
-        if (_currentBus >= 0 && _currentBus < maxTickNumber)
-        {
-            var up = _upperMux.Route(-4, 0, -1);
-            var left = _middleMux.Route(8, 12, -1);
-            var down = _downMux.Route(left, -8, -12);
-            var output = _outputMux.Route(up, 4, down);
+        var up = _upperMux.Route(-4, 0, -1);
+        var left = _middleMux.Route(8, 12, -1);
+        var down = _downMux.Route(left, -8, -12);
+        var output = _outputMux.Route(up, 4, down);
 
-            yield return Bus.Wave((buses.constAToMiddleMux, 8), (buses.constBToMiddleMux, 12));
-            yield return Bus.Wave(
-                (buses.middleMuxToDownMux, left), (buses.constCToDownMux, -8), (buses.constDToDownMux, -12),
-                (buses.constEToUpperMux, -4), (buses.constFToUpperMux, 0));
-            yield return Bus.Wave((buses.upperMuxToOutputMux, up), (buses.downMuxToOutputMux, down), (buses.constGToOutputMux, 4));
-            yield return Bus.Wave((buses.outputMuxToRegister, output));
-
-            _currentBus++;
-        }
+        yield return Bus.Wave((buses.constAToMiddleMux, 8), (buses.constBToMiddleMux, 12));
+        yield return Bus.Wave(
+            (buses.middleMuxToDownMux, left), (buses.constCToDownMux, -8), (buses.constDToDownMux, -12),
+            (buses.constEToUpperMux, -4), (buses.constFToUpperMux, 0));
+        yield return Bus.Wave((buses.upperMuxToOutputMux, up), (buses.downMuxToOutputMux, down), (buses.constGToOutputMux, 4));
+        yield return Bus.Wave((buses.outputMuxToRegister, output));
     }
 }

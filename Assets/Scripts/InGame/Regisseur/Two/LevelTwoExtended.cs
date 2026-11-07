@@ -37,7 +37,6 @@ public class LevelTwoExtended : BaseLevelRegisseur<LevelTwoExtendedState, LevelT
     private Register _srcB;
     private Register _output;
 
-    private int _currentBus; // [0, 1]
 
     private readonly Alu _alu = new();
 
@@ -87,23 +86,13 @@ public class LevelTwoExtended : BaseLevelRegisseur<LevelTwoExtendedState, LevelT
 
     protected override IEnumerator ReverseBusVisualizations()
     {
-        if (_currentBus >= 1 && _currentBus <= maxTickNumber)
-        {
-            yield return Bus.WaveBack((buses.aluToOutput, _output.Input));
-            yield return Bus.WaveBack((buses.srcAToAlu, _srcA.Output), (buses.srcBToAlu, _srcB.Output));
-
-            _currentBus--;
-        }
+        yield return Bus.WaveBack((buses.aluToOutput, _output.Input));
+        yield return Bus.WaveBack((buses.srcAToAlu, _srcA.Output), (buses.srcBToAlu, _srcB.Output));
     }
 
     protected override IEnumerator RunBusVisualizations()
     {
-        if (_currentBus >= 0 && _currentBus < maxTickNumber)
-        {
-            yield return Bus.Wave((buses.srcAToAlu, _srcA.Output), (buses.srcBToAlu, _srcB.Output));
-            yield return Bus.Wave((buses.aluToOutput, _alu.Compute(_srcA.Output, _srcB.Output)));
-
-            _currentBus++;
-        }
+        yield return Bus.Wave((buses.srcAToAlu, _srcA.Output), (buses.srcBToAlu, _srcB.Output));
+        yield return Bus.Wave((buses.aluToOutput, _alu.Compute(_srcA.Output, _srcB.Output)));
     }
 }

@@ -100,7 +100,6 @@ public class FullProcessorRegisseur
 
     private MultiCycleProcessor _cpu;
 
-    private int _currentBus; // number of animated ticks, selects the phase
 
     protected override void OnLevelStart()
     {
@@ -155,33 +154,23 @@ public class FullProcessorRegisseur
     #region Bus animation
     protected override IEnumerator RunBusVisualizations()
     {
-        if (_currentBus >= 0 && _currentBus < maxTickNumber)
+        switch (PhaseOf(TickCounter))
         {
-            switch (PhaseOf(_currentBus))
-            {
-                case 0: yield return RunFetch(); break;
-                case 1: yield return RunDecode(); break;
-                case 2: yield return RunExecute(); break;
-                case 3: yield return RunWriteBack(); break;
-            }
-
-            _currentBus++;
+            case 0: yield return RunFetch(); break;
+            case 1: yield return RunDecode(); break;
+            case 2: yield return RunExecute(); break;
+            case 3: yield return RunWriteBack(); break;
         }
     }
 
     protected override IEnumerator ReverseBusVisualizations()
     {
-        if (_currentBus >= 1 && _currentBus <= maxTickNumber)
+        switch (PhaseOf(TickCounter))
         {
-            switch (PhaseOf(_currentBus - 1))
-            {
-                case 0: yield return ReverseFetch(); break;
-                case 1: yield return ReverseDecode(); break;
-                case 2: yield return ReverseExecute(); break;
-                case 3: yield return ReverseWriteBack(); break;
-            }
-
-            _currentBus--;
+            case 0: yield return ReverseFetch(); break;
+            case 1: yield return ReverseDecode(); break;
+            case 2: yield return ReverseExecute(); break;
+            case 3: yield return ReverseWriteBack(); break;
         }
     }
 
@@ -278,7 +267,7 @@ public class FullProcessorRegisseur
     /// <summary> Which FSM state of the multi-cycle control unit the next tick corresponds to. </summary>
     private StateName CurrentStateName()
     {
-        var phase = PhaseOf(_currentBus);
+        var phase = PhaseOf(TickCounter);
         var pc = _cpu.Pc.Output;
         var instr = _cpu.Instruction.Output;
 

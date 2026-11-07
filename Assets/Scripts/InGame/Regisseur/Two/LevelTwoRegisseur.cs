@@ -21,6 +21,8 @@ public class LevelTwoBusSegments
 
 public class LevelTwoRegisseur : BaseLevelRegisseur<LevelTwoState, LevelTwoBusSegments>
 {
+    private const int AnimatedTicks = 5;
+
     [FormerlySerializedAs("_aluVizualizer")]
     [Header("Level 2 Specific Components")]
     [SerializeField] private AluVisualiser aluVisualizer;
@@ -31,7 +33,6 @@ public class LevelTwoRegisseur : BaseLevelRegisseur<LevelTwoState, LevelTwoBusSe
 
     protected override int RightAnswerValue => 8;
 
-    private int _currentBus; // [0, 1]
 
     private readonly Alu _alu = new();
 
@@ -79,24 +80,18 @@ public class LevelTwoRegisseur : BaseLevelRegisseur<LevelTwoState, LevelTwoBusSe
     #region busVizualisation
     protected override IEnumerator RunBusVisualizations()
     {
-        if (_currentBus is >= 0 and < 5)
-        {
-            yield return Bus.Wave((buses.pcToAdder, _srcA.Output), (buses.constFourToAdder, 4));
-            yield return Bus.Wave((buses.adderToPC, _alu.Compute(_srcA.Output, 4)));
+        if (TickCounter >= AnimatedTicks) yield break;
 
-            _currentBus++;
-        }
+        yield return Bus.Wave((buses.pcToAdder, _srcA.Output), (buses.constFourToAdder, 4));
+        yield return Bus.Wave((buses.adderToPC, _alu.Compute(_srcA.Output, 4)));
     }
 
     protected override IEnumerator ReverseBusVisualizations()
     {
-        if (_currentBus is >= 1 and <= 5)
-        {
-            yield return Bus.WaveBack((buses.adderToPC, _srcA.Input));
-            yield return Bus.WaveBack((buses.pcToAdder, StateAt(TickCounter).SrcA.Value), (buses.constFourToAdder, 4));
+        if (TickCounter >= AnimatedTicks) yield break;
 
-            _currentBus--;
-        }
+        yield return Bus.WaveBack((buses.adderToPC, _srcA.Input));
+        yield return Bus.WaveBack((buses.pcToAdder, StateAt(TickCounter).SrcA.Value), (buses.constFourToAdder, 4));
     }
     #endregion
 }
