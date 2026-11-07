@@ -3,7 +3,9 @@ using UnityEngine.Serialization;
 
 /// <summary>
 /// Base class of every clickable processor component in the scene.
-/// Handles "click to open the info panel": panel animation and highlighting the 3D model.
+/// <br/>Responsible only for the "click to open the info panel" behaviour: panel animation
+/// and highlighting the 3D model while the panel is open. What the panel shows and what its
+/// buttons do is defined by the subclasses, which are bound to a simulation model.
 /// </summary>
 public abstract class BaseVisualizer : MonoBehaviour, IVisualizer
 {
@@ -39,6 +41,9 @@ public abstract class BaseVisualizer : MonoBehaviour, IVisualizer
     // Called from Awake: fetch the panel component this visualizer works with
     protected abstract void InitializePanel();
 
+    /// <summary> Enables/disables the panel buttons (the level locks them while a tick is animated). </summary>
+    public virtual void SetInteractable(bool value) { }
+
     #region IVisualizer
     public void ShowData()
     {
@@ -61,12 +66,10 @@ public abstract class BaseVisualizer : MonoBehaviour, IVisualizer
     }
     #endregion
 
-    /// <summary> Enables/disables the panel buttons (the level locks them while a tick is animated). </summary>
-    public virtual void SetInteractable(bool value) { }
-
-    // Puts the panel into the hidden state without animation
+    /// <summary> Closes the panel without animation. </summary>
     protected void HidePanelImmediately()
     {
+        _isPanelOpen = false;
         _panelAnimator.HideImmediately();
     }
 
