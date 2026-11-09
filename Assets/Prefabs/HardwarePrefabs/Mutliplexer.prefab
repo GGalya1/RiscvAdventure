@@ -70,7 +70,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 8164078558771037576, guid: e20d34937155a2546917c45a9499408d, type: 3}
       propertyPath: m_StaticEditorFlags
-      value: 127
+      value: 0
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -152,7 +152,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 8164078558771037576, guid: 0c04e9023531d9049877babc469b3a70, type: 3}
       propertyPath: m_StaticEditorFlags
-      value: 127
+      value: 0
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -172,6 +172,34 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 6878886298956674492}
     m_Modifications:
+    - target: {fileID: 446286378027057592, guid: 3f02255bf4318344cbfd78aac9f3905f, type: 3}
+      propertyPath: m_StaticEditorFlags
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 710387427145746858, guid: 3f02255bf4318344cbfd78aac9f3905f, type: 3}
+      propertyPath: m_StaticEditorFlags
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 923906095171398369, guid: 3f02255bf4318344cbfd78aac9f3905f, type: 3}
+      propertyPath: m_StaticEditorFlags
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1197659570840492156, guid: 3f02255bf4318344cbfd78aac9f3905f, type: 3}
+      propertyPath: m_AdditionalShaderChannelsFlag
+      value: 25
+      objectReference: {fileID: 0}
+    - target: {fileID: 1316045917711540160, guid: 3f02255bf4318344cbfd78aac9f3905f, type: 3}
+      propertyPath: m_StaticEditorFlags
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3015228666464080925, guid: 3f02255bf4318344cbfd78aac9f3905f, type: 3}
+      propertyPath: m_StaticEditorFlags
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4427953324717125082, guid: 3f02255bf4318344cbfd78aac9f3905f, type: 3}
+      propertyPath: m_StaticEditorFlags
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 4774225201205438934, guid: 3f02255bf4318344cbfd78aac9f3905f, type: 3}
       propertyPath: m_Pivot.x
       value: 0.5
@@ -264,10 +292,22 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 5048221621229966217, guid: 3f02255bf4318344cbfd78aac9f3905f, type: 3}
+      propertyPath: m_StaticEditorFlags
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5113926852692017155, guid: 3f02255bf4318344cbfd78aac9f3905f, type: 3}
+      propertyPath: m_StaticEditorFlags
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 5128827109253756894, guid: 3f02255bf4318344cbfd78aac9f3905f, type: 3}
       propertyPath: m_Name
       value: MuxControlPanel
       objectReference: {fileID: 0}
+    - target: {fileID: 5128827109253756894, guid: 3f02255bf4318344cbfd78aac9f3905f, type: 3}
+      propertyPath: m_StaticEditorFlags
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 5442173171008010263, guid: 3f02255bf4318344cbfd78aac9f3905f, type: 3}
       propertyPath: m_AnchorMax.y
       value: 0
@@ -292,6 +332,10 @@ PrefabInstance:
       propertyPath: m_AnchoredPosition.y
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 5534392111667704856, guid: 3f02255bf4318344cbfd78aac9f3905f, type: 3}
+      propertyPath: m_AdditionalShaderChannelsFlag
+      value: 25
+      objectReference: {fileID: 0}
     - target: {fileID: 5815643038167302710, guid: 3f02255bf4318344cbfd78aac9f3905f, type: 3}
       propertyPath: m_AnchorMax.y
       value: 0
@@ -316,6 +360,10 @@ PrefabInstance:
       propertyPath: m_AnchoredPosition.y
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 8201037419609694954, guid: 3f02255bf4318344cbfd78aac9f3905f, type: 3}
+      propertyPath: m_AdditionalShaderChannelsFlag
+      value: 25
+      objectReference: {fileID: 0}
     - target: {fileID: 8462844845571280285, guid: 3f02255bf4318344cbfd78aac9f3905f, type: 3}
       propertyPath: m_AnchorMax.y
       value: 0
@@ -338,6 +386,10 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 8462844845571280285, guid: 3f02255bf4318344cbfd78aac9f3905f, type: 3}
       propertyPath: m_AnchoredPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 9064051740892292433, guid: 3f02255bf4318344cbfd78aac9f3905f, type: 3}
+      propertyPath: m_StaticEditorFlags
       value: 0
       objectReference: {fileID: 0}
     m_RemovedComponents: []
@@ -442,7 +494,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 8164078558771037576, guid: 40c574a889d620e4798ea956e8340aa6, type: 3}
       propertyPath: m_StaticEditorFlags
-      value: 127
+      value: 0
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -499,18 +551,19 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e679dce9199adf94fb9386ec41591352, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _panelInstance: {fileID: 7716953993110514653}
-  _panelCanvasGroup: {fileID: 9004229913975055882}
-  _selectionColor: {r: 0, g: 1, b: 0.85299397, a: 1}
-  _animDuration: 0.25
-  _moveDistance: 0.2
-  _bigModelRenderer: {fileID: 5689198528980654394}
-  _inputBuses: []
-  _outputBus: {fileID: 0}
-  _controlBus: {fileID: 0}
-  _bitRenderers: []
-  _disabledColor: {r: 0.28235295, g: 0.26666668, b: 0.47058824, a: 1}
-  _activeColor: {r: 0, g: 0.9843137, b: 1, a: 1}
+  panelInstance: {fileID: 7716953993110514653}
+  panelCanvasGroup: {fileID: 9004229913975055882}
+  selectionColor: {r: 0.24705882, g: 0.5254902, b: 0.70980394, a: 1}
+  animDuration: 0.25
+  moveDistance: 0.2
+  bigModelRenderer: {fileID: 5689198528980654394}
+  selectionStyle: {fileID: 0}
+  inputBuses: []
+  outputBus: {fileID: 0}
+  controlBus: {fileID: 0}
+  bitRenderers: []
+  disabledColor: {r: 0.28235295, g: 0.26666668, b: 0.47058824, a: 1}
+  activeColor: {r: 0, g: 0.9843137, b: 1, a: 1}
 --- !u!65 &6962083181449293035
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -612,7 +665,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 8164078558771037576, guid: 1d4e18c87fe96e047b6450d977e4705d, type: 3}
       propertyPath: m_StaticEditorFlags
-      value: 127
+      value: 0
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []

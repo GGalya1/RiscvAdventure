@@ -21,16 +21,21 @@ public abstract class BaseVisualizer : MonoBehaviour, IVisualizer
     [SerializeField] private float animDuration = 0.25f;
     [FormerlySerializedAs("_moveDistance")] [SerializeField] private float moveDistance = 0.2f;
 
-    // Renderer that is tinted with selectionColor while the panel is open (optional)
+    // Renderer that is highlighted while the panel is open (optional)
     [FormerlySerializedAs("_bigModelRenderer")] [SerializeField] protected Renderer bigModelRenderer;
 
+    [Tooltip("How the model looks while selected. Empty = Resources/SelectionStyle.asset (or only the colour if that is missing).")]
+    [SerializeField] private SelectionStyle selectionStyle;
+
     private PanelAnimator _panelAnimator;
+    private SelectionHighlight _highlight;
     private Color _originalColor;
     private bool _isPanelOpen;
 
     protected virtual void Awake()
     {
         _originalColor = RendererColor.Original(bigModelRenderer);
+        _highlight = new SelectionHighlight(bigModelRenderer, selectionStyle != null ? selectionStyle : SelectionStyle.Default);
 
         _panelAnimator = new PanelAnimator(panelInstance.transform, panelCanvasGroup, animDuration, moveDistance);
         _panelAnimator.HideImmediately();
@@ -54,7 +59,8 @@ public abstract class BaseVisualizer : MonoBehaviour, IVisualizer
         }
 
         _isPanelOpen = true;
-        RendererColor.Set(bigModelRenderer, selectionColor);
+        if (_highlight.TintsModel) RendererColor.Set(bigModelRenderer, selectionColor);
+        _highlight.Show();
         _panelAnimator.Show();
     }
 
@@ -62,6 +68,7 @@ public abstract class BaseVisualizer : MonoBehaviour, IVisualizer
     {
         _isPanelOpen = false;
         RendererColor.Set(bigModelRenderer, _originalColor);
+        _highlight.Hide();
         _panelAnimator.Hide();
     }
     #endregion
@@ -70,6 +77,7 @@ public abstract class BaseVisualizer : MonoBehaviour, IVisualizer
     protected void HidePanelImmediately()
     {
         _isPanelOpen = false;
+        _highlight.HideImmediately();
         _panelAnimator.HideImmediately();
     }
 

@@ -55,6 +55,7 @@ Canvas:
   m_OverridePixelPerfect: 0
   m_SortingBucketNormalizedSize: 0
   m_VertexColorAlwaysGammaSpace: 0
+  m_UseReflectionProbes: 0
   m_AdditionalShaderChannelsFlag: 0
   m_UpdateRectTransformForStandalone: 0
   m_SortingLayerID: 0
@@ -213,7 +214,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 8164078558771037576, guid: 6fc32cab0814f13408692a8ac16bdb3b, type: 3}
       propertyPath: m_StaticEditorFlags
-      value: 127
+      value: 0
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -289,15 +290,16 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 616712c6bd2632d48a9920043642dd11, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _panelInstance: {fileID: 2487042253669358751}
-  _panelCanvasGroup: {fileID: 2203956708817231210}
-  _selectionColor: {r: 0, g: 0, b: 1, a: 1}
-  _animDuration: 0.25
-  _moveDistance: 0.2
-  _bigModelRenderer: {fileID: 445891415988303876}
-  _writeEnableIndicator: {fileID: 3286901907032242656}
-  isWriteEnabled: 1
-  _blinker: {fileID: 7741713044203854071}
+  panelInstance: {fileID: 2487042253669358751}
+  panelCanvasGroup: {fileID: 2203956708817231210}
+  selectionColor: {r: 0.24705882, g: 0.5254902, b: 0.70980394, a: 1}
+  animDuration: 0.25
+  moveDistance: 0.2
+  bigModelRenderer: {fileID: 445891415988303876}
+  selectionStyle: {fileID: 0}
+  writeEnableIndicator: {fileID: 3286901907032242656}
+  fixedWriteEnable: 1
+  blinker: {fileID: 7741713044203854071}
 --- !u!114 &8438169287631867190
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -322,9 +324,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 19ae1cc25764e0c499fd0c327a4e6f13, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _targetRenderer: {fileID: 7055715014177927376}
-  _blinkColor: {r: 1, g: 0.92156863, b: 0.015686275, a: 1}
-  _duration: 1
+  targetRenderer: {fileID: 7055715014177927376}
+  blinkColor: {r: 1, g: 0.92156863, b: 0.015686275, a: 1}
+  duration: 1
 --- !u!1001 &7327073837750676289
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -333,6 +335,18 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 1707636865834472578}
     m_Modifications:
+    - target: {fileID: 964600200095118186, guid: 1def6e806267c094eb2bb32d1ed02e95, type: 3}
+      propertyPath: m_StaticEditorFlags
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2329941979814835445, guid: 1def6e806267c094eb2bb32d1ed02e95, type: 3}
+      propertyPath: m_StaticEditorFlags
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4676655329865091468, guid: 1def6e806267c094eb2bb32d1ed02e95, type: 3}
+      propertyPath: m_StaticEditorFlags
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 4774225201205438934, guid: 1def6e806267c094eb2bb32d1ed02e95, type: 3}
       propertyPath: m_Pivot.x
       value: 0.5
@@ -425,9 +439,25 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 5048221621229966217, guid: 1def6e806267c094eb2bb32d1ed02e95, type: 3}
+      propertyPath: m_StaticEditorFlags
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 5128827109253756894, guid: 1def6e806267c094eb2bb32d1ed02e95, type: 3}
       propertyPath: m_Name
       value: RegisterControlPanel
+      objectReference: {fileID: 0}
+    - target: {fileID: 5128827109253756894, guid: 1def6e806267c094eb2bb32d1ed02e95, type: 3}
+      propertyPath: m_StaticEditorFlags
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6484255552056504899, guid: 1def6e806267c094eb2bb32d1ed02e95, type: 3}
+      propertyPath: m_StaticEditorFlags
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 9064051740892292433, guid: 1def6e806267c094eb2bb32d1ed02e95, type: 3}
+      propertyPath: m_StaticEditorFlags
+      value: 0
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -519,7 +549,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 8164078558771037576, guid: 12552cadfd0106a4ba6b61915fb1630d, type: 3}
       propertyPath: m_StaticEditorFlags
-      value: 127
+      value: 0
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []

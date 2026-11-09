@@ -55,6 +55,7 @@ Canvas:
   m_OverridePixelPerfect: 0
   m_SortingBucketNormalizedSize: 0
   m_VertexColorAlwaysGammaSpace: 0
+  m_UseReflectionProbes: 0
   m_AdditionalShaderChannelsFlag: 25
   m_UpdateRectTransformForStandalone: 0
   m_SortingLayerID: 0
@@ -163,6 +164,7 @@ MonoBehaviour:
   m_VerticalAlignment: 512
   m_textAlignment: 65535
   m_characterSpacing: 0
+  m_characterHorizontalScale: 1
   m_wordSpacing: 0
   m_lineSpacing: 0
   m_lineSpacingMax: 0
@@ -204,6 +206,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 6985465285183155930}
     m_Modifications:
+    - target: {fileID: 1887413795382866901, guid: 57fac40ae24f7c24da3abf23d5706c97, type: 3}
+      propertyPath: m_AdditionalShaderChannelsFlag
+      value: 25
+      objectReference: {fileID: 0}
     - target: {fileID: 4774225201205438934, guid: 57fac40ae24f7c24da3abf23d5706c97, type: 3}
       propertyPath: m_Pivot.x
       value: 0.5
@@ -372,6 +378,18 @@ PrefabInstance:
       propertyPath: m_AnchoredPosition.y
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 7311989326163492638, guid: 57fac40ae24f7c24da3abf23d5706c97, type: 3}
+      propertyPath: m_AdditionalShaderChannelsFlag
+      value: 25
+      objectReference: {fileID: 0}
+    - target: {fileID: 8030256971789097485, guid: 57fac40ae24f7c24da3abf23d5706c97, type: 3}
+      propertyPath: m_AdditionalShaderChannelsFlag
+      value: 25
+      objectReference: {fileID: 0}
+    - target: {fileID: 8457993130949856415, guid: 57fac40ae24f7c24da3abf23d5706c97, type: 3}
+      propertyPath: m_AdditionalShaderChannelsFlag
+      value: 25
+      objectReference: {fileID: 0}
     - target: {fileID: 8462844845571280285, guid: 57fac40ae24f7c24da3abf23d5706c97, type: 3}
       propertyPath: m_AnchorMax.y
       value: 0
@@ -486,7 +504,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 8164078558771037576, guid: 9738bb461a1e2f44b87869605f1e8347, type: 3}
       propertyPath: m_StaticEditorFlags
-      value: 127
+      value: 0
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -558,14 +576,16 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3602c908bd5b982498d930e327c4cbbf, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _panelInstance: {fileID: 2302354082995429797}
-  _panelCanvasGroup: {fileID: 6097904827329945309}
-  _selectionColor: {r: 1, g: 0, b: 0.80643034, a: 1}
-  _animDuration: 0.25
-  _moveDistance: 0.2
-  _bigModelRenderer: {fileID: 8175153611826135644}
-  _operationBanner: {fileID: 2856071512115036417}
-  _symbolForOperation: {fileID: 2898247403094644253}
+  panelInstance: {fileID: 2302354082995429797}
+  panelCanvasGroup: {fileID: 6097904827329945309}
+  selectionColor: {r: 0.24705882, g: 0.5254902, b: 0.70980394, a: 1}
+  animDuration: 0.25
+  moveDistance: 0.2
+  bigModelRenderer: {fileID: 8175153611826135644}
+  selectionStyle: {fileID: 0}
+  operationBanner: {fileID: 2856071512115036417}
+  symbolForOperation: {fileID: 2898247403094644253}
+  uiController: {fileID: 0}
 --- !u!4 &6985465285183155930 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 9738bb461a1e2f44b87869605f1e8347, type: 3}
