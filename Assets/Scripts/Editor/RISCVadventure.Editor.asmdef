@@ -1,0 +1,18 @@
+{
+    "name": "RISCVadventure.Editor",
+    "rootNamespace": "",
+    "references": [
+        "GUID:6ba9d0337d82db9478b4dc5b53924a3d"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": false,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
