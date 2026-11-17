@@ -2,6 +2,8 @@
   "dependencies": {
     "com.nosuchstudio.rtltmpro": "https://github.com/hk1ll3r/RTLTMPro.git?path=/UPMPackage",
     "com.unity.2d.spriteshape": "15.0.3",
+    "com.unity.2d.tilemap": "1.0.0",
+    "com.unity.2d.tilemap.extras": "8.0.3",
     "com.unity.ai.navigation": "2.0.14",
     "com.unity.collab-proxy": "2.13.6",
     "com.unity.ide.rider": "3.0.40",
